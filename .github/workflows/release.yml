@@ -105,7 +105,9 @@ jobs:
   build-windows:
     name: Windows desktop
     if: needs.version.outputs.is_release == 'true'
-    runs-on: windows-latest
+    # windows-2025 image ships a stale CMAKE_GENERATOR env (VS2019, not installed)
+    # and no VS2019 toolset -> pin to windows-2022 which has VS2022.
+    runs-on: windows-2022
     needs: version
     steps:
       - uses: actions/checkout@v4
@@ -120,6 +122,8 @@ jobs:
         run: flutter pub get
 
       - name: Build release app
+        env:
+          CMAKE_GENERATOR: Visual Studio 17 2022
         run: flutter build windows --release
 
       - name: Stage artifact
