@@ -56,16 +56,16 @@ class OrdersScreen extends StatelessWidget {
                   bg: AppColors.primarySoft,
                   size: 40),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Eyebrow('Workspace / Orders'),
-                    SizedBox(height: 4),
+                    const Eyebrow('Workspace / Orders'),
+                    const SizedBox(height: 4),
                     Text('Orders',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 21,
+                            fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),

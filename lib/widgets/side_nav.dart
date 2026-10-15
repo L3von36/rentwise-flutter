@@ -35,10 +35,15 @@ class SideNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
-    return Container(
-      width: width,
-      color: AppColors.sidebar,
-      child: Column(
+    // Top safe area: on devices with a notch/status bar the dark sidebar
+    // must not draw under it (nested SafeArea inside the drawer is a no-op).
+    return SafeArea(
+      top: true,
+      bottom: false,
+      child: Container(
+        width: width,
+        color: AppColors.sidebar,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Brand
@@ -203,6 +208,7 @@ class SideNav extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

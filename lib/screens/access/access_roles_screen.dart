@@ -30,25 +30,25 @@ class AccessRolesScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconChipLite(
+              const IconChipLite(
                   icon: Icons.verified_user_outlined,
                   color: AppColors.primary,
                   bg: AppColors.primarySoft,
                   size: 40),
-              SizedBox(width: 14),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Eyebrow('Workspace / Access & roles'),
-                    SizedBox(height: 4),
+                    const Eyebrow('Workspace / Access & roles'),
+                    const SizedBox(height: 4),
                     Text('Access & roles',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 21,
+                            fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),

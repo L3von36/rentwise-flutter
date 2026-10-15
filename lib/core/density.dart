@@ -11,4 +11,9 @@ class Density {
     if (w < 1000) return 20;
     return 26;
   }
+
+  /// True below the phone breakpoint — tightest density tier
+  /// (smaller titles, KPI values and card paddings).
+  static bool compact(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < 768;
 }

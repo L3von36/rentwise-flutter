@@ -43,16 +43,16 @@ class InventoryScreen extends StatelessWidget {
                   bg: AppColors.primarySoft,
                   size: 40),
               const SizedBox(width: 11),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Eyebrow('Workspace / Inventory'),
-                    SizedBox(height: 4),
+                    const Eyebrow('Workspace / Inventory'),
+                    const SizedBox(height: 4),
                     Text('Inventory',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 21,
+                            fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),

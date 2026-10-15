@@ -25,10 +25,10 @@ class ReportsScreen extends StatelessWidget {
         children: [
           const Eyebrow('Owner monitor'),
           const SizedBox(height: 6),
-          const Text('Reports',
+          Text('Reports',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 21,
+                  fontSize: Density.compact(context) ? 17 : 21,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.8,
                   color: AppColors.textDark)),

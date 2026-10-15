@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
@@ -155,8 +157,12 @@ Future<void> showNewBookingSheet(BuildContext context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (_) => Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      // Sit above the keyboard AND the system nav bar (whichever is taller)
+      // — the sheet itself draws edge-to-edge behind system UI.
+      padding: EdgeInsets.only(
+        bottom: math.max(MediaQuery.viewInsetsOf(context).bottom,
+            MediaQuery.paddingOf(context).bottom),
+      ),
       child: _BookingDialog(embed: true, prefill: prefill),
     ),
   );

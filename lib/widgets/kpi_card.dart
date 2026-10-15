@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
+import '../core/density.dart';
 import 'cards.dart';
 
 /// The 4-up metric card used on Dashboard / Inventory / Orders / Customers.
@@ -65,9 +66,9 @@ class KpiCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 21,
+              fontSize: Density.compact(context) ? 18 : 21,
               height: 1.1,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -153,9 +154,9 @@ class KpiTileMini extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 17,
+              fontSize: Density.compact(context) ? 16 : 17,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.4,
               color: AppColors.textDark,

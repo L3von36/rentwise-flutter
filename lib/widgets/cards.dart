@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
+import '../core/density.dart';
 
 /// White section card with icon + title (+ subtitle) and trailing action.
 class SectionCard extends StatelessWidget {
@@ -28,7 +29,9 @@ class SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding,
+      padding: Density.compact(context)
+          ? const EdgeInsets.fromLTRB(14, 12, 14, 12)
+          : padding,
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.card),

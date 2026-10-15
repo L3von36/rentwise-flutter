@@ -37,25 +37,25 @@ class ActivityLogScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconChipLite(
+              const IconChipLite(
                   icon: Icons.show_chart,
                   color: AppColors.primary,
                   bg: AppColors.primarySoft,
                   size: 40),
-              SizedBox(width: 11),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Eyebrow('Workspace / Activity Log'),
-                    SizedBox(height: 4),
+                    const Eyebrow('Workspace / Activity Log'),
+                    const SizedBox(height: 4),
                     Text('Activity Log',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 21,
+                            fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),
@@ -274,9 +274,9 @@ class _StatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(value,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 17,
+                        fontSize: Density.compact(context) ? 15 : 17,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                         color: AppColors.textDark)),

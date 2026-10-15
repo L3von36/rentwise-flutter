@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/breakpoints.dart';
 import '../state/workspace_state.dart';
@@ -46,39 +47,48 @@ class AppShell extends StatelessWidget {
       ),
     );
 
-    return Scaffold(
-      key: scaffoldKey,
-      drawer: useDrawer ? const AppDrawer() : null,
-      bottomNavigationBar: useBottomNav ? const RentWiseBottomNav() : null,
-      backgroundColor: AppShellColors.background,
-      body: (useDrawer || useBottomNav)
-          ? Column(
-              children: [
-                TopBar(
-                  compact: true,
-                  onOpenDrawer: useDrawer
-                      ? () => scaffoldKey.currentState?.openDrawer()
-                      : null,
-                ),
-                const Divider(height: 1),
-                Expanded(child: scrolledContent),
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SideNav(width: 230),
-                Expanded(
-                  child: Column(
-                    children: [
-                      const TopBar(compact: false),
-                      const Divider(height: 1),
-                      Expanded(child: scrolledContent),
-                    ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        key: scaffoldKey,
+        drawer: useDrawer ? const AppDrawer() : null,
+        bottomNavigationBar: useBottomNav ? const RentWiseBottomNav() : null,
+        backgroundColor: AppShellColors.background,
+        body: (useDrawer || useBottomNav)
+            ? Column(
+                children: [
+                  TopBar(
+                    compact: true,
+                    onOpenDrawer: useDrawer
+                        ? () => scaffoldKey.currentState?.openDrawer()
+                        : null,
                   ),
-                ),
-              ],
-            ),
+                  const Divider(height: 1),
+                  Expanded(child: scrolledContent),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SideNav(width: 230),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const TopBar(compact: false),
+                        const Divider(height: 1),
+                        Expanded(child: scrolledContent),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

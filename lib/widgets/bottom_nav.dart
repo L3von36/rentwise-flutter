@@ -21,7 +21,7 @@ class RentWiseBottomNav extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        height: 58,
+        height: 56,
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: AppColors.cardBorder)),

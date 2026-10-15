@@ -38,9 +38,15 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     final phoneApp =
         compact && Breakpoints.useBottomNav(MediaQuery.sizeOf(context).width);
     final showHamburger = compact && !phoneApp;
+    // Safe area: the custom bar draws edge-to-edge, so it must consume
+    // the status-bar inset itself (SafeArea would also work — this keeps
+    // the white background extending behind the status bar).
+    final topInset = MediaQuery.paddingOf(context).top;
+    final baseHeight = phoneApp ? 50.0 : 54.0;
     return Container(
-      height: 54,
+      height: baseHeight + topInset,
       color: Colors.white,
+      padding: EdgeInsets.only(top: topInset),
       child: Row(
         children: [
           if (showHamburger) ...[

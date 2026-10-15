@@ -35,16 +35,16 @@ class CustomersScreen extends StatelessWidget {
                   bg: AppColors.primarySoft,
                   size: 40),
               const SizedBox(width: 11),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Eyebrow('Workspace / Customers'),
-                    SizedBox(height: 4),
+                    const Eyebrow('Workspace / Customers'),
+                    const SizedBox(height: 4),
                     Text('Customers',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 21,
+                            fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),
@@ -548,18 +548,18 @@ class _PulsePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text('+18%',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 22,
+                      fontSize: Density.compact(context) ? 18 : 22,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.8,
-                      color: Color(0xFF7C3AED))),
-              SizedBox(width: 9),
-              Padding(
+                      color: const Color(0xFF7C3AED))),
+              const SizedBox(width: 9),
+              const Padding(
                 padding: EdgeInsets.only(bottom: 6),
                 child: Text('average lead time',
                     style: TextStyle(
