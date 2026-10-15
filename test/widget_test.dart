@@ -69,8 +69,44 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
 
-    // Dashboard visible
-    expect(find.text('Operations overview'), findsWidgets);
+    // Dashboard visible — employee gets the task-first shift view.
+    expect(find.text('Operations overview'), findsWidgets); // top-bar breadcrumb
+    expect(find.text('Your task list'), findsOneWidget);
+    expect(find.text('Quick actions'), findsOneWidget);
+    // Financial/owner-only widgets stay hidden from employees.
+    expect(find.text('Month to date'), findsNothing);
+    expect(find.text('Business Open'), findsNothing);
+  });
+
+  testWidgets('sign-in as owner lands on the business-pulse dashboard',
+      (tester) async {
+    // Desktop surface (matching the 1440×900 design pack).
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => WorkspaceState(),
+        child: const RentWiseApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Switch the role selector to Owner, then tap the CTA.
+    await tester.tap(find.text('Owner'));
+    await tester.pump();
+    await tester.tap(find.text('Sign in as owner'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    // Owner sees the financial pulse, not the employee shift view.
+    expect(find.text('Month to date'), findsOneWidget);
+    expect(find.text('Awaiting payment'), findsOneWidget);
+    expect(find.text('Revenue trend'), findsOneWidget);
+    expect(find.text('Business Open'), findsOneWidget);
+    expect(find.text('Your task list'), findsNothing);
+    expect(find.text('My recent actions'), findsNothing);
   });
 
   testWidgets('phone viewport shows bottom app nav instead of drawer',
@@ -98,7 +134,10 @@ void main() {
     expect(find.text('Stock'), findsOneWidget);
     expect(find.text('Orders'), findsWidgets);
     expect(find.text('More'), findsOneWidget);
-    expect(find.text('Operations overview'), findsWidgets);
+    // Employee phone home = shift view (role-differentiated dashboard).
+    expect(find.textContaining(', Jordan'), findsOneWidget);
+    expect(find.text('Quick actions'), findsOneWidget);
+    expect(find.text('Business Open'), findsNothing);
     // No hamburger / drawer chrome on phones.
     expect(find.byIcon(Icons.menu), findsNothing);
     expect(find.byType(NavigationDrawer), findsNothing);

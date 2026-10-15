@@ -201,6 +201,10 @@ class WorkspaceState extends ChangeNotifier {
 
   int get openOrdersCount =>
       _orders.where((o) => o.status.isOpen).length;
+  int get preparingCount =>
+      _orders.where((o) => o.status == OrderStatus.preparing).length;
+  int get needsPaymentCount =>
+      _orders.where((o) => o.status == OrderStatus.needsPayment).length;
   double get awaitingPaymentTotal => _orders
       .where((o) => o.status == OrderStatus.needsPayment)
       .fold(0, (s, o) => s + o.total);
@@ -281,6 +285,13 @@ class WorkspaceState extends ChangeNotifier {
   List<ActivityEntry> get activity => List.unmodifiable(_activity);
   int get unreadActivity => _unreadActivity;
   String get activityFilter => _activityFilter;
+
+  /// Activity entries logged by the signed-in user (employee's "my day").
+  List<ActivityEntry> get myActivity {
+    final name = _account?.name;
+    if (name == null) return const [];
+    return _activity.where((a) => a.actor == name).toList();
+  }
 
   List<ActivityEntry> get filteredActivity {
     if (_activityFilter == 'All') return _activity;
