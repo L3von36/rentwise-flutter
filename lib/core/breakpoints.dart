@@ -6,6 +6,10 @@ class Breakpoints {
   /// Below this width the sidebar collapses into a drawer (tablet-768 & mobile).
   static const double drawer = 950;
 
+  /// Below this width the app uses a phone-style bottom navigation bar
+  /// (native-app feel) instead of the website-style drawer.
+  static const double bottomNav = 768;
+
   /// Below this width KPI grids drop from 4 columns to 2.
   static const double kpiFourCol = 1100;
 
@@ -19,6 +23,7 @@ class Breakpoints {
   static const double sheetBelow = 640;
 
   static bool useDrawer(double width) => width < drawer;
+  static bool useBottomNav(double width) => width < bottomNav;
   static bool useCompactKpis(double width) => width < kpiFourCol;
   static bool useListCards(double width) => width < tableToList;
 }

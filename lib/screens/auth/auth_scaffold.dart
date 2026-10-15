@@ -288,12 +288,16 @@ class _Footer extends StatelessWidget {
         Icon(Icons.lock_outline_rounded,
             size: 14, color: AppColors.textMuted),
         SizedBox(width: 6),
-        Text('Enterprise-grade workspace security',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              color: AppColors.textMuted,
-            )),
+        Flexible(
+          child: Text('Enterprise-grade workspace security',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                color: AppColors.textMuted,
+              )),
+        ),
       ],
     );
     const help = Text('Need help? support@rentwise.app',

@@ -36,7 +36,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
     return AuthScaffold(
       eyebrow: 'Riverside Events Workspace',
       card: Container(
-        width: 420,
+        constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           color: Colors.white,

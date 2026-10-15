@@ -11,9 +11,11 @@ import '../screens/access/access_roles_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import 'side_nav.dart';
 import 'top_bar.dart';
+import 'bottom_nav.dart';
 
 /// Responsive workspace scaffold:
-/// ≥950px → permanent sidebar; below → hamburger + drawer.
+/// ≥950px → permanent sidebar; 768–950 → hamburger + drawer;
+/// <768 (phones) → native-app layout with bottom navigation bar.
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
@@ -21,7 +23,8 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
     final width = MediaQuery.sizeOf(context).width;
-    final useDrawer = Breakpoints.useDrawer(width);
+    final useBottomNav = Breakpoints.useBottomNav(width);
+    final useDrawer = !useBottomNav && Breakpoints.useDrawer(width);
     final scaffoldKey = GlobalKey<ScaffoldState>();
 
     final Widget content = switch (state.section) {
@@ -34,31 +37,31 @@ class AppShell extends StatelessWidget {
       Section.reports => const ReportsScreen(),
     };
 
+    final Widget scrolledContent = LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: content,
+        ),
+      ),
+    );
+
     return Scaffold(
       key: scaffoldKey,
       drawer: useDrawer ? const AppDrawer() : null,
+      bottomNavigationBar: useBottomNav ? const RentWiseBottomNav() : null,
       backgroundColor: AppShellColors.background,
-      body: useDrawer
+      body: (useDrawer || useBottomNav)
           ? Column(
               children: [
                 TopBar(
                   compact: true,
-                  onOpenDrawer: () =>
-                      scaffoldKey.currentState?.openDrawer(),
+                  onOpenDrawer: useDrawer
+                      ? () => scaffoldKey.currentState?.openDrawer()
+                      : null,
                 ),
                 const Divider(height: 1),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) =>
-                        SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight),
-                        child: content,
-                      ),
-                    ),
-                  ),
-                ),
+                Expanded(child: scrolledContent),
               ],
             )
           : Row(
@@ -70,18 +73,7 @@ class AppShell extends StatelessWidget {
                     children: [
                       const TopBar(compact: false),
                       const Divider(height: 1),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) =>
-                              SingleChildScrollView(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight),
-                              child: content,
-                            ),
-                          ),
-                        ),
-                      ),
+                      Expanded(child: scrolledContent),
                     ],
                   ),
                 ),

@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart' show Size;
+import 'package:flutter/material.dart' show Icons, NavigationDrawer, Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rentwise/app.dart';
 import 'package:rentwise/models/account.dart';
 import 'package:rentwise/state/workspace_state.dart';
+import 'package:rentwise/widgets/bottom_nav.dart';
 
 /// Plain unit test (no fake async) — exercises the store directly.
 void main() {
@@ -70,5 +71,54 @@ void main() {
 
     // Dashboard visible
     expect(find.text('Operations overview'), findsWidgets);
+  });
+
+  testWidgets('phone viewport shows bottom app nav instead of drawer',
+      (tester) async {
+    // Phone surface (matching the 390×844 design pack).
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => WorkspaceState(),
+        child: const RentWiseApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Sign in through the UI (signIn() uses a real timer internally).
+    await tester.tap(find.text('Sign in as employee'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    // Bottom nav tabs exist and the workspace is visible.
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Stock'), findsOneWidget);
+    expect(find.text('Orders'), findsWidgets);
+    expect(find.text('More'), findsOneWidget);
+    expect(find.text('Operations overview'), findsWidgets);
+    // No hamburger / drawer chrome on phones.
+    expect(find.byIcon(Icons.menu), findsNothing);
+    expect(find.byType(NavigationDrawer), findsNothing);
+
+    // Center ＋ opens the booking sheet.
+    await tester.tap(find.descendant(
+      of: find.byType(RentWiseBottomNav),
+      matching: find.byIcon(Icons.add_rounded),
+    ));
+    await tester.pumpAndSettle();
+    // Title appears in the sheet header (a "New booking" button may
+    // also exist on the underlying screen, so allow multiple hits).
+    expect(find.text('New rental booking'), findsWidgets);
+
+    // More sheet exposes secondary sections.
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('More'));
+    await tester.pumpAndSettle();
+    expect(find.text('Activity Log'), findsWidgets);
+    expect(find.text('Access & roles'), findsOneWidget);
   });
 }

@@ -43,7 +43,13 @@ class KpiCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconChipLite(icon: icon, color: iconColor, bg: iconBg),
-              if (trailing != null) trailing!,
+              if (trailing != null)
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: trailing!,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 10),
@@ -123,7 +129,13 @@ class KpiTileMini extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconChipLite(icon: icon, color: iconColor, bg: iconBg, size: 26),
-              if (trailing != null) trailing!,
+              if (trailing != null)
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: trailing!,
+                  ),
+                ),
             ],
           ),
           const Spacer(),

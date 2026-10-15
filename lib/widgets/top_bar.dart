@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
+import '../core/breakpoints.dart';
 import '../models/account.dart';
 import '../models/activity_entry.dart';
 import '../state/workspace_state.dart';
@@ -32,12 +33,17 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
+    // Phone app mode: bottom nav owns navigation — no hamburger,
+    // brand sits left (Telegram-style), search collapses to an icon.
+    final phoneApp =
+        compact && Breakpoints.useBottomNav(MediaQuery.sizeOf(context).width);
+    final showHamburger = compact && !phoneApp;
     return Container(
       height: 54,
       color: Colors.white,
       child: Row(
         children: [
-          if (compact) ...[
+          if (showHamburger) ...[
             const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.menu, color: AppColors.textDark),
@@ -47,6 +53,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               child: Center(child: BrandLockup(markSize: 22, fontSize: 15.5)),
             ),
             const SizedBox(width: 8),
+          ] else if (phoneApp) ...[
+            const SizedBox(width: 14),
+            const BrandLockup(markSize: 22, fontSize: 15.5),
+            const Spacer(),
           ] else ...[
             const SizedBox(width: 16),
             _Breadcrumb(state: state),
@@ -56,6 +66,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             const Spacer(),
             _SearchField(onOpen: () => _openSearch(context)),
             const SizedBox(width: 10),
+          ] else if (phoneApp) ...[
+            _SearchIconButton(onOpen: () => _openSearch(context)),
+            const SizedBox(width: 6),
           ] else
             const Spacer(),
 
@@ -120,6 +133,33 @@ class _Breadcrumb extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------- search field
+class _SearchIconButton extends StatelessWidget {
+  final VoidCallback onOpen;
+  const _SearchIconButton({required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onOpen,
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.cardBorder),
+          ),
+          child: const Icon(Icons.search_rounded,
+              size: 18, color: AppColors.textBody),
+        ),
+      ),
+    );
+  }
+}
+
 class _SearchField extends StatelessWidget {
   final VoidCallback onOpen;
   const _SearchField({required this.onOpen});

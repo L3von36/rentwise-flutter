@@ -34,7 +34,7 @@ class _SignInViewState extends State<SignInView> {
       card: Stack(
         children: [
           Container(
-            width: 420,
+            constraints: const BoxConstraints(maxWidth: 420),
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               color: Colors.white,

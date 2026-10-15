@@ -308,10 +308,16 @@ class _BookingDialogState extends State<_BookingDialog> {
                       flex: 5,
                       child: DropdownButtonFormField<String>(
                         value: _customer,
+                        isDense: true,
+                        isExpanded: true,
                         items: [
                           for (final c in state.customers)
                             DropdownMenuItem(
-                                value: c.name, child: Text(c.name)),
+                                value: c.name,
+                                child: Text(c.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13))),
                         ],
                         onChanged: (v) => setState(() => _customer = v),
                         decoration: const InputDecoration(
@@ -414,6 +420,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                       child: DropdownButtonFormField<InventoryItem>(
                         value: _picker,
                         isDense: true,
+                        isExpanded: true,
                         items: [
                           for (final i in state.inventory)
                             DropdownMenuItem(
@@ -487,51 +494,54 @@ class _BookingDialogState extends State<_BookingDialog> {
           ),
           child: Row(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Estimated total',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 11.5,
-                          color: AppColors.textMuted)),
-                  const SizedBox(height: 2),
-                  Text('\$${_total.toStringAsFixed(2)} / day',
-                      style: const TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textDark)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Estimated total',
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 11.5,
+                            color: AppColors.textMuted)),
+                    const SizedBox(height: 2),
+                    Text('\$${_total.toStringAsFixed(2)} / day',
+                        style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark)),
+                  ],
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
               Material(
-                color: _valid ? AppColors.primary : AppColors.textFaint,
-                borderRadius: BorderRadius.circular(11),
-                child: InkWell(
+                  color: _valid ? AppColors.primary : AppColors.textFaint,
                   borderRadius: BorderRadius.circular(11),
-                  onTap: _valid ? _submit : null,
-                  child: Container(
-                    height: 46,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20),
-                    alignment: Alignment.center,
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check_rounded,
-                            size: 17, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text('Create booking',
-                            style: TextStyle(
-                                fontFamily: AppTheme.fontFamily,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white)),
-                      ],
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(11),
+                    onTap: _valid ? _submit : null,
+                    child: Container(
+                      height: 46,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20),
+                      alignment: Alignment.center,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_rounded,
+                              size: 17, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Create booking',
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
