@@ -27,7 +27,7 @@ class KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -46,36 +46,36 @@ class KpiCard extends StatelessWidget {
               if (trailing != null) trailing!,
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
           Text(
             label,
             style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
               color: AppColors.textBody,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 27,
+              fontSize: 21,
               height: 1.1,
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.8,
+              letterSpacing: -0.5,
               color: AppColors.textDark,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 12.5,
+              fontSize: 11.5,
               color: AppColors.textMuted,
             ),
           ),
@@ -109,10 +109,10 @@ class KpiTileMini extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.cardBorder),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
@@ -122,7 +122,7 @@ class KpiTileMini extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconChipLite(icon: icon, color: iconColor, bg: iconBg, size: 28),
+              IconChipLite(icon: icon, color: iconColor, bg: iconBg, size: 26),
               if (trailing != null) trailing!,
             ],
           ),
@@ -133,19 +133,19 @@ class KpiTileMini extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 11.5,
+              fontSize: 11,
               color: AppColors.textMuted,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             value,
             style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 19,
+              fontSize: 17,
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+              letterSpacing: -0.4,
               color: AppColors.textDark,
             ),
           ),
@@ -156,7 +156,7 @@ class KpiTileMini extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 10.5,
+              fontSize: 10,
               color: AppColors.textFaint,
             ),
           ),

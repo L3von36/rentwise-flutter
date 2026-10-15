@@ -35,7 +35,7 @@ class _SignInViewState extends State<SignInView> {
         children: [
           Container(
             width: 420,
-            padding: const EdgeInsets.all(30),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -236,7 +236,7 @@ class _SignInViewState extends State<SignInView> {
                                         : 'Sign in as owner',
                                     style: const TextStyle(
                                       fontFamily: AppTheme.fontFamily,
-                                      fontSize: 14.5,
+                                      fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white,
                                     ),

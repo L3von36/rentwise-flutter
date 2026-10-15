@@ -30,7 +30,7 @@ const _NavItem _kReportsItem =
 /// Full-height sidebar for wide layouts.
 class SideNav extends StatelessWidget {
   final double width;
-  const SideNav({super.key, this.width = 258});
+  const SideNav({super.key, this.width = 230});
 
   @override
   Widget build(BuildContext context) {
@@ -43,33 +43,33 @@ class SideNav extends StatelessWidget {
         children: [
           // Brand
           const Padding(
-            padding: EdgeInsets.fromLTRB(24, 24, 24, 8),
+            padding: EdgeInsets.fromLTRB(18, 16, 18, 6),
             child: Align(
               alignment: Alignment.centerLeft,
               child: BrandLockup(),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // Workspace switcher
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: 14),
             child: _WorkspaceSwitcher(workspace: 'Riverside Events'),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 12),
 
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 26),
+            padding: EdgeInsets.symmetric(horizontal: 22),
             child: Text('WORKSPACE',
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 10.5,
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1.6,
+                  letterSpacing: 1.4,
                   color: AppColors.textFaint,
                 )),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           Expanded(
             child: ListView(
@@ -94,12 +94,12 @@ class SideNav extends StatelessWidget {
                         .read<WorkspaceState>()
                         .navigate(Section.reports),
                   ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
 
                 // All caught up card
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 8),
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.primarySoft.withOpacity(0.65),
                     borderRadius: BorderRadius.circular(14),
@@ -113,12 +113,12 @@ class SideNav extends StatelessWidget {
                           icon: Icons.auto_awesome,
                           color: AppColors.primary,
                           bg: Colors.white,
-                          size: 30),
-                      SizedBox(height: 10),
+                          size: 28),
+                      SizedBox(height: 8),
                       Text('All caught up',
                           style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textDark,
                           )),
@@ -127,15 +127,15 @@ class SideNav extends StatelessWidget {
                         'Every active rental is on track today.',
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 12,
-                          height: 1.4,
+                          fontSize: 11.5,
+                          height: 1.38,
                           color: AppColors.textBody,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
                 _SideItem(
                   item: const _NavItem(Section.access, Icons.tune, Icons.tune),
@@ -155,7 +155,7 @@ class SideNav extends StatelessWidget {
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: AppColors.cardBorder)),
             ),
-            padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
             child: Row(
               children: [
                 InitialsAvatar(
@@ -163,9 +163,9 @@ class SideNav extends StatelessWidget {
                   color: state.isOwner
                       ? AppColors.avatarIndigo
                       : AppColors.avatarGreen,
-                  size: 34,
+                  size: 30,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 9),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +176,7 @@ class SideNav extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textDark,
                         ),
@@ -187,7 +187,7 @@ class SideNav extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 11.5,
+                          fontSize: 11,
                           color: AppColors.textMuted,
                         ),
                       ),
@@ -271,7 +271,7 @@ class _SideItem extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(11),
           child: Container(
-            height: 42,
+            height: 38,
             padding: const EdgeInsets.only(left: 12),
             decoration: selected
                 ? BoxDecoration(
@@ -284,14 +284,14 @@ class _SideItem extends StatelessWidget {
             child: Row(
               children: [
                 Icon(selected ? item.iconActive : item.icon,
-                    size: 19, color: color),
+                    size: 18, color: color),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     overrideLabel ?? item.section.label,
                     style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 13.5,
+                      fontSize: 13,
                       fontWeight:
                           selected ? FontWeight.w700 : FontWeight.w500,
                       color: color,
@@ -339,7 +339,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
         borderRadius: BorderRadius.circular(13),
         onTap: () {},
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: AppColors.cardBorder),
@@ -348,8 +348,8 @@ class _WorkspaceSwitcher extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.primarySoft,
@@ -358,12 +358,12 @@ class _WorkspaceSwitcher extends StatelessWidget {
                 child: const Text('R',
                     style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 13.5,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
                     )),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 9),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +371,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
                     Text('Workspace',
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textMuted,
                         )),
@@ -381,7 +381,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textDark,
                         )),
@@ -389,7 +389,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
                 ),
               ),
               const Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 18, color: AppColors.textMuted),
+                  size: 16, color: AppColors.textMuted),
             ],
           ),
         ),
@@ -410,7 +410,7 @@ class AppDrawer extends StatelessWidget {
       shape: RoundedRectangleBorder(),
       child: SafeArea(
         right: false,
-        child: SideNav(width: 280),
+        child: SideNav(width: 254),
       ),
     );
   }

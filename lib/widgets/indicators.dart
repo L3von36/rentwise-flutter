@@ -21,7 +21,7 @@ class TrendChip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (flat) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
           color: AppColors.greenBg,
           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -40,7 +40,7 @@ class TrendChip extends StatelessWidget {
               text,
               style: const TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 11.5,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: AppColors.green,
               ),
@@ -55,7 +55,7 @@ class TrendChip extends StatelessWidget {
       children: [
         Icon(
           positive ? Icons.north_east : Icons.south_east,
-          size: 14,
+          size: 13,
           color: color,
         ),
         const SizedBox(width: 3),
@@ -63,7 +63,7 @@ class TrendChip extends StatelessWidget {
           text,
           style: TextStyle(
             fontFamily: 'Inter',
-            fontSize: 12,
+            fontSize: 11.5,
             fontWeight: FontWeight.w700,
             color: color,
           ),
@@ -83,7 +83,7 @@ class AvailabilityBar extends StatelessWidget {
   const AvailabilityBar({
     super.key,
     required this.fraction,
-    this.width = 64,
+    this.width = 56,
     this.height = 4,
     this.fillColor = AppColors.primary,
   });

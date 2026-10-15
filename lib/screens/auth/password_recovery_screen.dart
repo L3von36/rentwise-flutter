@@ -37,7 +37,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
       eyebrow: 'Riverside Events Workspace',
       card: Container(
         width: 420,
-        padding: const EdgeInsets.all(30),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -130,7 +130,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
                           Text('Send reset link',
                               style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                fontSize: 14.5,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               )),

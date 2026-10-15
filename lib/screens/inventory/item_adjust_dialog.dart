@@ -57,7 +57,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -77,14 +77,14 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                         Text(widget.item.name,
                             style: const TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                fontSize: 16,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.textDark)),
                         Text(
                             '${widget.item.category} · ${widget.item.totalStock} total units',
                             style: const TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                fontSize: 12.5,
+                                fontSize: 11.5,
                                 color: AppColors.textMuted)),
                       ],
                     ),
@@ -120,7 +120,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                       child: Text('$_available',
                           style: const TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              fontSize: 15,
+                              fontSize: 14,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textDark)),
                     ),

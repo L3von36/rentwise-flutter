@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
+import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../widgets/cards.dart';
@@ -17,7 +18,8 @@ class ReportsScreen extends StatelessWidget {
     final trend = Seed.revenueTrend(now);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 24, 30, 30),
+      padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
+          Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -26,7 +28,7 @@ class ReportsScreen extends StatelessWidget {
           const Text('Reports',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 28,
+                  fontSize: 21,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.8,
                   color: AppColors.textDark)),

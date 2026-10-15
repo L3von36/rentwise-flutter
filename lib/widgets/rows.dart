@@ -28,10 +28,10 @@ class ActivityRow extends StatelessWidget {
         InitialsAvatar(
           initials: entry.actorInitials,
           color: entry.actorColor,
-          size: 34,
-          fontSize: 12,
+          size: 30,
+          fontSize: 11,
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,7 +42,7 @@ class ActivityRow extends StatelessWidget {
                   child: Text(time,
                       style: const TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 11.5,
+                        fontSize: 11,
                         color: AppColors.textFaint,
                       )),
                 ),
@@ -52,7 +52,7 @@ class ActivityRow extends StatelessWidget {
                 Text(time,
                     style: const TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 11.5,
+                      fontSize: 11,
                       color: AppColors.textFaint,
                     )),
               ],
@@ -64,8 +64,8 @@ class ActivityRow extends StatelessWidget {
           label: entry.type.label,
           fg: entry.type.fg,
           bg: entry.type.bg,
-          fontSize: 11,
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          fontSize: 10.5,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         ),
       ],
     );
@@ -74,9 +74,9 @@ class ActivityRow extends StatelessWidget {
     return Column(
       children: [
         row,
-        const SizedBox(height: 14),
+        const SizedBox(height: 11),
         const Divider(),
-        const SizedBox(height: 14),
+        const SizedBox(height: 11),
       ],
     );
   }
@@ -113,8 +113,8 @@ class PickupRow extends StatelessWidget {
     final content = Row(
       children: [
         Container(
-          width: 44,
-          padding: const EdgeInsets.symmetric(vertical: 7),
+          width: 38,
+          padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.subtleFill,
             borderRadius: BorderRadius.circular(10),
@@ -125,7 +125,7 @@ class PickupRow extends StatelessWidget {
               Text('${pickup.date.day}',
                   style: const TextStyle(
                     fontFamily: AppTheme.fontFamily,
-                    fontSize: 15,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textDark,
                     height: 1.1,
@@ -143,7 +143,7 @@ class PickupRow extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,9 +184,9 @@ class PickupRow extends StatelessWidget {
     return Column(
       children: [
         content,
-        const SizedBox(height: 13),
+        const SizedBox(height: 10),
         const Divider(),
-        const SizedBox(height: 13),
+        const SizedBox(height: 10),
       ],
     );
   }

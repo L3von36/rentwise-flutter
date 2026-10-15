@@ -17,9 +17,9 @@ class _HeaderCell extends StatelessWidget {
       text.toUpperCase(),
       style: const TextStyle(
         fontFamily: AppTheme.fontFamily,
-        fontSize: 10.5,
+        fontSize: 10,
         fontWeight: FontWeight.w700,
-        letterSpacing: 1.1,
+        letterSpacing: 1.0,
         color: AppColors.textMuted,
       ),
     );
@@ -49,7 +49,7 @@ class InventoryTable extends StatelessWidget {
       children: [
         // header
         Padding(
-          padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
+          padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
           child: Row(
             children: [
               Expanded(flex: compactMode ? 5 : 4, child: const _HeaderCell('Item name')),
@@ -58,7 +58,7 @@ class InventoryTable extends StatelessWidget {
               Expanded(
                   flex: compactMode ? 3 : 2, child: const _HeaderCell('Available')),
               if (!compactMode) const Expanded(flex: 2, child: _HeaderCell('Status')),
-              if (showActions) const SizedBox(width: 148),
+              if (showActions) const SizedBox(width: 128),
             ],
           ),
         ),
@@ -93,7 +93,7 @@ class _InventoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.cardBorder)),
       ),
@@ -107,9 +107,9 @@ class _InventoryRow extends StatelessWidget {
                   icon: item.icon,
                   color: AppColors.primary,
                   bg: AppColors.primarySoft,
-                  size: 34,
+                  size: 30,
                 ),
-                const SizedBox(width: 11),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

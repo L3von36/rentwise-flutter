@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../models/rental_order.dart';
@@ -41,7 +42,8 @@ class OrdersScreen extends StatelessWidget {
     final compactList = width < 860;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 24, 30, 30),
+      padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
+          Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -63,7 +65,7 @@ class OrdersScreen extends StatelessWidget {
                     Text('Orders',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 28,
+                            fontSize: 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),

@@ -64,7 +64,7 @@ class AppShell extends StatelessWidget {
           : Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SideNav(width: 258),
+                const SideNav(width: 230),
                 Expanded(
                   child: Column(
                     children: [

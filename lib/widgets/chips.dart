@@ -15,8 +15,8 @@ class IconChip extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.bg,
-    this.size = 36,
-    this.radius = 10,
+    this.size = 32,
+    this.radius = 9,
     this.iconScale = 0.55,
   });
 
@@ -66,8 +66,8 @@ class StatusBadge extends StatelessWidget {
     required this.fg,
     required this.bg,
     this.dot = true,
-    this.fontSize = 11.5,
-    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    this.fontSize = 11,
+    this.padding = const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
   });
 
   const StatusBadge.custom({
@@ -76,8 +76,8 @@ class StatusBadge extends StatelessWidget {
     required this.fg,
     required this.bg,
     this.dot = false,
-    this.fontSize = 11.5,
-    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    this.fontSize = 11,
+    this.padding = const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
   });
 
   @override
@@ -95,7 +95,7 @@ class StatusBadge extends StatelessWidget {
           children: [
             if (dot) ...[
               Dot(color: fg),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
             ],
             Text(
               label,
@@ -124,8 +124,8 @@ class InitialsAvatar extends StatelessWidget {
     super.key,
     required this.initials,
     required this.color,
-    this.size = 34,
-    this.fontSize = 12.5,
+    this.size = 30,
+    this.fontSize = 11.5,
   });
 
   @override

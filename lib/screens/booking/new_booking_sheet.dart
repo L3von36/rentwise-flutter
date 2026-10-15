@@ -256,7 +256,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                   Text('New rental booking',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 17,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textDark)),
                   SizedBox(height: 2),
@@ -347,8 +347,8 @@ class _BookingDialogState extends State<_BookingDialog> {
                     if (picked != null) setState(() => _eventDate = picked);
                   },
                   child: Container(
-                    height: 46,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    height: 42,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
@@ -499,7 +499,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                   Text('\$${_total.toStringAsFixed(2)} / day',
                       style: const TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 17,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textDark)),
                 ],
@@ -524,7 +524,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                         Text('Create booking',
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white)),
                       ],
@@ -542,7 +542,7 @@ class _BookingDialogState extends State<_BookingDialog> {
       return Container(
         constraints: BoxConstraints(
             maxHeight: MediaQuery.sizeOf(context).height * 0.88),
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -553,11 +553,11 @@ class _BookingDialogState extends State<_BookingDialog> {
 
     return Dialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(18),
           child: content,
         ),
       ),
@@ -582,7 +582,7 @@ class _Label extends StatelessWidget {
     return Text(text,
         style: const TextStyle(
           fontFamily: AppTheme.fontFamily,
-          fontSize: 12.5,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppColors.textDark,
         ));

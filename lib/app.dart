@@ -15,6 +15,16 @@ class RentWiseApp extends StatelessWidget {
       title: 'RentWise — Event Rentals',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      builder: (context, child) {
+        // Compact app: tighten the whole text scale on narrow screens.
+        final w = MediaQuery.sizeOf(context).width;
+        final scale = w < 430 ? 0.92 : w < 600 ? 0.94 : w < 1000 ? 0.97 : 1.0;
+        return MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(scale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const AuthGate(),
     );
   }

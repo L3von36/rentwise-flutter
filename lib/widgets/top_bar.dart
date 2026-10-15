@@ -27,13 +27,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   const TopBar({super.key, required this.compact, this.onOpenDrawer});
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
+  Size get preferredSize => const Size.fromHeight(54);
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
     return Container(
-      height: 64,
+      height: 54,
       color: Colors.white,
       child: Row(
         children: [
@@ -44,27 +44,27 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onOpenDrawer,
             ),
             const Expanded(
-              child: Center(child: BrandLockup(markSize: 24, fontSize: 17)),
+              child: Center(child: BrandLockup(markSize: 22, fontSize: 15.5)),
             ),
             const SizedBox(width: 8),
           ] else ...[
-            const SizedBox(width: 26),
+            const SizedBox(width: 16),
             _Breadcrumb(state: state),
           ],
 
           if (!compact) ...[
             const Spacer(),
             _SearchField(onOpen: () => _openSearch(context)),
-            const SizedBox(width: 14),
+            const SizedBox(width: 10),
           ] else
             const Spacer(),
 
           _BellButton(unread: state.unreadActivity),
 
           if (!compact) ...[
-            const SizedBox(width: 14),
+            const SizedBox(width: 10),
             _UserChip(state: state),
-            const SizedBox(width: 24),
+            const SizedBox(width: 14),
           ] else
             const SizedBox(width: 12),
         ],
@@ -95,7 +95,7 @@ class _Breadcrumb extends StatelessWidget {
           'Riverside Events',
           style: TextStyle(
             fontFamily: AppTheme.fontFamily,
-            fontSize: 13.5,
+            fontSize: 12.5,
             fontWeight: FontWeight.w500,
             color: AppColors.textMuted,
           ),
@@ -109,7 +109,7 @@ class _Breadcrumb extends StatelessWidget {
           state.section.breadcrumb,
           style: const TextStyle(
             fontFamily: AppTheme.fontFamily,
-            fontSize: 13.5,
+            fontSize: 12.5,
             fontWeight: FontWeight.w600,
             color: AppColors.textDark,
           ),
@@ -130,8 +130,8 @@ class _SearchField extends StatelessWidget {
       onTap: onOpen,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        width: 300,
-        height: 40,
+        width: 250,
+        height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: AppColors.subtleFill,
@@ -141,7 +141,7 @@ class _SearchField extends StatelessWidget {
         child: Row(
           children: [
             const Icon(Icons.search_rounded,
-                size: 18, color: AppColors.textMuted),
+                size: 16, color: AppColors.textMuted),
             const SizedBox(width: 8),
             const Expanded(
               child: Text(
@@ -150,7 +150,7 @@ class _SearchField extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textFaint,
                 ),
@@ -213,7 +213,7 @@ class _SearchDialogState extends State<_SearchDialog> {
     final results = _results(state);
     return Dialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 90),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 70),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
         child: Column(
@@ -259,21 +259,21 @@ class _SearchDialogState extends State<_SearchDialog> {
                                 : Icons.person_outline,
                         color: AppColors.primary,
                         bg: AppColors.primarySoft,
-                        size: 32,
+                        size: 28,
                       ),
                       title: Text(hit.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              fontSize: 13.5,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600)),
                       subtitle: Text(hit.subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              fontSize: 12)),
+                              fontSize: 11.5)),
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
@@ -284,7 +284,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                         child: Text(hit.type,
                             style: const TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                fontSize: 10.5,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textMuted)),
                       ),
@@ -331,14 +331,14 @@ class _BellButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             onTap: () => _showNotifications(context),
             child: Container(
-              width: 40,
-              height: 40,
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.cardBorder),
               ),
               child: const Icon(Icons.notifications_none_rounded,
-                  size: 20, color: AppColors.textBody),
+                  size: 18, color: AppColors.textBody),
             ),
           ),
         ),
@@ -347,8 +347,8 @@ class _BellButton extends StatelessWidget {
             top: -3,
             right: -3,
             child: Container(
-              width: 16,
-              height: 16,
+              width: 15,
+              height: 15,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.primary,
@@ -378,7 +378,7 @@ class _BellButton extends StatelessWidget {
         return Dialog(
           backgroundColor: Colors.white,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380, maxHeight: 480),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 440),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -388,7 +388,7 @@ class _BellButton extends StatelessWidget {
                   child: Text('Notifications',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700)),
                 ),
                 const Padding(
@@ -396,7 +396,7 @@ class _BellButton extends StatelessWidget {
                   child: Text('Latest employee actions in the workspace.',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
+                          fontSize: 12,
                           color: AppColors.textMuted)),
                 ),
                 Flexible(
@@ -432,19 +432,19 @@ class _NotificationRow extends StatelessWidget {
           InitialsAvatar(
               initials: entry.actorInitials,
               color: entry.actorColor,
-              size: 30,
-              fontSize: 11),
+              size: 26,
+              fontSize: 10),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _RichActivityText(body: entry.body, fontSize: 12.5),
+                _RichActivityText(body: entry.body, fontSize: 12),
                 const SizedBox(height: 3),
                 Text(_timeLabel(entry.at),
                     style: const TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 11,
+                        fontSize: 10.5,
                         color: AppColors.textFaint)),
               ],
             ),
@@ -454,9 +454,9 @@ class _NotificationRow extends StatelessWidget {
             label: entry.type.label,
             fg: entry.type.fg,
             bg: entry.type.bg,
-            fontSize: 10.5,
+            fontSize: 10,
             padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           ),
         ],
       ),
@@ -496,13 +496,13 @@ class _UserChip extends StatelessWidget {
               Text(state.account?.name ?? '',
                   style: const TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 13.5,
+                      fontSize: 13,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
               Text(state.account?.email ?? '',
                   style: const TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 12,
+                      fontSize: 11.5,
                       color: AppColors.textMuted)),
             ],
           ),
@@ -517,7 +517,7 @@ class _UserChip extends StatelessWidget {
               Text('Sign out',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 13.5,
+                      fontSize: 13,
                       color: AppColors.red,
                       fontWeight: FontWeight.w600)),
             ],
@@ -538,10 +538,10 @@ class _UserChip extends StatelessWidget {
               color: state.isOwner
                   ? AppColors.avatarIndigo
                   : AppColors.avatarGreen,
-              size: 30,
-              fontSize: 11,
+              size: 26,
+              fontSize: 10,
             ),
-            const SizedBox(width: 9),
+            const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -549,13 +549,13 @@ class _UserChip extends StatelessWidget {
                 Text(state.account?.name ?? '',
                     style: const TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDark)),
                 Text(state.role.label,
                     style: const TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 10.5,
+                        fontSize: 10,
                         color: AppColors.textMuted)),
               ],
             ),

@@ -21,7 +21,7 @@ class SectionCard extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.action,
-    this.padding = const EdgeInsets.fromLTRB(20, 18, 20, 18),
+    this.padding = const EdgeInsets.fromLTRB(16, 14, 16, 14),
     required this.child,
   });
 
@@ -43,7 +43,7 @@ class SectionCard extends StatelessWidget {
             children: [
               if (icon != null) ...[
                 IconChipLite(icon: icon!, color: iconColor, bg: iconBg),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
               ],
               Expanded(
                 child: Column(
@@ -59,10 +59,10 @@ class SectionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (action != null) ...[const SizedBox(width: 12), action!],
+              if (action != null) ...[const SizedBox(width: 10), action!],
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           child,
         ],
       ),
@@ -81,7 +81,7 @@ class IconChipLite extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.bg,
-    this.size = 34,
+    this.size = 30,
   });
 
   @override
@@ -91,7 +91,7 @@ class IconChipLite extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, size: size * 0.55, color: color),
     );
@@ -110,9 +110,9 @@ class Eyebrow extends StatelessWidget {
       text.toUpperCase(),
       style: TextStyle(
         fontFamily: AppTheme.fontFamily,
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: FontWeight.w700,
-        letterSpacing: 1.4,
+        letterSpacing: 1.2,
         color: color,
       ),
     );
@@ -133,8 +133,8 @@ class PrimaryButton extends StatelessWidget {
     required this.label,
     this.icon,
     this.onTap,
-    this.height = 44,
-    this.fontSize = 14,
+    this.height = 40,
+    this.fontSize = 13,
     this.expanded = false,
   });
 
@@ -142,13 +142,13 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = Material(
       color: onTap == null ? AppColors.textFaint : AppColors.primary,
-      borderRadius: BorderRadius.circular(11),
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           height: height,
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -192,36 +192,36 @@ class OutlineButton extends StatelessWidget {
     this.icon,
     this.onTap,
     this.fg = AppColors.textBody,
-    this.height = 40,
+    this.height = 36,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(9),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9),
         child: Container(
           height: height,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(9),
             border: Border.all(color: AppColors.cardBorder),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: fg),
-                const SizedBox(width: 7),
+                Icon(icon, size: 15, color: fg),
+                const SizedBox(width: 6),
               ],
               Text(
                 label,
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: fg,
                 ),

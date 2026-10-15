@@ -64,7 +64,7 @@ class PopupFilterButton extends StatelessWidget {
         for (final item in items)
           PopupMenuItem(
             value: item,
-            height: 38,
+            height: 34,
             child: Row(
               children: [
                 if (item == value)
@@ -88,7 +88,7 @@ class PopupFilterButton extends StatelessWidget {
           ),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
@@ -103,7 +103,7 @@ class PopupFilterButton extends StatelessWidget {
             Text(value,
                 style: const TextStyle(
                     fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textBody)),
             const SizedBox(width: 5),

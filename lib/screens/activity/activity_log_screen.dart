@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../state/workspace_state.dart';
@@ -31,7 +32,8 @@ class ActivityLogScreen extends StatelessWidget {
     final dateLabel = DateFormat('EEEE, MMMM d').format(now);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 24, 30, 30),
+      padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
+          Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -43,7 +45,7 @@ class ActivityLogScreen extends StatelessWidget {
                   color: AppColors.primary,
                   bg: AppColors.primarySoft,
                   size: 40),
-              SizedBox(width: 14),
+              SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,7 +55,7 @@ class ActivityLogScreen extends StatelessWidget {
                     Text('Activity Log',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 28,
+                            fontSize: 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),
@@ -68,7 +70,7 @@ class ActivityLogScreen extends StatelessWidget {
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
                   color: AppColors.textMuted)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
 
           // stat mini-cards
           LayoutBuilder(builder: (context, c) {
@@ -102,7 +104,7 @@ class ActivityLogScreen extends StatelessWidget {
               ],
             );
           }),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           SectionCard(
             icon: Icons.show_chart,
@@ -205,7 +207,7 @@ class ActivityLogScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                 ],
                 // timeline
                 ..._buildTimeline(entries),
@@ -266,7 +268,7 @@ class _StatCard extends StatelessWidget {
       child: Row(
         children: [
           Dot(color: dotColor, size: 8),
-          const SizedBox(width: 14),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +276,7 @@ class _StatCard extends StatelessWidget {
                 Text(value,
                     style: const TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 21,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                         color: AppColors.textDark)),

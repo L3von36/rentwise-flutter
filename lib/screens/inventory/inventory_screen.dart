@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../state/workspace_state.dart';
@@ -28,7 +29,8 @@ class InventoryScreen extends StatelessWidget {
         state.totalUnits == 0 ? 0 : (state.onRentUnits / state.totalUnits * 100);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 24, 30, 30),
+      padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
+          Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,7 +42,7 @@ class InventoryScreen extends StatelessWidget {
                   color: AppColors.primary,
                   bg: AppColors.primarySoft,
                   size: 40),
-              const SizedBox(width: 14),
+              const SizedBox(width: 11),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,7 +52,7 @@ class InventoryScreen extends StatelessWidget {
                     Text('Inventory',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 28,
+                            fontSize: 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),
@@ -70,7 +72,7 @@ class InventoryScreen extends StatelessWidget {
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
                   color: AppColors.textMuted)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
 
           // KPI grid
           LayoutBuilder(builder: (context, c) {
@@ -138,7 +140,7 @@ class InventoryScreen extends StatelessWidget {
               ],
             );
           }),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // main card
           SectionCard(
@@ -235,7 +237,7 @@ class InventoryScreen extends StatelessWidget {
           title: const Text('Add inventory',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.w800)),
           content: SizedBox(
             width: 380,

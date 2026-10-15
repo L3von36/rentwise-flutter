@@ -4,7 +4,7 @@ import '../core/app_colors.dart';
 /// RentWise brand mark — indigo rounded swoosh.
 class BrandMark extends StatelessWidget {
   final double size;
-  const BrandMark({super.key, this.size = 30});
+  const BrandMark({super.key, this.size = 26});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +64,7 @@ class BrandLockup extends StatelessWidget {
   final double fontSize;
   final bool dark;
   const BrandLockup(
-      {super.key, this.markSize = 30, this.fontSize = 19, this.dark = true});
+      {super.key, this.markSize = 26, this.fontSize = 17, this.dark = true});
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +74,7 @@ class BrandLockup extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         BrandMark(size: markSize),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Text.rich(
           TextSpan(
             children: [
@@ -84,7 +84,7 @@ class BrandLockup extends StatelessWidget {
                   fontFamily: 'Inter',
                   fontSize: fontSize,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.4,
                   color: dark ? AppColors.textDark : Colors.white,
                 ),
               ),
@@ -97,7 +97,7 @@ class BrandLockup extends StatelessWidget {
                   fontFamily: 'Inter',
                   fontSize: fontSize * 0.52,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1.6,
+                  letterSpacing: 1.3,
                   color: dark
                       ? AppColors.textMuted
                       : Colors.white.withOpacity(0.8),

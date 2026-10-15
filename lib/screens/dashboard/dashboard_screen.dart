@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../models/inventory_item.dart';
@@ -53,7 +54,8 @@ class _OperationsOverview extends StatelessWidget {
     final snapshot = state.inventory.take(6).toList();
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(wide ? 30 : 18, 24, wide ? 30 : 18, 30),
+      padding: EdgeInsets.fromLTRB(
+          Density.pagePad(context), 18, Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -73,7 +75,7 @@ class _OperationsOverview extends StatelessWidget {
                         "Keep today's handoffs moving and every item accounted for.",
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 14,
+                            fontSize: 13,
                             color: AppColors.textMuted)),
                   ],
                 ),
@@ -86,12 +88,12 @@ class _OperationsOverview extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // KPI grid
           LayoutBuilder(builder: (context, c) {
             final cols = wide ? 4 : 2;
-            const gap = 16.0;
+            const gap = 12.0;
             final cardW = (c.maxWidth - gap * (cols - 1)) / cols;
             return Wrap(
               spacing: gap,
@@ -153,7 +155,7 @@ class _OperationsOverview extends StatelessWidget {
               ],
             );
           }),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // main grid
           if (wide)
@@ -332,7 +334,7 @@ class _WorkspaceHealth extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -343,7 +345,7 @@ class _WorkspaceHealth extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Eyebrow('Workspace health'),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -351,12 +353,12 @@ class _WorkspaceHealth extends StatelessWidget {
                     style: Theme.of(context).textTheme.headlineSmall),
               ),
               Container(
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 decoration: const BoxDecoration(
                     color: AppColors.greenBg, shape: BoxShape.circle),
                 child: const Icon(Icons.check_rounded,
-                    size: 18, color: AppColors.green),
+                    size: 16, color: AppColors.green),
               ),
             ],
           ),
@@ -422,7 +424,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = state.activity.take(4).toList();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -442,7 +444,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                     const Text("Here's the pulse of Riverside Events.",
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 13.5,
+                            fontSize: 12.5,
                             color: AppColors.textMuted)),
                   ],
                 ),
@@ -451,18 +453,18 @@ class _OwnerCompactDashboard extends StatelessWidget {
               const InitialsAvatar(
                   initials: 'OW',
                   color: AppColors.avatarIndigo,
-                  size: 42,
-                  fontSize: 14),
+                  size: 36,
+                  fontSize: 12.5),
             ],
           ),
           const SizedBox(height: 18),
 
           // business open banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.greenBg.withOpacity(0.55),
-              borderRadius: BorderRadius.circular(13),
+              borderRadius: BorderRadius.circular(11),
               border: Border.all(color: AppColors.greenBg),
             ),
             child: Row(
@@ -472,7 +474,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                 const Text('Business Open',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 13.5,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.green)),
                 const SizedBox(width: 12),
@@ -482,15 +484,15 @@ class _OwnerCompactDashboard extends StatelessWidget {
                   child: Text('Closes at ${Seed.businessCloseTime}',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
+                          fontSize: 12,
                           color: AppColors.textBody)),
                 ),
                 const Icon(Icons.chevron_right_rounded,
-                    size: 18, color: AppColors.green),
+                    size: 16, color: AppColors.green),
               ],
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
 
           // Today at a glance
           Row(
@@ -498,7 +500,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
               const Text('Today at a glance',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 15.5,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textDark)),
               const Spacer(),
@@ -508,9 +510,9 @@ class _OwnerCompactDashboard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           const SizedBox(
-            height: 148,
+            height: 122,
             child: Row(
               children: [
                 Expanded(
@@ -552,14 +554,14 @@ class _OwnerCompactDashboard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
 
           // Live activity
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.cardBorder),
               boxShadow: AppShadow.card(opacity: 0.04),
             ),
@@ -572,7 +574,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                       child: Text('Live activity',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              fontSize: 16,
+                              fontSize: 14.5,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textDark)),
                     ),
@@ -590,10 +592,10 @@ class _OwnerCompactDashboard extends StatelessWidget {
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
                         color: AppColors.textMuted)),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 for (final e in entries)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 15),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: ActivityRow(entry: e, showDivider: false),
                   ),
                 Align(
@@ -606,14 +608,14 @@ class _OwnerCompactDashboard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // Next dispatch
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.cardBorder),
               boxShadow: AppShadow.card(opacity: 0.04),
             ),
@@ -626,8 +628,8 @@ class _OwnerCompactDashboard extends StatelessWidget {
                         icon: Icons.local_shipping_outlined,
                         color: AppColors.blue,
                         bg: AppColors.blueBg,
-                        size: 34),
-                    SizedBox(width: 12),
+                        size: 30),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,7 +639,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                           Text('Oakwood Estate',
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
-                                  fontSize: 15,
+                                  fontSize: 13.5,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.textDark)),
                         ],
@@ -646,14 +648,14 @@ class _OwnerCompactDashboard extends StatelessWidget {
                     Text('3:30 PM',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: AppColors.primary)),
                   ],
                 ),
-                SizedBox(height: 14),
+                SizedBox(height: 11),
                 Divider(),
-                SizedBox(height: 12),
+                SizedBox(height: 10),
                 Row(
                   children: [
                     Icon(Icons.event_outlined,

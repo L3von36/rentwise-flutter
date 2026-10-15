@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../state/workspace_state.dart';
@@ -20,7 +21,8 @@ class CustomersScreen extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 24, 30, 30),
+      padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
+          Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -32,7 +34,7 @@ class CustomersScreen extends StatelessWidget {
                   color: AppColors.primary,
                   bg: AppColors.primarySoft,
                   size: 40),
-              const SizedBox(width: 14),
+              const SizedBox(width: 11),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,7 +44,7 @@ class CustomersScreen extends StatelessWidget {
                     Text('Customers',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: 28,
+                            fontSize: 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppColors.textDark)),
@@ -62,7 +64,7 @@ class CustomersScreen extends StatelessWidget {
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
                   color: AppColors.textMuted)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
 
           LayoutBuilder(builder: (context, c) {
             final cols = width < 1100 ? 2 : 4;
@@ -127,7 +129,7 @@ class CustomersScreen extends StatelessWidget {
               ],
             );
           }),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // directory + pulse
           IntrinsicHeight(
@@ -136,14 +138,14 @@ class CustomersScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(flex: 8, child: _Directory(state: state)),
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 14),
                       const Expanded(flex: 4, child: _PulsePanel()),
                     ],
                   )
                 : Column(
                     children: [
                       _Directory(state: state),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 14),
                       const _PulsePanel(),
                     ],
                   ),
@@ -167,7 +169,7 @@ class CustomersScreen extends StatelessWidget {
         title: const Text('Add customer',
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
-                fontSize: 17,
+                fontSize: 15,
                 fontWeight: FontWeight.w800)),
         content: SizedBox(
           width: 380,
@@ -530,7 +532,7 @@ class _PulsePanel extends StatelessWidget {
           const Text('Customers are booking earlier.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 20,
+                  fontSize: 16,
                   height: 1.25,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
@@ -545,14 +547,14 @@ class _PulsePanel extends StatelessWidget {
               color: AppColors.textBody,
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
           const Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text('+18%',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      fontSize: 30,
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.8,
                       color: Color(0xFF7C3AED))),
@@ -567,7 +569,7 @@ class _PulsePanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 11),
           SizedBox(
             height: 46,
             child: Row(
@@ -594,7 +596,7 @@ class _PulsePanel extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const Row(
             children: [
               Text('View customer insights',

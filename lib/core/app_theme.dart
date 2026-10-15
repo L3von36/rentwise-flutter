@@ -23,10 +23,25 @@ class AppTheme {
       fontFamily: fontFamily,
       scaffoldBackgroundColor: AppColors.background,
       splashFactory: InkRipple.splashFactory,
+      visualDensity: VisualDensity.compact,
     );
 
     return base.copyWith(
       textTheme: _textTheme(base.textTheme),
+      listTileTheme: const ListTileThemeData(
+        dense: true,
+        iconColor: AppColors.textBody,
+        titleTextStyle: TextStyle(
+            fontFamily: fontFamily,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textDark),
+        subtitleTextStyle: TextStyle(
+            fontFamily: fontFamily,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textMuted),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
@@ -52,10 +67,10 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         hintStyle: const TextStyle(
             color: AppColors.textMuted,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w500),
         border: _inputBorder(AppColors.cardBorder),
         enabledBorder: _inputBorder(AppColors.cardBorder),
@@ -66,14 +81,14 @@ class AppTheme {
       dropdownMenuTheme: DropdownMenuThemeData(
         textStyle: const TextStyle(
             fontFamily: fontFamily,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
             color: AppColors.textDark),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           border: _inputBorder(AppColors.cardBorder),
           enabledBorder: _inputBorder(AppColors.cardBorder),
         ),
@@ -110,7 +125,7 @@ class AppTheme {
         contentTextStyle: const TextStyle(
             fontFamily: fontFamily,
             color: Colors.white,
-            fontSize: 13.5,
+            fontSize: 12.5,
             fontWeight: FontWeight.w500),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -120,7 +135,7 @@ class AppTheme {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18)),
+            borderRadius: BorderRadius.circular(16)),
       ),
       datePickerTheme: DatePickerThemeData(
         backgroundColor: Colors.white,
@@ -161,89 +176,89 @@ class AppTheme {
     return base.copyWith(
       displayLarge: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 44,
-          height: 1.06,
+          fontSize: 34,
+          height: 1.08,
           fontWeight: FontWeight.w800,
           color: dark,
-          letterSpacing: -1.4),
+          letterSpacing: -1.0),
       displayMedium: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 36,
-          height: 1.1,
+          fontSize: 28,
+          height: 1.12,
           fontWeight: FontWeight.w800,
           color: dark,
-          letterSpacing: -1.1),
+          letterSpacing: -0.8),
       headlineLarge: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 30,
-          height: 1.15,
+          fontSize: 23,
+          height: 1.18,
           fontWeight: FontWeight.w800,
           color: dark,
-          letterSpacing: -0.9),
+          letterSpacing: -0.7),
       headlineMedium: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 24,
-          height: 1.2,
+          fontSize: 19,
+          height: 1.22,
           fontWeight: FontWeight.w800,
           color: dark,
-          letterSpacing: -0.6),
+          letterSpacing: -0.4),
       headlineSmall: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 20,
+          fontSize: 17,
           height: 1.25,
           fontWeight: FontWeight.w700,
           color: dark,
-          letterSpacing: -0.4),
+          letterSpacing: -0.3),
       titleLarge: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 17,
+          fontSize: 15.5,
           fontWeight: FontWeight.w700,
           color: dark,
-          letterSpacing: -0.2),
+          letterSpacing: -0.1),
       titleMedium: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 15,
+          fontSize: 13.5,
           fontWeight: FontWeight.w600,
           color: dark),
       titleSmall: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 13.5,
+          fontSize: 12.5,
           fontWeight: FontWeight.w600,
           color: dark),
       bodyLarge: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: FontWeight.w400,
           color: AppColors.textBody,
-          height: 1.45),
+          height: 1.4),
       bodyMedium: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 13.5,
+          fontSize: 13,
           fontWeight: FontWeight.w400,
           color: AppColors.textBody,
-          height: 1.45),
+          height: 1.42),
       bodySmall: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 12.5,
+          fontSize: 11.5,
           fontWeight: FontWeight.w400,
           color: AppColors.textMuted,
-          height: 1.4),
+          height: 1.38),
       labelLarge: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w600,
           color: dark),
       labelMedium: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 12.5,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppColors.textBody),
       labelSmall: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: FontWeight.w600,
           color: AppColors.textMuted,
-          letterSpacing: 0.4),
+          letterSpacing: 0.3),
     );
   }
 }
