@@ -2,7 +2,7 @@
 
 One calm, connected place for event-rental **inventory, orders, customers, and activity** — built with Flutter from the RentWise screen design pack. Single responsive codebase targeting **Android, iOS, Web, macOS, Windows, and Linux**.
 
-![Flutter](https://img.shields.io/badge/Flutter-3.24+-02569B?logo=flutter) ![Dart](https://img.shields.io/badge/Dart-3.5+-0175C2?logo=dart) ![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
+![Flutter](https://img.shields.io/badge/Flutter-3.24+-02569B?logo=flutter) ![Dart](https://img.shields.io/badge/Dart-3.5+-0175C2?logo=dart) [![Build & Release](https://github.com/L3von36/rentwise-flutter/actions/workflows/release.yml/badge.svg)](https://github.com/L3von36/rentwise-flutter/actions/workflows/release.yml)
 
 ## What's inside
 
@@ -56,6 +56,23 @@ Try the app: sign in with either role (credentials are pre-filled), create a boo
 flutter analyze             # zero issues
 flutter test                # 3 tests: sign-in flow, booking side effects, role gating
 ```
+
+## Prebuilt binaries (GitHub Releases)
+
+CI builds and publishes installers for every release tag — grab them from the [Releases page](https://github.com/L3von36/rentwise-flutter/releases):
+
+| Asset | Platform |
+| --- | --- |
+| `RentWise-<version>-android.apk` | Android 5.0+ (universal APK) |
+| `RentWise-<version>-windows-x64.zip` | Windows 10/11 |
+| `RentWise-<version>-macos.zip` | macOS 10.14+ (unsigned — right-click → Open) |
+| `RentWise-<version>-linux-x64.tar.gz` | Linux x64 (GTK 3) |
+
+Each release also includes `SHA256SUMS.txt`. Android builds additionally run `flutter analyze` + `flutter test` as a quality gate.
+
+**Cutting a release:**
+1. Push a tag: `git tag v1.0.1 && git push origin v1.0.1`, **or**
+2. Go to **Actions → Build & Release → Run workflow** and enter a version (e.g. `v1.0.1`). Empty input uses the pubspec version.
 
 ## Project structure
 
