@@ -2,11 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../models/inventory_item.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
+import '../../core/palette.dart';
 
 /// Booking line with quantity stepper.
 class _LineRow extends StatelessWidget {
@@ -26,16 +26,16 @@ class _LineRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.subtleFill.withOpacity(0.7),
+        color: AppPalette.fill.withOpacity(0.7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
       ),
       child: Row(
         children: [
           IconChipLite(
               icon: item.icon,
-              color: AppColors.primary,
-              bg: AppColors.primarySoft,
+              color: AppPalette.primary,
+              bg: AppPalette.primarySoft,
               size: 34),
           const SizedBox(width: 10),
           Expanded(
@@ -45,18 +45,18 @@ class _LineRow extends StatelessWidget {
                 Text(item.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textDark)),
+                        color: AppPalette.ink)),
                 const SizedBox(height: 2),
                 Text(
                     '${line.qty} × \$${item.ratePerDay.toStringAsFixed(2)}/day · ${item.available} available',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
               ],
             ),
           ),
@@ -69,10 +69,10 @@ class _LineRow extends StatelessWidget {
           InkWell(
             onTap: onRemove,
             borderRadius: BorderRadius.circular(8),
-            child: const Padding(
-              padding: EdgeInsets.all(6),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
               child: Icon(Icons.close_rounded,
-                  size: 16, color: AppColors.textMuted),
+                  size: 16, color: AppPalette.muted),
             ),
           ),
         ],
@@ -93,7 +93,7 @@ class _QtyStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
       ),
       child: Row(
         children: [
@@ -105,11 +105,11 @@ class _QtyStepper extends StatelessWidget {
             width: 30,
             child: Text('$qty',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textDark)),
+                    color: AppPalette.ink)),
           ),
           _StepBtn(
             icon: Icons.add_rounded,
@@ -135,7 +135,7 @@ class _StepBtn extends StatelessWidget {
         padding: const EdgeInsets.all(7),
         child: Icon(icon,
             size: 14,
-            color: onTap == null ? AppColors.textFaint : AppColors.textBody),
+            color: onTap == null ? AppPalette.faint : AppPalette.body),
       ),
     );
   }
@@ -249,13 +249,13 @@ class _BookingDialogState extends State<_BookingDialog> {
         // header
         Row(
           children: [
-            const IconChipLite(
+            IconChipLite(
                 icon: Icons.post_add_rounded,
-                color: AppColors.primary,
-                bg: AppColors.primarySoft,
+                color: AppPalette.primary,
+                bg: AppPalette.primarySoft,
                 size: 38),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -264,23 +264,23 @@ class _BookingDialogState extends State<_BookingDialog> {
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textDark)),
-                  SizedBox(height: 2),
+                          color: AppPalette.ink)),
+                  const SizedBox(height: 2),
                   Text('Reserve items for an upcoming event.',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
-                          color: AppColors.textMuted)),
+                          color: AppPalette.muted)),
                 ],
               ),
             ),
             InkWell(
               onTap: () => Navigator.pop(context),
               borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
                 child: Icon(Icons.close_rounded,
-                    size: 18, color: AppColors.textMuted),
+                    size: 18, color: AppPalette.muted),
               ),
             ),
           ],
@@ -364,12 +364,12 @@ class _BookingDialogState extends State<_BookingDialog> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: AppPalette.stroke),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.event_outlined,
-                            size: 17, color: AppColors.textMuted),
+                        Icon(Icons.event_outlined,
+                            size: 17, color: AppPalette.muted),
                         const SizedBox(width: 9),
                         Text(
                           _eventDate == null
@@ -380,8 +380,8 @@ class _BookingDialogState extends State<_BookingDialog> {
                             fontSize: 13.5,
                             fontWeight: FontWeight.w500,
                             color: _eventDate == null
-                                ? AppColors.textMuted
-                                : AppColors.textDark,
+                                ? AppPalette.muted
+                                : AppPalette.ink,
                           ),
                         ),
                       ],
@@ -397,18 +397,18 @@ class _BookingDialogState extends State<_BookingDialog> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.subtleFill.withOpacity(0.6),
+                      color: AppPalette.fill.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(12),
                       border:
-                          Border.all(color: AppColors.cardBorder),
+                          Border.all(color: AppPalette.stroke),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                           'No items yet — add the pieces this event needs.',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 12.5,
-                              color: AppColors.textMuted)),
+                              color: AppPalette.muted)),
                     ),
                   )
                 else
@@ -445,7 +445,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                     ),
                     const SizedBox(width: 10),
                     Material(
-                      color: AppColors.primarySoft,
+                      color: AppPalette.primarySoft,
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(10),
@@ -458,17 +458,17 @@ class _BookingDialogState extends State<_BookingDialog> {
                           height: 44,
                           padding:
                               const EdgeInsets.symmetric(horizontal: 14),
-                          child: const Row(
+                          child: Row(
                             children: [
                               Icon(Icons.add_rounded,
-                                  size: 16, color: AppColors.primary),
-                              SizedBox(width: 5),
+                                  size: 16, color: AppPalette.primary),
+                              const SizedBox(width: 5),
                               Text('Add',
                                   style: TextStyle(
                                       fontFamily: AppTheme.fontFamily,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColors.primary)),
+                                      color: AppPalette.primary)),
                             ],
                           ),
                         ),
@@ -495,8 +495,8 @@ class _BookingDialogState extends State<_BookingDialog> {
         // footer
         Container(
           padding: const EdgeInsets.only(top: 14),
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColors.cardBorder)),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: AppPalette.stroke)),
           ),
           child: Row(
             children: [
@@ -504,24 +504,24 @@ class _BookingDialogState extends State<_BookingDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Estimated total',
+                    Text('Estimated total',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11.5,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                     const SizedBox(height: 2),
                     Text('\$${_total.toStringAsFixed(2)} / day',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textDark)),
+                            color: AppPalette.ink)),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
               Material(
-                  color: _valid ? AppColors.primary : AppColors.textFaint,
+                  color: _valid ? AppPalette.primary : AppPalette.faint,
                   borderRadius: BorderRadius.circular(11),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(11),
@@ -596,11 +596,11 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppTheme.fontFamily,
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: AppColors.textDark,
+          color: AppPalette.ink,
         ));
   }
 }

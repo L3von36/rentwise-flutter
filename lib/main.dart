@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'state/shell_state.dart';
 import 'state/workspace_state.dart';
 import 'app.dart';
 import 'widgets/desktop.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+
   if (isDesktop) {
-    // Windows/macOS/Linux: size, center and title the native window
-    // before the first frame (see widgets/desktop.dart).
+    // Windows/macOS/Linux: frameless window sized, centered and titled
+    // before the first frame; the app draws its own title bar
+    // (see widgets/desktop.dart + widgets/window_title_bar.dart).
     await initDesktopWindow();
   } else {
     // Touch platforms: edge-to-edge, draw behind the status bar /
@@ -20,12 +25,25 @@ Future<void> main() async {
     SystemChrome.setSystemUIOverlayStyle(
         AppSystemChrome.lightSurfaces); // dark icons on light backgrounds
   }
+
+  final workspace = WorkspaceState();
+  final shell = ShellState(prefs: prefs);
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => WorkspaceState(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: workspace),
+        ChangeNotifierProvider.value(value: shell),
+      ],
       child: const RentWiseApp(),
     ),
   );
+
+  // Tray quick actions + close-to-tray — wired after the first frame so
+  // the window/tray plugins are ready and startup never blocks.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    shell.initDesktopShell(workspace);
+  });
 }
 
 /// Centralized system-chrome styles.

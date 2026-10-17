@@ -5,6 +5,7 @@ import '../core/app_theme.dart';
 import '../state/workspace_state.dart';
 import '../screens/booking/new_booking_sheet.dart';
 import 'chips.dart';
+import '../core/palette.dart';
 
 /// Phone-style bottom navigation (Instagram/Telegram pattern):
 /// Dashboard · Inventory · ＋ · Orders · More.
@@ -22,9 +23,9 @@ class RentWiseBottomNav extends StatelessWidget {
       top: false,
       child: Container(
         height: 56,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.cardBorder)),
+        decoration: BoxDecoration(
+          color: AppPalette.surface,
+          border: Border(top: BorderSide(color: AppPalette.stroke)),
         ),
         child: Row(
           children: [
@@ -79,7 +80,7 @@ class RentWiseBottomNav extends StatelessWidget {
     final state = context.read<WorkspaceState>();
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppPalette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -93,7 +94,7 @@ class RentWiseBottomNav extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.cardBorder,
+                color: AppPalette.stroke,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
@@ -124,10 +125,10 @@ class RentWiseBottomNav extends StatelessWidget {
                         Text(state.account?.email ?? '',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 11.5,
-                                color: AppColors.textMuted)),
+                                color: AppPalette.muted)),
                       ],
                     ),
                   ),
@@ -203,7 +204,7 @@ class _Tab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.textMuted;
+    final color = selected ? AppPalette.primary : AppPalette.muted;
     return InkResponse(
       onTap: onTap,
       radius: 30,
@@ -224,7 +225,7 @@ class _Tab extends StatelessWidget {
                     constraints: const BoxConstraints(minWidth: 16),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: AppPalette.primary,
                       borderRadius: BorderRadius.circular(99),
                       border: Border.all(color: Colors.white, width: 1.5),
                     ),
@@ -270,11 +271,11 @@ class _CenterPlus extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: AppPalette.primary,
           borderRadius: BorderRadius.circular(13),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.35),
+              color: AppPalette.primary.withOpacity(0.35),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -304,7 +305,7 @@ class _MoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? AppColors.red : AppColors.textDark;
+    final color = destructive ? AppPalette.red : AppPalette.ink;
     return ListTile(
       dense: true,
       leading: Icon(icon, size: 21, color: color),
@@ -320,7 +321,7 @@ class _MoreTile extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: AppPalette.primary,
                 borderRadius: BorderRadius.circular(99),
               ),
               child: Text('$badge',
@@ -331,8 +332,8 @@ class _MoreTile extends StatelessWidget {
                     color: Colors.white,
                   )),
             )
-          : const Icon(Icons.chevron_right_rounded,
-              size: 18, color: AppColors.textFaint),
+          : Icon(Icons.chevron_right_rounded,
+              size: 18, color: AppPalette.faint),
       onTap: onTap,
     );
   }

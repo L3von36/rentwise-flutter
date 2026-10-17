@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../models/account.dart';
 import '../../state/workspace_state.dart';
 import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
+import '../../core/palette.dart';
 
 /// Sign-in screen — role toggle, email/password, Google button.
 class SignInView extends StatefulWidget {
@@ -39,7 +39,7 @@ class _SignInViewState extends State<SignInView> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.cardBorder),
+              border: Border.all(color: AppPalette.stroke),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF3B3E8F).withOpacity(0.10),
@@ -52,19 +52,19 @@ class _SignInViewState extends State<SignInView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const IconChipLite(
+                IconChipLite(
                     icon: Icons.lock_outline_rounded,
-                    color: AppColors.primary,
-                    bg: AppColors.primarySoft,
+                    color: AppPalette.primary,
+                    bg: AppPalette.primarySoft,
                     size: 42),
                 const SizedBox(height: 16),
-                const Text('SECURE WORKSPACE ACCESS',
+                Text('SECURE WORKSPACE ACCESS',
                     style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.8,
-                      color: AppColors.textMuted,
+                      color: AppPalette.muted,
                     )),
                 const SizedBox(height: 8),
                 Text('Welcome back',
@@ -79,7 +79,7 @@ class _SignInViewState extends State<SignInView> {
                   height: 46,
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: AppColors.subtleFill,
+                    color: AppPalette.fill,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -107,12 +107,12 @@ class _SignInViewState extends State<SignInView> {
                 TextField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'you@riverside.events',
                     prefixIcon: Icon(Icons.mail_outline_rounded,
-                        size: 18, color: AppColors.textMuted),
+                        size: 18, color: AppPalette.muted),
                     prefixIconConstraints:
-                        BoxConstraints(minWidth: 40),
+                        const BoxConstraints(minWidth: 40),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -124,8 +124,8 @@ class _SignInViewState extends State<SignInView> {
                   controller: _passwordCtrl,
                   obscureText: _obscure,
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.lock_outline_rounded,
-                        size: 18, color: AppColors.textMuted),
+                    prefixIcon: Icon(Icons.lock_outline_rounded,
+                        size: 18, color: AppPalette.muted),
                     prefixIconConstraints:
                         const BoxConstraints(minWidth: 40),
                     suffixIcon: IconButton(
@@ -134,7 +134,7 @@ class _SignInViewState extends State<SignInView> {
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                         size: 18,
-                        color: AppColors.textMuted,
+                        color: AppPalette.muted,
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
@@ -164,13 +164,13 @@ class _SignInViewState extends State<SignInView> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Flexible(
+                              Flexible(
                                 child: Text('Remember me',
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontFamily: AppTheme.fontFamily,
                                       fontSize: 13,
-                                      color: AppColors.textBody,
+                                      color: AppPalette.body,
                                     )),
                               ),
                             ],
@@ -186,14 +186,14 @@ class _SignInViewState extends State<SignInView> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text('Forgot password?',
+                      child: Text('Forgot password?',
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
+                            color: AppPalette.primary,
                           )),
                     ),
                   ],
@@ -204,7 +204,7 @@ class _SignInViewState extends State<SignInView> {
                 SizedBox(
                   height: 48,
                   child: Material(
-                    color: AppColors.primary,
+                    color: AppPalette.primary,
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
@@ -250,19 +250,19 @@ class _SignInViewState extends State<SignInView> {
                 const SizedBox(height: 16),
 
                 // Divider
-                const Row(
+                Row(
                   children: [
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text('or continue with',
                           style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11.5,
-                            color: AppColors.textMuted,
+                            color: AppPalette.muted,
                           )),
                     ),
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -281,20 +281,20 @@ class _SignInViewState extends State<SignInView> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           border:
-                              Border.all(color: AppColors.cardBorder),
+                              Border.all(color: AppPalette.stroke),
                         ),
                         alignment: Alignment.center,
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _GoogleG(),
-                            SizedBox(width: 10),
+                            const _GoogleG(),
+                            const SizedBox(width: 10),
                             Text('Continue with Google',
                                 style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textDark,
+                                  color: AppPalette.ink,
                                 )),
                           ],
                         ),
@@ -303,13 +303,13 @@ class _SignInViewState extends State<SignInView> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'By signing in, you agree to the workspace access policy.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 11.5,
-                    color: AppColors.textFaint,
+                    color: AppPalette.faint,
                   ),
                 ),
                 if (compact) ...[
@@ -368,8 +368,8 @@ class _RoleTab extends StatelessWidget {
                 Icon(icon,
                     size: 16,
                     color: selected
-                        ? AppColors.primary
-                        : AppColors.textMuted),
+                        ? AppPalette.primary
+                        : AppPalette.muted),
                 const SizedBox(width: 7),
                 Text(label,
                     style: TextStyle(
@@ -377,8 +377,8 @@ class _RoleTab extends StatelessWidget {
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: selected
-                          ? AppColors.primary
-                          : AppColors.textMuted,
+                          ? AppPalette.primary
+                          : AppPalette.muted,
                     )),
               ],
             ),
@@ -396,11 +396,11 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppTheme.fontFamily,
           fontSize: 12.5,
           fontWeight: FontWeight.w600,
-          color: AppColors.textDark,
+          color: AppPalette.ink,
         ));
   }
 }

@@ -17,6 +17,7 @@ import '../../screens/booking/new_booking_sheet.dart';
 import '../../screens/inventory/item_adjust_dialog.dart';
 import '../../widgets/filters.dart';
 import '../../widgets/indicators.dart';
+import '../../core/palette.dart';
 
 /// Role-aware home screen.
 ///
@@ -79,8 +80,8 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
           'Stage & pack',
           '#${o.id} · ${o.eventName} · ${o.itemCount} items',
           'Prep',
-          AppColors.amber,
-          AppColors.amberBg,
+          AppPalette.amber,
+          AppPalette.amberBg,
           kind: 'prep',
         ));
       case OrderStatus.outForDelivery:
@@ -88,8 +89,8 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
           'Confirm delivery',
           '#${o.id} · ${o.eventName} · ${o.contactName}',
           'On the road',
-          AppColors.blue,
-          AppColors.blueBg,
+          AppPalette.blue,
+          AppPalette.blueBg,
           kind: 'delivery',
         ));
       case OrderStatus.needsPayment:
@@ -97,8 +98,8 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
           'Collect payment',
           '#${o.id} · ${o.eventName} · \$${o.total.toStringAsFixed(0)}',
           'Payment',
-          AppColors.purple,
-          AppColors.purpleBg,
+          AppPalette.purple,
+          AppPalette.purpleBg,
           kind: 'payment',
         ));
       case OrderStatus.confirmed:
@@ -112,8 +113,8 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
       'Pull & stage',
       '${p.itemCount} items · ${p.venue} · ${df.format(p.date)}',
       'Upcoming',
-      AppColors.green,
-      AppColors.greenBg,
+      AppPalette.green,
+      AppPalette.greenBg,
       kind: 'prep',
     ));
   }
@@ -168,10 +169,10 @@ class _EmployeeDashboard extends StatelessWidget {
                               'including ${Seed.returnsDueToday} returns due back.',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
-                          color: AppColors.textMuted),
+                          color: AppPalette.muted),
                     ),
                   ],
                 ),
@@ -214,8 +215,8 @@ class _EmployeeDashboard extends StatelessWidget {
                     width: cardW,
                     child: KpiCard(
                       icon: Icons.checklist_rounded,
-                      iconColor: AppColors.primary,
-                      iconBg: AppColors.primarySoft,
+                      iconColor: AppPalette.primary,
+                      iconBg: AppPalette.primarySoft,
                       label: 'Tasks on deck',
                       value: '${tasks.length}',
                       subtitle:
@@ -227,8 +228,8 @@ class _EmployeeDashboard extends StatelessWidget {
                     width: cardW,
                     child: KpiCard(
                       icon: Icons.local_shipping_outlined,
-                      iconColor: AppColors.blue,
-                      iconBg: AppColors.blueBg,
+                      iconColor: AppPalette.blue,
+                      iconBg: AppPalette.blueBg,
                       label: 'Out for delivery',
                       value: '${state.outForDeliveryCount}',
                       subtitle:
@@ -238,14 +239,14 @@ class _EmployeeDashboard extends StatelessWidget {
                   ),
                   SizedBox(
                     width: cardW,
-                    child: const KpiCard(
+                    child: KpiCard(
                       icon: Icons.assignment_return_outlined,
-                      iconColor: AppColors.amber,
-                      iconBg: AppColors.amberBg,
+                      iconColor: AppPalette.amber,
+                      iconBg: AppPalette.amberBg,
                       label: 'Returns to check in',
                       value: '${Seed.pendingReturns}',
                       subtitle: 'Keep an eye on 3 late items',
-                      trailing: TrendChip(
+                      trailing: const TrendChip(
                           text: '${Seed.returnsDueToday} due',
                           positive: false),
                     ),
@@ -254,8 +255,8 @@ class _EmployeeDashboard extends StatelessWidget {
                     width: cardW,
                     child: KpiCard(
                       icon: Icons.inventory_2_outlined,
-                      iconColor: AppColors.purple,
-                      iconBg: AppColors.purpleBg,
+                      iconColor: AppPalette.purple,
+                      iconBg: AppPalette.purpleBg,
                       label: 'To stage & pack',
                       value: '${state.preparingCount}',
                       subtitle: state.preparingCount > 0
@@ -275,8 +276,8 @@ class _EmployeeDashboard extends StatelessWidget {
                   Expanded(
                     child: KpiTileMini(
                       icon: Icons.checklist_rounded,
-                      iconColor: AppColors.primary,
-                      iconBg: AppColors.primarySoft,
+                      iconColor: AppPalette.primary,
+                      iconBg: AppPalette.primarySoft,
                       label: 'Tasks due',
                       value: '${tasks.length}',
                       subtitle: 'today',
@@ -287,8 +288,8 @@ class _EmployeeDashboard extends StatelessWidget {
                   Expanded(
                     child: KpiTileMini(
                       icon: Icons.local_shipping_outlined,
-                      iconColor: AppColors.blue,
-                      iconBg: AppColors.blueBg,
+                      iconColor: AppPalette.blue,
+                      iconBg: AppPalette.blueBg,
                       label: 'On delivery',
                       value: '${state.outForDeliveryCount}',
                       subtitle: 'on the road',
@@ -296,15 +297,15 @@ class _EmployeeDashboard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: KpiTileMini(
                       icon: Icons.assignment_return_outlined,
-                      iconColor: AppColors.amber,
-                      iconBg: AppColors.amberBg,
+                      iconColor: AppPalette.amber,
+                      iconBg: AppPalette.amberBg,
                       label: 'Returns',
                       value: '${Seed.pendingReturns}',
                       subtitle: 'to check in',
-                      trailing: TrendChip(
+                      trailing: const TrendChip(
                           text: '${Seed.returnsDueToday} due',
                           positive: false),
                     ),
@@ -368,33 +369,33 @@ class _ShiftBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.primarySoft.withOpacity(0.55),
+        color: AppPalette.primarySoft.withOpacity(0.55),
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: AppColors.primaryBorder),
+        border: Border.all(color: AppPalette.primaryBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.timelapse_rounded,
-              size: 16, color: AppColors.primary),
+          Icon(Icons.timelapse_rounded,
+              size: 16, color: AppPalette.primary),
           const SizedBox(width: 9),
           Text('$taskCount tasks on deck',
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primaryDeep)),
+                  color: AppPalette.primaryDeep)),
           const SizedBox(width: 12),
-          Container(width: 1, height: 14, color: AppColors.primaryBorder),
+          Container(width: 1, height: 14, color: AppPalette.primaryBorder),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text('Shift runs 9:00 AM – 6:00 PM',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12,
-                    color: AppColors.textBody)),
+                    color: AppPalette.body)),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              size: 16, color: AppColors.primary),
+          Icon(Icons.chevron_right_rounded,
+              size: 16, color: AppPalette.primary),
         ],
       ),
     );
@@ -468,18 +469,18 @@ class _TaskListCardState extends State<_TaskListCard> {
           ),
           const SizedBox(height: 10),
           if (shown.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
               child: Row(
                 children: [
                   Icon(Icons.verified_outlined,
-                      size: 18, color: AppColors.green),
-                  SizedBox(width: 8),
+                      size: 18, color: AppPalette.green),
+                  const SizedBox(width: 8),
                   Text('All clear — every task is done for today.',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
-                          color: AppColors.textMuted)),
+                          color: AppPalette.muted)),
                 ],
               ),
             )
@@ -517,7 +518,7 @@ class _FilterPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color:
-          selected ? AppColors.primarySoft : AppColors.subtleFill.withOpacity(0.7),
+          selected ? AppPalette.primarySoft : AppPalette.fill.withOpacity(0.7),
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
@@ -527,7 +528,7 @@ class _FilterPill extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-                color: selected ? AppColors.primaryBorder : Colors.transparent),
+                color: selected ? AppPalette.primaryBorder : Colors.transparent),
           ),
           child: Text(
             count == 0 ? label : '$label · $count',
@@ -536,7 +537,7 @@ class _FilterPill extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                 color:
-                    selected ? AppColors.primaryDeep : AppColors.textBody),
+                    selected ? AppPalette.primaryDeep : AppPalette.body),
           ),
         ),
       ),
@@ -564,7 +565,7 @@ class _TaskRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                      color: AppColors.textFaint.withOpacity(0.6), width: 1.5),
+                      color: AppPalette.faint.withOpacity(0.6), width: 1.5),
                 ),
               ),
               const SizedBox(width: 10),
@@ -575,19 +576,19 @@ class _TaskRow extends StatelessWidget {
                     Text(task.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textDark)),
+                            color: AppPalette.ink)),
                     const SizedBox(height: 2),
                     Text(task.meta,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11.5,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                   ],
                 ),
               ),
@@ -634,8 +635,8 @@ class _DispatchCard extends StatelessWidget {
             meta:
                 '${Seed.nextDispatchItems} items · ${prep.isNotEmpty ? prep.first.customerName : 'Team pickup'}',
             chip: 'In progress',
-            chipFg: AppColors.blue,
-            chipBg: AppColors.blueBg,
+            chipFg: AppPalette.blue,
+            chipBg: AppPalette.blueBg,
           ),
           if (prep.isNotEmpty) ...[
             const Divider(height: 18),
@@ -645,8 +646,8 @@ class _DispatchCard extends StatelessWidget {
               meta:
                   '${prep.first.itemCount} items · ${df.format(prep.first.eventDate)}',
               chip: 'Staging',
-              chipFg: AppColors.amber,
-              chipBg: AppColors.amberBg,
+              chipFg: AppPalette.amber,
+              chipBg: AppPalette.amberBg,
             ),
           ],
           if (state.pickups.isNotEmpty) ...[
@@ -658,8 +659,8 @@ class _DispatchCard extends StatelessWidget {
               meta:
                   '${state.pickups.first.itemCount} items · ${state.pickups.first.venue}',
               chip: 'Scheduled',
-              chipFg: AppColors.green,
-              chipBg: AppColors.greenBg,
+              chipFg: AppPalette.green,
+              chipBg: AppPalette.greenBg,
             ),
           ],
         ],
@@ -692,17 +693,17 @@ class _RunRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primarySoft,
+            color: AppPalette.primarySoft,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(time,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primaryDeep)),
+                  color: AppPalette.primaryDeep)),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -712,19 +713,19 @@ class _RunRow extends StatelessWidget {
               Text(title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textDark)),
+                      color: AppPalette.ink)),
               const SizedBox(height: 2),
               Text(meta,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11.5,
-                      color: AppColors.textMuted)),
+                      color: AppPalette.muted)),
             ],
           ),
         ),
@@ -749,29 +750,29 @@ class _QuickActionsCard extends StatelessWidget {
         ? [
             (
               Icons.add_rounded,
-              AppColors.primary,
-              AppColors.primarySoft,
+              AppPalette.primary,
+              AppPalette.primarySoft,
               'New booking',
               () => showNewBookingSheet(context)
             ),
             (
               Icons.bar_chart_rounded,
-              AppColors.purple,
-              AppColors.purpleBg,
+              AppPalette.purple,
+              AppPalette.purpleBg,
               'Reports',
               () => state.navigate(Section.reports)
             ),
             (
               Icons.person_add_alt_1_outlined,
-              AppColors.green,
-              AppColors.greenBg,
+              AppPalette.green,
+              AppPalette.greenBg,
               'Add customer',
               () => state.navigate(Section.customers)
             ),
             (
               Icons.shield_outlined,
-              AppColors.blue,
-              AppColors.blueBg,
+              AppPalette.blue,
+              AppPalette.blueBg,
               'Access & roles',
               () => state.navigate(Section.access)
             ),
@@ -779,29 +780,29 @@ class _QuickActionsCard extends StatelessWidget {
         : [
             (
               Icons.add_rounded,
-              AppColors.primary,
-              AppColors.primarySoft,
+              AppPalette.primary,
+              AppPalette.primarySoft,
               'New booking',
               () => showNewBookingSheet(context)
             ),
             (
               Icons.payments_outlined,
-              AppColors.purple,
-              AppColors.purpleBg,
+              AppPalette.purple,
+              AppPalette.purpleBg,
               'Record payment',
               () => state.navigate(Section.orders)
             ),
             (
               Icons.assignment_turned_in_outlined,
-              AppColors.green,
-              AppColors.greenBg,
+              AppPalette.green,
+              AppPalette.greenBg,
               'Check-in return',
               () => state.navigate(Section.orders)
             ),
             (
               Icons.person_add_alt_1_outlined,
-              AppColors.blue,
-              AppColors.blueBg,
+              AppPalette.blue,
+              AppPalette.blueBg,
               'Add customer',
               () => state.navigate(Section.customers)
             ),
@@ -842,7 +843,7 @@ class _QuickActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (icon, color, bg, label, onTap) = action;
     return Material(
-      color: AppColors.subtleFill.withOpacity(0.55),
+      color: AppPalette.fill.withOpacity(0.55),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -860,11 +861,11 @@ class _QuickActionTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textBody)),
+                        color: AppPalette.body)),
               ),
             ],
           ),
@@ -893,13 +894,13 @@ class _MyActivityCard extends StatelessWidget {
         onTap: () => state.navigate(Section.activity),
       ),
       child: mine.isEmpty
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text('No actions logged yet today.',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
-                      color: AppColors.textMuted)),
+                      color: AppPalette.muted)),
             )
           : Column(
               children: [
@@ -950,12 +951,12 @@ class _OwnerWideDashboard extends StatelessWidget {
                     Text('Welcome back, ${_firstName(state)}',
                         style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                         "Here's the pulse of ${Seed.workspaceName} today.",
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                   ],
                 ),
               ),
@@ -990,22 +991,22 @@ class _OwnerWideDashboard extends StatelessWidget {
               children: [
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.payments_outlined,
-                    iconColor: AppColors.primary,
-                    iconBg: AppColors.primarySoft,
+                    iconColor: AppPalette.primary,
+                    iconBg: AppPalette.primarySoft,
                     label: "Today's revenue",
                     value: '\$2,480',
                     subtitle: 'vs. \$2,200 yesterday',
-                    trailing: TrendChip(text: '12.8%', positive: true),
+                    trailing: const TrendChip(text: '12.8%', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
                   child: KpiCard(
                     icon: Icons.trending_up_rounded,
-                    iconColor: AppColors.purple,
-                    iconBg: AppColors.purpleBg,
+                    iconColor: AppPalette.purple,
+                    iconBg: AppPalette.purpleBg,
                     label: 'Month to date',
                     value:
                         '\$${Seed.grossRevenueMonth.toStringAsFixed(1)}k',
@@ -1019,8 +1020,8 @@ class _OwnerWideDashboard extends StatelessWidget {
                   width: cardW,
                   child: KpiCard(
                     icon: Icons.donut_large_rounded,
-                    iconColor: AppColors.amber,
-                    iconBg: AppColors.amberBg,
+                    iconColor: AppPalette.amber,
+                    iconBg: AppPalette.amberBg,
                     label: 'Fleet utilization',
                     value: '${Seed.utilizationPct}%',
                     subtitle: '${state.totalUnits} units on hand',
@@ -1033,8 +1034,8 @@ class _OwnerWideDashboard extends StatelessWidget {
                   width: cardW,
                   child: KpiCard(
                     icon: Icons.account_balance_wallet_outlined,
-                    iconColor: AppColors.red,
-                    iconBg: AppColors.redBg,
+                    iconColor: AppPalette.red,
+                    iconBg: AppPalette.redBg,
                     label: 'Awaiting payment',
                     value: '\$${awaiting.toStringAsFixed(0)}',
                     subtitle:
@@ -1124,8 +1125,8 @@ class _EarningsCard extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: i == points.length - 1
-                              ? AppColors.primary
-                              : AppColors.primaryTint,
+                              ? AppPalette.primary
+                              : AppPalette.primaryTint,
                           borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(5)),
                         ),
@@ -1141,15 +1142,15 @@ class _EarningsCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(DateFormat('MMM d').format(points.first.day),
-                style: const TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 10.5,
-                    color: AppColors.textFaint)),
-            const Text('Today',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 10.5,
-                    color: AppColors.textFaint)),
+                    color: AppPalette.faint)),
+            Text('Today',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 10.5,
+                    color: AppPalette.faint)),
           ],
         ),
       ],
@@ -1159,19 +1160,19 @@ class _EarningsCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('\$${Seed.grossRevenueMonth.toStringAsFixed(1)}k',
-            style: const TextStyle(
+            style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 24,
                 height: 1.05,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
-                color: AppColors.textDark)),
+                color: AppPalette.ink)),
         const SizedBox(height: 3),
-        const Text('Month to date · October',
+        Text('Month to date · October',
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 11.5,
-                color: AppColors.textMuted)),
+                color: AppPalette.muted)),
         const SizedBox(height: 12),
         const Divider(),
         const SizedBox(height: 10),
@@ -1237,18 +1238,18 @@ class _CategoryStatRow extends StatelessWidget {
           child: Text(label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textBody)),
+                  color: AppPalette.body)),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Container(
             height: 5,
             decoration: BoxDecoration(
-              color: AppColors.subtleFill,
+              color: AppPalette.fill,
               borderRadius: BorderRadius.circular(3),
             ),
             child: FractionallySizedBox(
@@ -1256,7 +1257,7 @@ class _CategoryStatRow extends StatelessWidget {
               widthFactor: fraction,
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppPalette.primary,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -1269,10 +1270,10 @@ class _CategoryStatRow extends StatelessWidget {
           child: Text(amount,
               textAlign: TextAlign.right,
               maxLines: 1,
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 11,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
         ),
       ],
     );
@@ -1288,32 +1289,32 @@ class _BusinessOpenBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.greenBg.withOpacity(0.55),
+        color: AppPalette.greenBg.withOpacity(0.55),
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: AppColors.greenBg),
+        border: Border.all(color: AppPalette.greenBg),
       ),
       child: Row(
         children: [
-          const Dot(color: AppColors.green),
+          Dot(color: AppPalette.green),
           const SizedBox(width: 9),
-          const Text('Business Open',
+          Text('Business Open',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.green)),
+                  color: AppPalette.green)),
           const SizedBox(width: 12),
-          Container(width: 1, height: 14, color: AppColors.greenBg),
+          Container(width: 1, height: 14, color: AppPalette.greenBg),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text('Closes at ${Seed.businessCloseTime}',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12,
-                    color: AppColors.textBody)),
+                    color: AppPalette.body)),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              size: 16, color: AppColors.green),
+          Icon(Icons.chevron_right_rounded,
+              size: 16, color: AppPalette.green),
         ],
       ),
     );
@@ -1348,11 +1349,11 @@ class _OwnerCompactDashboard extends StatelessWidget {
                     Text('Welcome back, ${_firstName(state)}',
                         style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: 4),
-                    const Text("Here's the pulse of Riverside Events.",
+                    Text("Here's the pulse of Riverside Events.",
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 12.5,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                   ],
                 ),
               ),
@@ -1373,12 +1374,12 @@ class _OwnerCompactDashboard extends StatelessWidget {
           // Today at a glance
           Row(
             children: [
-              const Text('Today at a glance',
+              Text('Today at a glance',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textDark)),
+                      color: AppPalette.ink)),
               const Spacer(),
               LinkChip(
                 label: 'Details',
@@ -1387,43 +1388,43 @@ class _OwnerCompactDashboard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          const SizedBox(
+          SizedBox(
             height: 122,
             child: Row(
               children: [
                 Expanded(
                   child: KpiTileMini(
                     icon: Icons.payments_outlined,
-                    iconColor: AppColors.primary,
-                    iconBg: AppColors.primarySoft,
+                    iconColor: AppPalette.primary,
+                    iconBg: AppPalette.primarySoft,
                     label: "Today's revenue",
                     value: '\$2,480',
                     subtitle: 'vs. yesterday',
-                    trailing: TrendChip(text: '12.8%', positive: true),
+                    trailing: const TrendChip(text: '12.8%', positive: true),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: KpiTileMini(
                     icon: Icons.event_available_outlined,
-                    iconColor: AppColors.purple,
-                    iconBg: AppColors.purpleBg,
+                    iconColor: AppPalette.purple,
+                    iconBg: AppPalette.purpleBg,
                     label: 'Active rentals',
                     value: '24',
                     subtitle: 'since yesterday',
-                    trailing: TrendChip(text: '+4', positive: true),
+                    trailing: const TrendChip(text: '+4', positive: true),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: KpiTileMini(
                     icon: Icons.schedule_rounded,
-                    iconColor: AppColors.amber,
-                    iconBg: AppColors.amberBg,
+                    iconColor: AppPalette.amber,
+                    iconBg: AppPalette.amberBg,
                     label: 'Pending returns',
                     value: '8',
                     subtitle: 'today',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '2 due', positive: false),
                   ),
                 ),
@@ -1440,15 +1441,15 @@ class _OwnerCompactDashboard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: AppPalette.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.cardBorder),
+              border: Border.all(color: AppPalette.stroke),
               boxShadow: AppShadow.card(opacity: 0.04),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Text('Live activity',
@@ -1456,22 +1457,22 @@ class _OwnerCompactDashboard extends StatelessWidget {
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 14.5,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textDark)),
+                              color: AppPalette.ink)),
                     ),
                     StatusBadge.custom(
                       label: 'Live',
-                      fg: AppColors.green,
-                      bg: AppColors.greenBg,
+                      fg: AppPalette.green,
+                      bg: AppPalette.greenBg,
                       dot: true,
                     ),
                   ],
                 ),
                 const SizedBox(height: 3),
-                const Text('Employee actions, in real time.',
+                Text('Employee actions, in real time.',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
                 const SizedBox(height: 12),
                 for (final e in entries)
                   Padding(
@@ -1494,34 +1495,34 @@ class _OwnerCompactDashboard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: AppPalette.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.cardBorder),
+              border: Border.all(color: AppPalette.stroke),
               boxShadow: AppShadow.card(opacity: 0.04),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     IconChipLite(
                         icon: Icons.local_shipping_outlined,
-                        color: AppColors.blue,
-                        bg: AppColors.blueBg,
+                        color: AppPalette.blue,
+                        bg: AppPalette.blueBg,
                         size: 30),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Eyebrow('Next dispatch'),
-                          SizedBox(height: 3),
+                          const Eyebrow('Next dispatch'),
+                          const SizedBox(height: 3),
                           Text('Oakwood Estate',
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.textDark)),
+                                  color: AppPalette.ink)),
                         ],
                       ),
                     ),
@@ -1530,40 +1531,40 @@ class _OwnerCompactDashboard extends StatelessWidget {
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primary)),
+                            color: AppPalette.primary)),
                   ],
                 ),
-                SizedBox(height: 11),
-                Divider(),
-                SizedBox(height: 10),
+                const SizedBox(height: 11),
+                const Divider(),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Icon(Icons.event_outlined,
-                        size: 15, color: AppColors.textMuted),
-                    SizedBox(width: 6),
+                        size: 15, color: AppPalette.muted),
+                    const SizedBox(width: 6),
                     Text('Sat, Oct 18',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 12,
-                            color: AppColors.textMuted)),
-                    SizedBox(width: 14),
+                            color: AppPalette.muted)),
+                    const SizedBox(width: 14),
                     Icon(Icons.inventory_2_outlined,
-                        size: 15, color: AppColors.textMuted),
-                    SizedBox(width: 6),
+                        size: 15, color: AppPalette.muted),
+                    const SizedBox(width: 6),
                     Text('12 items',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 12,
-                            color: AppColors.textMuted)),
-                    SizedBox(width: 14),
+                            color: AppPalette.muted)),
+                    const SizedBox(width: 14),
                     Icon(Icons.person_outline,
-                        size: 15, color: AppColors.textMuted),
-                    SizedBox(width: 6),
+                        size: 15, color: AppPalette.muted),
+                    const SizedBox(width: 6),
                     Text('Mia Chen',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 12,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                   ],
                 ),
               ],
@@ -1609,10 +1610,10 @@ class _SnapshotCard extends StatelessWidget {
               ),
               const Spacer(),
               Text('${snapshot.length} items',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
-                      color: AppColors.textMuted)),
+                      color: AppPalette.muted)),
             ],
           ),
           const SizedBox(height: 10),
@@ -1677,7 +1678,7 @@ class _RecentActivity extends StatelessWidget {
       icon: Icons.show_chart,
       title: 'Recent activity',
       subtitle: "What's happening in the workspace.",
-      action: const Icon(Icons.more_horiz, size: 20, color: AppColors.textMuted),
+      action: Icon(Icons.more_horiz, size: 20, color: AppPalette.muted),
       child: Column(
         children: [
           for (var i = 0; i < entries.length; i++)
@@ -1709,9 +1710,9 @@ class _WorkspaceHealth extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppPalette.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Column(
@@ -1728,17 +1729,17 @@ class _WorkspaceHealth extends StatelessWidget {
               Container(
                 width: 30,
                 height: 30,
-                decoration: const BoxDecoration(
-                    color: AppColors.greenBg, shape: BoxShape.circle),
-                child: const Icon(Icons.check_rounded,
-                    size: 16, color: AppColors.green),
+                decoration: BoxDecoration(
+                    color: AppPalette.greenBg, shape: BoxShape.circle),
+                child: Icon(Icons.check_rounded,
+                    size: 16, color: AppPalette.green),
               ),
             ],
           ),
           const SizedBox(height: 14),
           const HealthBar(fraction: 0.98),
           const SizedBox(height: 10),
-          const FittedBox(
+          FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1747,36 +1748,36 @@ class _WorkspaceHealth extends StatelessWidget {
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
                 Text('98% on time',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.green)),
+                        color: AppPalette.green)),
               ],
             ),
           ),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 12),
-          const FittedBox(
+          FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
               children: [
-                Dot(color: AppColors.green),
-                SizedBox(width: 8),
+                Dot(color: AppPalette.green),
+                const SizedBox(width: 8),
                 Text('Sync is up to date',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
-                        color: AppColors.textMuted)),
-                SizedBox(width: 18),
+                        color: AppPalette.muted)),
+                const SizedBox(width: 18),
                 Text('Just now',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12,
-                        color: AppColors.textFaint)),
+                        color: AppPalette.faint)),
               ],
             ),
           ),

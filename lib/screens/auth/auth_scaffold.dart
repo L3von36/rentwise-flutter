@@ -4,6 +4,7 @@ import '../../widgets/chips.dart';
 import '../../core/app_colors.dart';
 import 'sign_in_screen.dart';
 import 'password_recovery_screen.dart';
+import '../../core/palette.dart';
 
 /// Routes between sign-in and password recovery without a Navigator.
 class AuthFlow extends StatefulWidget {
@@ -57,16 +58,16 @@ class AuthScaffold extends StatelessWidget {
             top: -140,
             right: -120,
             child: _Blob(size: 460, colors: [
-              AppColors.blobA.withOpacity(0.85),
-              AppColors.blobB.withOpacity(0.2),
+              AppPalette.blobA.withOpacity(0.85),
+              AppPalette.blobB.withOpacity(0.2),
             ]),
           ),
           Positioned(
             bottom: -180,
             left: -160,
             child: _Blob(size: 520, colors: [
-              AppColors.blobB.withOpacity(0.9),
-              AppColors.blobC.withOpacity(0.5),
+              AppPalette.blobB.withOpacity(0.9),
+              AppPalette.blobC.withOpacity(0.5),
             ]),
           ),
           SafeArea(
@@ -138,27 +139,27 @@ class _Hero extends StatelessWidget {
       children: [
         Text(
           eyebrow.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 2.2,
-            color: AppColors.textMuted,
+            color: AppPalette.muted,
           ),
         ),
         const SizedBox(height: 12),
-        const Text.rich(
+        Text.rich(
           TextSpan(
             children: [
               TextSpan(
                   text: 'Run every rental\n',
-                  style: TextStyle(color: AppColors.textDark)),
+                  style: TextStyle(color: AppPalette.ink)),
               TextSpan(
                   text: 'with confidence.',
-                  style: TextStyle(color: AppColors.primary)),
+                  style: TextStyle(color: AppPalette.primary)),
             ],
           ),
-          style: TextStyle(
+          style: const TextStyle(
             fontFamily: 'Inter',
             fontSize: 38,
             height: 1.1,
@@ -175,14 +176,14 @@ class _Hero extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 14.5,
               height: 1.5,
-              color: AppColors.textBody.withOpacity(0.9),
+              color: AppPalette.body.withOpacity(0.9),
             ),
           ),
         ),
         const SizedBox(height: 24),
-        const Row(
+        Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 92,
               height: 40,
               child: Stack(
@@ -203,7 +204,7 @@ class _Hero extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -212,14 +213,14 @@ class _Hero extends StatelessWidget {
                       fontFamily: 'Inter',
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
+                      color: AppPalette.ink,
                     )),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text('Secure access for every shift.',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 11.5,
-                      color: AppColors.textMuted,
+                      color: AppPalette.muted,
                     )),
               ],
             ),
@@ -282,12 +283,12 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const lock = Row(
+    final lock = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(Icons.lock_outline_rounded,
-            size: 14, color: AppColors.textMuted),
-        SizedBox(width: 6),
+            size: 14, color: AppPalette.muted),
+        const SizedBox(width: 6),
         Flexible(
           child: Text('Enterprise-grade workspace security',
               maxLines: 1,
@@ -295,28 +296,28 @@ class _Footer extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 12,
-                color: AppColors.textMuted,
+                color: AppPalette.muted,
               )),
         ),
       ],
     );
-    const help = Text('Need help? support@rentwise.app',
+    final help = Text('Need help? support@rentwise.app',
         style: TextStyle(
           fontFamily: 'Inter',
           fontSize: 12,
-          color: AppColors.textMuted,
+          color: AppPalette.muted,
         ));
     if (!wide) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(20, 8, 20, 18),
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [lock, SizedBox(height: 6), help],
+          children: [lock, const SizedBox(height: 6), help],
         ),
       );
     }
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(48, 0, 48, 22),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(48, 0, 48, 22),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [lock, help],

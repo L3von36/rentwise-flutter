@@ -1,11 +1,13 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:window_manager/window_manager.dart';
 
-import '../core/app_colors.dart';
 import '../core/app_theme.dart';
+import '../core/palette.dart';
 import '../state/workspace_state.dart';
 import 'cards.dart';
 
@@ -19,9 +21,44 @@ bool get isApple => !kIsWeb && Platform.isMacOS;
 
 String get searchShortcutLabel => isApple ? '⌘K' : 'Ctrl K';
 
+/// True inside `flutter test` runs — native window/tray plugins are stubs
+/// there, so desktop shell calls must degrade to no-ops.
+bool get runningInTest => Platform.environment.containsKey('FLUTTER_TEST');
+
+/// Whether custom window chrome (title bar) should RENDER. Based on
+/// [defaultTargetPlatform] so widget tests can simulate a desktop build
+/// with `debugDefaultTargetPlatformOverride`, while phone/tablet surfaces
+/// (real or simulated) never show it.
+bool get isDesktopUI {
+  if (kIsWeb) return false;
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.windows:
+    case TargetPlatform.macOS:
+    case TargetPlatform.linux:
+      return true;
+    default:
+      return false;
+  }
+}
+
+/// Runs a native-window call, swallowing failures when no real window
+/// manager exists (tests, web). Runtime desktop behavior lives here so
+/// call sites stay clean.
+Future<void> safeWindow(Future<void> Function() fn) async {
+  if (!isDesktop) return;
+  try {
+    await fn();
+  } on MissingPluginException {
+    // No native binding (tests) — ignore.
+  } catch (_) {
+    // Native shell hiccups must never crash the app.
+  }
+}
+
 /// Configures the native desktop window: sensible default size, a minimum
 /// size below which the responsive layout never breaks, centered on
-/// launch, and a proper window title. No-op on mobile and web.
+/// launch, and a hidden native title bar (the app draws its own — see
+/// `WindowTitleBar`). No-op on mobile and web.
 Future<void> initDesktopWindow() async {
   if (!isDesktop) return;
   await windowManager.ensureInitialized();
@@ -30,7 +67,7 @@ Future<void> initDesktopWindow() async {
     minimumSize: Size(960, 640),
     center: true,
     title: 'RentWise — Riverside Events',
-    titleBarStyle: TitleBarStyle.normal,
+    titleBarStyle: TitleBarStyle.hidden,
   );
   await windowManager.waitUntilReadyToShow(options, () async {
     await windowManager.show();
@@ -63,8 +100,8 @@ class _WindowTitleSyncState extends State<WindowTitleSync> {
   }
 
   void _sync() {
-    if (!isDesktop) return;
-    windowManager.setTitle('RentWise — ${widget.section.label}');
+    safeWindow(
+        () => windowManager.setTitle('RentWise — ${widget.section.label}'));
   }
 
   @override
@@ -85,23 +122,23 @@ class KeyCap extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 30),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.fill,
         borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withOpacity(AppPalette.dark ? 0.4 : 0.06),
             offset: const Offset(0, 1.5),
           ),
         ],
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppTheme.fontFamily,
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: AppColors.textDark,
+          color: AppPalette.ink,
         ),
       ),
     );
@@ -128,10 +165,10 @@ class ShortcutHint extends StatelessWidget {
             action,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 12.5,
-              color: AppColors.textBody,
+              color: AppPalette.body,
             ),
           ),
         ),
@@ -162,7 +199,7 @@ void showShortcutsHelp(BuildContext context) {
         const ShortcutHint(keys: ['Esc'], action: 'Close dialogs and sheets'),
       ];
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppPalette.surface,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 410),
           child: Padding(
@@ -173,35 +210,35 @@ void showShortcutsHelp(BuildContext context) {
               children: [
                 Row(
                   children: [
-                    const IconChipLite(
+                    IconChipLite(
                         icon: Icons.keyboard_rounded,
-                        color: AppColors.primary,
-                        bg: AppColors.primarySoft,
+                        color: AppPalette.primary,
+                        bg: AppPalette.primarySoft,
                         size: 34),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text('Keyboard shortcuts',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textDark)),
+                              color: AppPalette.ink)),
                     ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close_rounded,
-                          size: 18, color: AppColors.textMuted),
+                      icon: Icon(Icons.close_rounded,
+                          size: 18, color: AppPalette.muted),
                       onPressed: () => Navigator.pop(dialogCtx),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Fast paths for the desk — no mouse required.',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
-                      color: AppColors.textMuted),
+                      color: AppPalette.muted),
                 ),
                 const SizedBox(height: 14),
                 for (final def in defs) ...[

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
+import '../../core/palette.dart';
 
 /// Password recovery — email + send reset link (+ success state).
 class PasswordRecoveryView extends StatefulWidget {
@@ -41,7 +41,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: AppPalette.stroke),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF3B3E8F).withOpacity(0.10),
@@ -60,19 +60,19 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const IconChipLite(
+        IconChipLite(
             icon: Icons.mail_outline_rounded,
-            color: AppColors.primary,
-            bg: AppColors.primarySoft,
+            color: AppPalette.primary,
+            bg: AppPalette.primarySoft,
             size: 42),
         const SizedBox(height: 16),
-        const Text('ACCOUNT RECOVERY',
+        Text('ACCOUNT RECOVERY',
             style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.8,
-              color: AppColors.textMuted,
+              color: AppPalette.muted,
             )),
         const SizedBox(height: 8),
         Text('Reset your password',
@@ -83,29 +83,29 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 20),
-        const Text('Work email',
+        Text('Work email',
             style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: AppColors.textDark,
+              color: AppPalette.ink,
             )),
         const SizedBox(height: 7),
         TextField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'you@riverside.events',
             prefixIcon:
-                Icon(Icons.mail_outline_rounded, size: 18, color: AppColors.textMuted),
-            prefixIconConstraints: BoxConstraints(minWidth: 40),
+                Icon(Icons.mail_outline_rounded, size: 18, color: AppPalette.muted),
+            prefixIconConstraints: const BoxConstraints(minWidth: 40),
           ),
         ),
         const SizedBox(height: 18),
         SizedBox(
           height: 48,
           child: Material(
-            color: AppColors.primary,
+            color: AppPalette.primary,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
@@ -144,14 +144,14 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
         Center(
           child: TextButton.icon(
             onPressed: widget.onBack,
-            icon: const Icon(Icons.chevron_left_rounded,
-                size: 18, color: AppColors.primary),
-            label: const Text('Back to sign in',
+            icon: Icon(Icons.chevron_left_rounded,
+                size: 18, color: AppPalette.primary),
+            label: Text('Back to sign in',
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: AppPalette.primary,
                 )),
           ),
         ),
@@ -166,19 +166,19 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const IconChipLite(
+        IconChipLite(
             icon: Icons.mark_email_read_outlined,
-            color: AppColors.green,
-            bg: AppColors.greenBg,
+            color: AppPalette.green,
+            bg: AppPalette.greenBg,
             size: 42),
         const SizedBox(height: 16),
-        const Text('CHECK YOUR INBOX',
+        Text('CHECK YOUR INBOX',
             style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.8,
-              color: AppColors.textMuted,
+              color: AppPalette.muted,
             )),
         const SizedBox(height: 8),
         Text('Reset link sent',
@@ -192,15 +192,15 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.primarySoft.withOpacity(0.6),
+            color: AppPalette.primarySoft.withOpacity(0.6),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primaryTint),
+            border: Border.all(color: AppPalette.primaryTint),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.info_outline_rounded,
-                  size: 18, color: AppColors.primary),
-              SizedBox(width: 10),
+                  size: 18, color: AppPalette.primary),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   "Didn't receive it? Check your spam folder or resend in a moment.",
@@ -208,7 +208,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12.5,
                     height: 1.45,
-                    color: AppColors.textBody,
+                    color: AppPalette.body,
                   ),
                 ),
               ),
@@ -227,15 +227,15 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primaryBorder),
+                  border: Border.all(color: AppPalette.primaryBorder),
                 ),
                 alignment: Alignment.center,
-                child: const Text('Resend link',
+                child: Text('Resend link',
                     style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: AppPalette.primary,
                     )),
               ),
             ),
@@ -245,14 +245,14 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
         Center(
           child: TextButton.icon(
             onPressed: widget.onBack,
-            icon: const Icon(Icons.chevron_left_rounded,
-                size: 18, color: AppColors.primary),
-            label: const Text('Back to sign in',
+            icon: Icon(Icons.chevron_left_rounded,
+                size: 18, color: AppPalette.primary),
+            label: Text('Back to sign in',
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: AppPalette.primary,
                 )),
           ),
         ),

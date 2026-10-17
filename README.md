@@ -74,9 +74,13 @@ Each release also includes `SHA256SUMS.txt`. Android builds additionally run `fl
 
 The Windows build behaves like a native desktop app, not a web page in a window:
 
+- **Custom frameless title bar** — the native caption is replaced by in-window chrome (`TitleBarStyle.hidden` + runner patch): draggable brand region, double-click to maximize, right-click native window menu, and Windows-style minimize / maximize / restore / close buttons (close hovers red). The close button parks the app in the tray instead of quitting.
+- **Dark mode** — full dark theme (deep-slate surfaces, lifted indigo accent, dark status washes) with a **System / Light / Dark** selector in *Access & roles → Appearance*, a one-tap toggle in the title bar, and a tray quick action. The choice persists via `SharedPreferences`; `ThemeMode.system` follows the OS.
+- **Tray quick actions** — branded tray icon with left-click to restore the window and a right-click menu: Show RentWise, Dashboard · live task count, Orders, Inventory, theme switch, and Quit. The "tasks on deck" line and theme label rebuild live from the workspace store (`system_tray`).
+- **State management** — UI-shell state lives in a dedicated `ShellState` ChangeNotifier (theme mode + persistence + the native window/tray bridge), cleanly split from the domain store `WorkspaceState`; both flow through `provider`.
 - **Window management** — opens at 1280×800, centered, with a 960×640 minimum size (the responsive layout never breaks) and a proper `RentWise — <section>` window title that follows navigation (via `window_manager`).
 - **Keyboard shortcuts** — `Ctrl+K` global search, `Ctrl+B` new rental booking, `Ctrl+1–5` jump to Dashboard / Inventory / Orders / Customers / Activity, `Ctrl+/` shortcuts help panel, `Esc` closes dialogs (⌘ equivalents on macOS).
-- **Branded app icon** — the runner ships a RentWise .ico (indigo rounded square + white R) for the title bar, taskbar, and shortcuts.
+- **Branded app icon** — the runner ships a RentWise .ico (indigo rounded square + white R) for the title bar, taskbar, tray, and shortcuts.
 - **Search dialog hints** — the footer reminds keyboard users of the fast paths; the search field badge shows `Ctrl K` on Windows (⌘K on macOS).
 
 **Cutting a release:**

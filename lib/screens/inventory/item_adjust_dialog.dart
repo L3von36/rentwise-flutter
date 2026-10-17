@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../models/inventory_item.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
+import '../../core/palette.dart';
 
 /// Adjust stock / toggle maintenance for an inventory item.
 Future<void> showItemAdjustDialog(
@@ -66,8 +66,8 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                 children: [
                   IconChipLite(
                       icon: widget.item.icon,
-                      color: AppColors.primary,
-                      bg: AppColors.primarySoft,
+                      color: AppPalette.primary,
+                      bg: AppPalette.primarySoft,
                       size: 38),
                   const SizedBox(width: 12),
                   Expanded(
@@ -75,29 +75,29 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.item.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textDark)),
+                                color: AppPalette.ink)),
                         Text(
                             '${widget.item.category} · ${widget.item.totalStock} total units',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 11.5,
-                                color: AppColors.textMuted)),
+                                color: AppPalette.muted)),
                       ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 18),
-              const Text('Available units',
+              Text('Available units',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textDark)),
+                      color: AppPalette.ink)),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -113,16 +113,16 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                       alignment: Alignment.center,
                       margin: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.subtleFill.withOpacity(0.6),
+                        color: AppPalette.fill.withOpacity(0.6),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.cardBorder),
+                        border: Border.all(color: AppPalette.stroke),
                       ),
                       child: Text('$_available',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textDark)),
+                              color: AppPalette.ink)),
                     ),
                   ),
                   _AdjustBtn(
@@ -141,18 +141,18 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                   children: [
                     Switch(
                       value: _maintenance,
-                      activeColor: AppColors.amber,
+                      activeColor: AppPalette.amber,
                       onChanged: (v) => setState(() => _maintenance = v),
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Mark as under maintenance (pulls all units from availability)',
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
                           height: 1.4,
-                          color: AppColors.textBody,
+                          color: AppPalette.body,
                         ),
                       ),
                     ),
@@ -175,15 +175,15 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
                               border: Border.all(
-                                  color: AppColors.cardBorder),
+                                  color: AppPalette.stroke),
                             ),
                             alignment: Alignment.center,
-                            child: const Text('Cancel',
+                            child: Text('Cancel',
                                 style: TextStyle(
                                     fontFamily: AppTheme.fontFamily,
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.textBody)),
+                                    color: AppPalette.body)),
                           ),
                         ),
                       ),
@@ -194,7 +194,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                     child: SizedBox(
                       height: 44,
                       child: Material(
-                        color: AppColors.primary,
+                        color: AppPalette.primary,
                         borderRadius: BorderRadius.circular(11),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(11),
@@ -229,7 +229,7 @@ class _AdjustBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.primarySoft,
+      color: AppPalette.primarySoft,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -241,7 +241,7 @@ class _AdjustBtn extends StatelessWidget {
           child: Icon(icon,
               size: 17,
               color:
-                  onTap == null ? AppColors.textFaint : AppColors.primary),
+                  onTap == null ? AppPalette.faint : AppPalette.primary),
         ),
       ),
     );

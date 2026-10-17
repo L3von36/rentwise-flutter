@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
+import '../core/palette.dart';
 
 /// Trend arrow chip shown on KPI cards (green up / amber down).
 class TrendChip extends StatelessWidget {
@@ -23,7 +24,7 @@ class TrendChip extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color: AppColors.greenBg,
+          color: AppPalette.greenBg,
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
         child: Row(
@@ -33,23 +34,23 @@ class TrendChip extends StatelessWidget {
               width: 6,
               height: 6,
               decoration:
-                  const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
+                  BoxDecoration(color: AppPalette.green, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
             Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: AppColors.green,
+                color: AppPalette.green,
               ),
             ),
           ],
         ),
       );
     }
-    final color = positive ? AppColors.green : AppColors.amber;
+    final color = positive ? AppPalette.green : AppPalette.amber;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -80,13 +81,13 @@ class AvailabilityBar extends StatelessWidget {
   final double height;
   final Color fillColor;
 
-  const AvailabilityBar({
+  AvailabilityBar({
     super.key,
     required this.fraction,
     this.width = 56,
     this.height = 4,
-    this.fillColor = AppColors.primary,
-  });
+    Color? fillColor,
+  }) : fillColor = fillColor ?? AppPalette.primary;
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +98,7 @@ class AvailabilityBar extends StatelessWidget {
         height: height,
         child: Stack(
           children: [
-            Container(color: AppColors.primaryTint.withOpacity(0.55)),
+            Container(color: AppPalette.primaryTint.withOpacity(0.55)),
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: fraction.clamp(0.0, 1.0),
@@ -123,15 +124,15 @@ class HealthBar extends StatelessWidget {
         height: 6,
         child: Stack(
           children: [
-            Container(color: AppColors.greenBg),
+            Container(color: AppPalette.greenBg),
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: fraction.clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [
-                    AppColors.greenBar,
-                    Color(0xFF0E9F6E),
+                  gradient: LinearGradient(colors: [
+                    AppPalette.greenBar,
+                    const Color(0xFF0E9F6E),
                   ]),
                   borderRadius: BorderRadius.circular(99),
                 ),

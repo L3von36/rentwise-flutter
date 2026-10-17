@@ -1,12 +1,37 @@
-import 'package:flutter/material.dart' show Icons, NavigationDrawer, Size;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
+import 'package:flutter/material.dart'
+    show
+        BuildContext,
+        Icons,
+        IconData,
+        Material,
+        NavigationDrawer,
+        Scaffold,
+        Size,
+        Theme,
+        ThemeMode,
+        Widget;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rentwise/app.dart';
 import 'package:rentwise/models/account.dart';
+import 'package:rentwise/state/shell_state.dart';
 import 'package:rentwise/state/workspace_state.dart';
 import 'package:rentwise/widgets/bottom_nav.dart';
 import 'package:rentwise/widgets/side_nav.dart';
+import 'package:rentwise/widgets/window_title_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Full provider stack matching production bootstrap.
+Widget _app() => MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => WorkspaceState()),
+        ChangeNotifierProvider(create: (_) => ShellState()),
+      ],
+      child: const RentWiseApp(),
+    );
 
 /// Plain unit test (no fake async) — exercises the store directly.
 void main() {
@@ -91,12 +116,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => WorkspaceState(),
-        child: const RentWiseApp(),
-      ),
-    );
+    await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
     // Auth screen visible
@@ -155,12 +175,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => WorkspaceState(),
-        child: const RentWiseApp(),
-      ),
-    );
+    await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
     // Switch the role selector to Owner, then tap the CTA.
@@ -199,12 +214,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => WorkspaceState(),
-        child: const RentWiseApp(),
-      ),
-    );
+    await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
     // Sign in through the UI (signIn() uses a real timer internally).
@@ -253,12 +263,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => WorkspaceState(),
-        child: const RentWiseApp(),
-      ),
-    );
+    await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sign in as employee'));
     await tester.pump(const Duration(milliseconds: 900));
@@ -297,5 +302,83 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pumpAndSettle();
     expect(find.text('Keyboard shortcuts'), findsOneWidget);
+  });
+
+  testWidgets('desktop title bar drives dark mode (frameless shell)',
+      (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    try {
+      // Simulate a Windows desktop build: custom title bar must render.
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    // Custom frameless caption is present on the auth screen too.
+    final bar = find.byType(WindowTitleBar);
+    expect(bar, findsOneWidget);
+    expect(find.text('RentWise'), findsWidgets);
+    Finder inBar(IconData icon) {
+      return find.descendant(of: bar, matching: find.byIcon(icon));
+    }
+    expect(inBar(Icons.minimize_rounded), findsOneWidget);
+    expect(inBar(Icons.crop_square_rounded), findsOneWidget);
+    expect(inBar(Icons.close_rounded), findsOneWidget);
+
+    // Theme toggle flips the whole app to dark.
+    BuildContext scaffoldCtx() => tester.element(find.byType(Scaffold).first);
+    expect(Theme.of(scaffoldCtx()).brightness, Brightness.light);
+    expect(inBar(Icons.dark_mode_rounded), findsOneWidget);
+    await tester.tap(inBar(Icons.dark_mode_rounded));
+    await tester.pumpAndSettle();
+    expect(Theme.of(scaffoldCtx()).brightness, Brightness.dark);
+    expect(inBar(Icons.light_mode_rounded), findsOneWidget);
+
+    // Dark surfaces actually painted: scaffold background is the dark canvas.
+    final material = tester.widget<Material>(
+      find.descendant(
+          of: find.byType(WindowTitleBar), matching: find.byType(Material)),
+    );
+    expect(material.color, const Color(0xFF10141C)); // DarkTokens.sidebar
+
+    // Sign in — dark mode survives the route change and the toggle is
+    // available to every role (title bar is window chrome, not owner-only).
+    await tester.tap(inBar(Icons.light_mode_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign in as employee'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+    expect(find.byType(WindowTitleBar), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byType(WindowTitleBar),
+            matching: find.byIcon(Icons.dark_mode_rounded)),
+        findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('theme preference persists across sessions', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final first = ShellState(prefs: prefs);
+    expect(first.themeSetting, AppThemeSetting.system);
+    expect(first.isDark, isFalse);
+
+    first.setThemeSetting(AppThemeSetting.dark);
+    expect(first.isDark, isTrue);
+
+    // A fresh controller (app relaunch) restores the saved choice.
+    final second = ShellState(prefs: prefs);
+    expect(second.themeSetting, AppThemeSetting.dark);
+    expect(second.isDark, isTrue);
+    expect(second.themeMode, ThemeMode.dark);
+
+    second.toggleTheme();
+    expect(ShellState(prefs: prefs).themeSetting, AppThemeSetting.light);
   });
 }

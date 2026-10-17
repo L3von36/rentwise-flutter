@@ -10,6 +10,7 @@ import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/top_bar.dart' show RichActivityText;
 import '../../models/activity_entry.dart';
+import '../../core/palette.dart';
 
 class ActivityLogScreen extends StatelessWidget {
   const ActivityLogScreen({super.key});
@@ -40,10 +41,10 @@ class ActivityLogScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const IconChipLite(
+              IconChipLite(
                   icon: Icons.show_chart,
-                  color: AppColors.primary,
-                  bg: AppColors.primarySoft,
+                  color: AppPalette.primary,
+                  bg: AppPalette.primarySoft,
                   size: 40),
               const SizedBox(width: 11),
               Expanded(
@@ -58,18 +59,18 @@ class ActivityLogScreen extends StatelessWidget {
                             fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
-                            color: AppColors.textDark)),
+                            color: AppPalette.ink)),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          const Text('A transparent history of every employee action in the workspace.',
+          Text('A transparent history of every employee action in the workspace.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
           const SizedBox(height: 14),
 
           // stat mini-cards
@@ -83,22 +84,22 @@ class ActivityLogScreen extends StatelessWidget {
               children: [
                 _StatCard(
                     width: w,
-                    dotColor: AppColors.primary,
+                    dotColor: AppPalette.primary,
                     value: '${Seed.actionsToday}',
                     label: 'actions today'),
                 _StatCard(
                     width: w,
-                    dotColor: AppColors.green,
+                    dotColor: AppPalette.green,
                     value: '${Seed.rentalUpdates}',
                     label: 'rental updates'),
                 _StatCard(
                     width: w,
-                    dotColor: AppColors.amber,
+                    dotColor: AppPalette.amber,
                     value: '${Seed.paymentsRecorded}',
                     label: 'payments recorded'),
                 _StatCard(
                     width: w,
-                    dotColor: AppColors.purple,
+                    dotColor: AppPalette.purple,
                     value: '100%',
                     label: 'logged automatically'),
               ],
@@ -116,7 +117,7 @@ class ActivityLogScreen extends StatelessWidget {
               color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(11),
-                side: const BorderSide(color: AppColors.cardBorder),
+                side: BorderSide(color: AppPalette.stroke),
               ),
               onSelected: state.setActivityFilter,
               offset: const Offset(0, 8),
@@ -128,8 +129,8 @@ class ActivityLogScreen extends StatelessWidget {
                     child: Row(
                       children: [
                         if (f == state.activityFilter)
-                          const Icon(Icons.check_rounded,
-                              size: 15, color: AppColors.primary)
+                          Icon(Icons.check_rounded,
+                              size: 15, color: AppPalette.primary)
                         else
                           const SizedBox(width: 15),
                         const SizedBox(width: 6),
@@ -141,8 +142,8 @@ class ActivityLogScreen extends StatelessWidget {
                                   ? FontWeight.w700
                                   : FontWeight.w500,
                               color: f == state.activityFilter
-                                  ? AppColors.primary
-                                  : AppColors.textBody,
+                                  ? AppPalette.primary
+                                  : AppPalette.body,
                             )),
                       ],
                     ),
@@ -153,20 +154,20 @@ class ActivityLogScreen extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.cardBorder),
+                  border: Border.all(color: AppPalette.stroke),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.filter_list_rounded,
-                        size: 16, color: AppColors.textBody),
-                    SizedBox(width: 7),
+                        size: 16, color: AppPalette.body),
+                    const SizedBox(width: 7),
                     Text('Filter activity',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textBody)),
+                            color: AppPalette.body)),
                   ],
                 ),
               ),
@@ -182,8 +183,8 @@ class ActivityLogScreen extends StatelessWidget {
                     children: [
                       StatusBadge.custom(
                         label: state.activityFilter,
-                        fg: AppColors.primary,
-                        bg: AppColors.primarySoft,
+                        fg: AppPalette.primary,
+                        bg: AppPalette.primarySoft,
                         dot: true,
                       ),
                       InkWell(
@@ -195,14 +196,14 @@ class ActivityLogScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(99),
                             border:
-                                Border.all(color: AppColors.cardBorder),
+                                Border.all(color: AppPalette.stroke),
                           ),
-                          child: const Text('Clear filter',
+                          child: Text('Clear filter',
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textMuted)),
+                                  color: AppPalette.muted)),
                         ),
                       ),
                     ],
@@ -212,14 +213,14 @@ class ActivityLogScreen extends StatelessWidget {
                 // timeline
                 ..._buildTimeline(entries),
                 if (entries.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 36),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
                     child: Center(
                       child: Text('No activity matches this filter.',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 13.5,
-                              color: AppColors.textMuted)),
+                              color: AppPalette.muted)),
                     ),
                   ),
               ],
@@ -260,9 +261,9 @@ class _StatCard extends StatelessWidget {
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppPalette.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Row(
@@ -279,13 +280,13 @@ class _StatCard extends StatelessWidget {
                         fontSize: Density.compact(context) ? 15 : 17,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
-                        color: AppColors.textDark)),
+                        color: AppPalette.ink)),
                 const SizedBox(height: 2),
                 Text(label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
               ],
             ),
           ),
@@ -325,14 +326,14 @@ class _TimelineEntry extends StatelessWidget {
                     color: Colors.white,
                     shape: BoxShape.circle,
                     border:
-                        Border.all(color: AppColors.primaryTint, width: 3),
+                        Border.all(color: AppPalette.primaryTint, width: 3),
                   ),
                 ),
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: AppColors.cardBorder,
+                      color: AppPalette.stroke,
                     ),
                   ),
               ],
@@ -348,10 +349,10 @@ class _TimelineEntry extends StatelessWidget {
                   Row(
                     children: [
                       Text(time,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 12,
-                              color: AppColors.textFaint)),
+                              color: AppPalette.faint)),
                       const Spacer(),
                       StatusBadge.custom(
                         label: entry.type.label,
@@ -366,11 +367,11 @@ class _TimelineEntry extends StatelessWidget {
                   const SizedBox(height: 6),
                   RichActivityText(body: entry.body, fontSize: 13.5),
                   const SizedBox(height: 4),
-                  const Text('Workspace action · Riverside Events',
+                  Text('Workspace action · Riverside Events',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 11.5,
-                          color: AppColors.textFaint)),
+                          color: AppPalette.faint)),
                 ],
               ),
             ),

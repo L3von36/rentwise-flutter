@@ -6,6 +6,7 @@ import '../models/account.dart';
 import '../state/workspace_state.dart';
 import 'cards.dart';
 import 'chips.dart';
+import '../core/palette.dart';
 
 /// Defensive guard rendered when an owner-only screen is somehow reached
 /// without the owner role. Navigation already hides and blocks these
@@ -37,15 +38,15 @@ class RestrictedPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     IconChipLite(
                         icon: Icons.shield_outlined,
-                        color: AppColors.primary,
-                        bg: AppColors.primarySoft,
+                        color: AppPalette.primary,
+                        bg: AppPalette.primarySoft,
                         size: 40),
-                    SizedBox(width: 14),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,8 +56,8 @@ class RestrictedPanel extends StatelessWidget {
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textDark)),
-                          SizedBox(height: 3),
+                                  color: AppPalette.ink)),
+                          const SizedBox(height: 3),
                           Text(
                               'Business finances, reports and team permissions '
                               'are managed by the workspace owner.',
@@ -64,7 +65,7 @@ class RestrictedPanel extends StatelessWidget {
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 12.5,
                                   height: 1.4,
-                                  color: AppColors.textBody)),
+                                  color: AppPalette.body)),
                         ],
                       ),
                     ),
@@ -75,9 +76,9 @@ class RestrictedPanel extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.subtleFill,
+                    color: AppPalette.fill,
                     borderRadius: BorderRadius.circular(11),
-                    border: Border.all(color: AppColors.cardBorder),
+                    border: Border.all(color: AppPalette.stroke),
                   ),
                   child: Row(
                     children: [
@@ -95,19 +96,19 @@ class RestrictedPanel extends StatelessWidget {
                           'Signed in as ${state.account?.name ?? '—'} · ${state.role.label}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textDark),
+                              color: AppPalette.ink),
                         ),
                       ),
-                      const StatusBadge.custom(
+                      StatusBadge.custom(
                         label: 'Restricted',
-                        fg: AppColors.red,
-                        bg: AppColors.redBg,
+                        fg: AppPalette.red,
+                        bg: AppPalette.redBg,
                         fontSize: 10.5,
-                        padding: EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                       ),
                     ],

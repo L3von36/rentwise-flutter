@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../models/activity_entry.dart';
 import '../models/pickup.dart';
 import 'chips.dart';
 import 'top_bar.dart' show RichActivityText;
+import '../core/palette.dart';
 
 /// Avatar + rich text + time + type badge row (dashboard feed & activity log).
 class ActivityRow extends StatelessWidget {
@@ -40,20 +40,20 @@ class ActivityRow extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(time,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11,
-                        color: AppColors.textFaint,
+                        color: AppPalette.faint,
                       )),
                 ),
               RichActivityText(body: entry.body),
               if (!showTimeAbove) ...[
                 const SizedBox(height: 4),
                 Text(time,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11,
-                      color: AppColors.textFaint,
+                      color: AppPalette.faint,
                     )),
               ],
             ],
@@ -116,28 +116,28 @@ class PickupRow extends StatelessWidget {
           width: 38,
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.subtleFill,
+            color: AppPalette.fill,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: AppPalette.stroke),
           ),
           child: Column(
             children: [
               Text('${pickup.date.day}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textDark,
+                    color: AppPalette.ink,
                     height: 1.1,
                   )),
               Text(
                 _monthUpper(pickup.date),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 9.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
-                  color: AppColors.textMuted,
+                  color: AppPalette.muted,
                 ),
               ),
             ],
@@ -151,31 +151,31 @@ class PickupRow extends StatelessWidget {
               Text(pickup.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
+                    color: AppPalette.ink,
                   )),
               const SizedBox(height: 2),
               Text('${pickup.venue} · ${pickup.itemCount} items',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12,
-                    color: AppColors.textMuted,
+                    color: AppPalette.muted,
                   )),
             ],
           ),
         ),
         const SizedBox(width: 8),
         Text(inDays,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
+              color: AppPalette.muted,
             )),
       ],
     );

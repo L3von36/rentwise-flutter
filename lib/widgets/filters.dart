@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../core/app_colors.dart';
 import '../core/app_theme.dart';
+import '../core/palette.dart';
 
 /// "View inventory ↗" style link chip.
 class LinkChip extends StatelessWidget {
@@ -21,15 +21,15 @@ class LinkChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+                    color: AppPalette.primary,
                   )),
               const SizedBox(width: 4),
-              const Icon(Icons.north_east_rounded,
-                  size: 13, color: AppColors.primary),
+              Icon(Icons.north_east_rounded,
+                  size: 13, color: AppPalette.primary),
             ],
           ),
         ),
@@ -54,10 +54,10 @@ class PopupFilterButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       onSelected: onChanged,
-      color: Colors.white,
+      color: AppPalette.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(11),
-        side: const BorderSide(color: AppColors.cardBorder),
+        side: BorderSide(color: AppPalette.stroke),
       ),
       offset: const Offset(0, 8),
       itemBuilder: (_) => [
@@ -68,8 +68,8 @@ class PopupFilterButton extends StatelessWidget {
             child: Row(
               children: [
                 if (item == value)
-                  const Icon(Icons.check_rounded,
-                      size: 15, color: AppColors.primary)
+                  Icon(Icons.check_rounded,
+                      size: 15, color: AppPalette.primary)
                 else
                   const SizedBox(width: 15),
                 const SizedBox(width: 6),
@@ -80,8 +80,8 @@ class PopupFilterButton extends StatelessWidget {
                       fontWeight:
                           item == value ? FontWeight.w700 : FontWeight.w500,
                       color: item == value
-                          ? AppColors.primary
-                          : AppColors.textBody,
+                          ? AppPalette.primary
+                          : AppPalette.body,
                     )),
               ],
             ),
@@ -90,25 +90,25 @@ class PopupFilterButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppPalette.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: AppPalette.stroke),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.filter_list_rounded,
-                size: 15, color: AppColors.textMuted),
+            Icon(Icons.filter_list_rounded,
+                size: 15, color: AppPalette.muted),
             const SizedBox(width: 7),
             Text(value,
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textBody)),
+                    color: AppPalette.body)),
             const SizedBox(width: 5),
-            const Icon(Icons.keyboard_arrow_down_rounded,
-                size: 15, color: AppColors.textMuted),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 15, color: AppPalette.muted),
           ],
         ),
       ),

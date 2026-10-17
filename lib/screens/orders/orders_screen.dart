@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
@@ -12,23 +11,24 @@ import '../../widgets/chips.dart';
 import '../../widgets/kpi_card.dart';
 import '../booking/new_booking_sheet.dart';
 import '../../widgets/indicators.dart';
+import '../../core/palette.dart';
 
 /// Status pill colors for orders.
 extension _OrderStatusStyle on OrderStatus {
   Color get fg => switch (this) {
-        OrderStatus.preparing => AppColors.blue,
-        OrderStatus.confirmed => AppColors.green,
-        OrderStatus.needsPayment => AppColors.amber,
-        OrderStatus.outForDelivery => AppColors.purple,
-        OrderStatus.returned => AppColors.green,
+        OrderStatus.preparing => AppPalette.blue,
+        OrderStatus.confirmed => AppPalette.green,
+        OrderStatus.needsPayment => AppPalette.amber,
+        OrderStatus.outForDelivery => AppPalette.purple,
+        OrderStatus.returned => AppPalette.green,
       };
 
   Color get bg => switch (this) {
-        OrderStatus.preparing => AppColors.blueBg,
-        OrderStatus.confirmed => AppColors.greenBg,
-        OrderStatus.needsPayment => AppColors.amberBg,
-        OrderStatus.outForDelivery => AppColors.purpleBg,
-        OrderStatus.returned => AppColors.greenBg,
+        OrderStatus.preparing => AppPalette.blueBg,
+        OrderStatus.confirmed => AppPalette.greenBg,
+        OrderStatus.needsPayment => AppPalette.amberBg,
+        OrderStatus.outForDelivery => AppPalette.purpleBg,
+        OrderStatus.returned => AppPalette.greenBg,
       };
 }
 
@@ -50,10 +50,10 @@ class OrdersScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const IconChipLite(
+              IconChipLite(
                   icon: Icons.receipt_long_outlined,
-                  color: AppColors.primary,
-                  bg: AppColors.primarySoft,
+                  color: AppPalette.primary,
+                  bg: AppPalette.primarySoft,
                   size: 40),
               const SizedBox(width: 14),
               Expanded(
@@ -68,7 +68,7 @@ class OrdersScreen extends StatelessWidget {
                             fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
-                            color: AppColors.textDark)),
+                            color: AppPalette.ink)),
                   ],
                 ),
               ),
@@ -80,11 +80,11 @@ class OrdersScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text('Coordinate upcoming events, deliveries, and returns.',
+          Text('Coordinate upcoming events, deliveries, and returns.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
           const SizedBox(height: 22),
 
           LayoutBuilder(builder: (context, c) {
@@ -97,52 +97,52 @@ class OrdersScreen extends StatelessWidget {
               children: [
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.receipt_long_outlined,
-                    iconColor: AppColors.blue,
-                    iconBg: AppColors.blueBg,
+                    iconColor: AppPalette.blue,
+                    iconBg: AppPalette.blueBg,
                     label: 'Open orders',
                     value: '${Seed.openOrders}',
                     subtitle: 'Since yesterday',
-                    trailing: TrendChip(text: '+4', positive: true),
+                    trailing: const TrendChip(text: '+4', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.payments_outlined,
-                    iconColor: AppColors.amber,
-                    iconBg: AppColors.amberBg,
+                    iconColor: AppPalette.amber,
+                    iconBg: AppPalette.amberBg,
                     label: 'Awaiting payment',
                     value: '\$4,910',
                     subtitle: 'Follow up today',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '${Seed.awaitingPaymentOrders} orders',
                         positive: false),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.local_shipping_outlined,
-                    iconColor: AppColors.purple,
-                    iconBg: AppColors.purpleBg,
+                    iconColor: AppPalette.purple,
+                    iconBg: AppPalette.purpleBg,
                     label: 'Out for delivery',
                     value: '${Seed.outForDelivery}',
                     subtitle: 'On schedule',
-                    trailing: TrendChip(text: '100%', positive: true),
+                    trailing: const TrendChip(text: '100%', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.schedule_rounded,
-                    iconColor: AppColors.amber,
-                    iconBg: AppColors.amberBg,
+                    iconColor: AppPalette.amber,
+                    iconBg: AppPalette.amberBg,
                     label: 'Returns today',
                     value: '${Seed.returnsToday}',
                     subtitle: 'Needs attention',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '${Seed.returnsLate} late', positive: false),
                   ),
                 ),
@@ -180,13 +180,13 @@ class OrdersScreen extends StatelessWidget {
                     ),
                 ],
                 if (state.filteredOrders.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 36),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
                     child: Text('No orders in this view.',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13.5,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                   ),
               ],
             ),
@@ -212,7 +212,7 @@ class _OrderTabs extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.subtleFill,
+        color: AppPalette.fill,
         borderRadius: BorderRadius.circular(11),
       ),
       child: Row(
@@ -244,8 +244,8 @@ class _OrderTabs extends StatelessWidget {
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                       color: tab == selected
-                          ? AppColors.textDark
-                          : AppColors.textMuted,
+                          ? AppPalette.ink
+                          : AppPalette.muted,
                     )),
               ),
             ),
@@ -279,12 +279,12 @@ class _OrderHeader extends StatelessWidget {
               flex: _flexes[i],
               child: Text(
                 _labels[i].toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.1,
-                  color: AppColors.textMuted,
+                  color: AppPalette.muted,
                 ),
               ),
             ),
@@ -304,8 +304,8 @@ class _OrderRow extends StatelessWidget {
     final df = DateFormat('MMM d, yyyy');
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppPalette.stroke)),
       ),
       child: Row(
         children: [
@@ -315,17 +315,17 @@ class _OrderRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('#${order.id}',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary)),
+                        color: AppPalette.primary)),
                 const SizedBox(height: 2),
                 Text('Created ${df.format(order.createdAt)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
-                        color: AppColors.textFaint)),
+                        color: AppPalette.faint)),
               ],
             ),
           ),
@@ -337,46 +337,46 @@ class _OrderRow extends StatelessWidget {
                 Text(order.eventName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textDark)),
+                        color: AppPalette.ink)),
                 const SizedBox(height: 2),
                 Text(order.contactName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
               ],
             ),
           ),
           Expanded(
             flex: 3,
             child: Text(df.format(order.eventDate),
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13,
-                    color: AppColors.textBody)),
+                    color: AppPalette.body)),
           ),
           Expanded(
             flex: 2,
             child: Text('${order.itemCount} items',
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13,
-                    color: AppColors.textBody)),
+                    color: AppPalette.body)),
           ),
           Expanded(
             flex: 2,
             child: Text('\$${NumberFormat('#,##0').format(order.total)}',
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textDark)),
+                    color: AppPalette.ink)),
           ),
           Expanded(
             flex: 3,
@@ -409,8 +409,8 @@ class _OrderCard extends StatelessWidget {
     final df = DateFormat('MMM d, yyyy');
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppPalette.stroke)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,11 +418,11 @@ class _OrderCard extends StatelessWidget {
           Row(
             children: [
               Text('#${order.id}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary)),
+                      color: AppPalette.primary)),
               const Spacer(),
               StatusBadge(
                 label: order.status.label,
@@ -433,35 +433,35 @@ class _OrderCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(order.eventName,
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textDark)),
+                  color: AppPalette.ink)),
           const SizedBox(height: 3),
           Text('${order.contactName} · ${order.itemCount} items',
-              style: const TextStyle(
+              style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 12,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.event_outlined,
-                  size: 14, color: AppColors.textMuted),
+              Icon(Icons.event_outlined,
+                  size: 14, color: AppPalette.muted),
               const SizedBox(width: 5),
               Text(df.format(order.eventDate),
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
-                      color: AppColors.textMuted)),
+                      color: AppPalette.muted)),
               const Spacer(),
               Text('\$${NumberFormat('#,##0').format(order.total)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textDark)),
+                      color: AppPalette.ink)),
               const SizedBox(width: 10),
               _OrderMenu(order: order, onAction: onAction),
             ],
@@ -484,7 +484,7 @@ class _OrderMenu extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(11),
-        side: const BorderSide(color: AppColors.cardBorder),
+        side: BorderSide(color: AppPalette.stroke),
       ),
       onSelected: (v) {
         switch (v) {
@@ -530,10 +530,10 @@ class _OrderMenu extends StatelessWidget {
         height: 32,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: AppPalette.stroke),
         ),
-        child: const Icon(Icons.more_horiz,
-            size: 16, color: AppColors.textMuted),
+        child: Icon(Icons.more_horiz,
+            size: 16, color: AppPalette.muted),
       ),
     );
   }

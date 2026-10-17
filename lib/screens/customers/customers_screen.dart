@@ -11,6 +11,7 @@ import '../../widgets/chips.dart';
 import '../../models/customer.dart';
 import '../../widgets/kpi_card.dart';
 import '../../widgets/indicators.dart';
+import '../../core/palette.dart';
 
 class CustomersScreen extends StatelessWidget {
   const CustomersScreen({super.key});
@@ -29,10 +30,10 @@ class CustomersScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const IconChipLite(
+              IconChipLite(
                   icon: Icons.people_outline,
-                  color: AppColors.primary,
-                  bg: AppColors.primarySoft,
+                  color: AppPalette.primary,
+                  bg: AppPalette.primarySoft,
                   size: 40),
               const SizedBox(width: 11),
               Expanded(
@@ -47,7 +48,7 @@ class CustomersScreen extends StatelessWidget {
                             fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
-                            color: AppColors.textDark)),
+                            color: AppPalette.ink)),
                   ],
                 ),
               ),
@@ -59,11 +60,11 @@ class CustomersScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text('Keep relationships warm and repeat bookings moving.',
+          Text('Keep relationships warm and repeat bookings moving.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
           const SizedBox(height: 14),
 
           LayoutBuilder(builder: (context, c) {
@@ -76,53 +77,53 @@ class CustomersScreen extends StatelessWidget {
               children: [
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.people_outline,
-                    iconColor: AppColors.primary,
-                    iconBg: AppColors.primarySoft,
+                    iconColor: AppPalette.primary,
+                    iconBg: AppPalette.primarySoft,
                     label: 'Total customers',
                     value: '${Seed.totalCustomersKpi}',
                     subtitle: 'This quarter',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '+12', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.repeat_rounded,
-                    iconColor: AppColors.purple,
-                    iconBg: AppColors.purpleBg,
+                    iconColor: AppPalette.purple,
+                    iconBg: AppPalette.purpleBg,
                     label: 'Repeat customers',
                     value: '68%',
                     subtitle: 'Healthy retention',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '+8.4%', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.payments_outlined,
-                    iconColor: AppColors.green,
-                    iconBg: AppColors.greenBg,
+                    iconColor: AppPalette.green,
+                    iconBg: AppPalette.greenBg,
                     label: 'Customer value',
                     value: '\$42.8k',
                     subtitle: 'Year to date',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '14.2%', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.schedule_rounded,
-                    iconColor: AppColors.amber,
-                    iconBg: AppColors.amberBg,
+                    iconColor: AppPalette.amber,
+                    iconBg: AppPalette.amberBg,
                     label: 'Follow-ups',
                     value: '${Seed.followUps}',
                     subtitle: 'Keep the loop tight',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: 'Due today', positive: false),
                   ),
                 ),
@@ -205,14 +206,14 @@ class CustomersScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
-                    color: AppColors.textBody)),
+                    color: AppPalette.body)),
           ),
           FilledButton(
             style:
-                FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                FilledButton.styleFrom(backgroundColor: AppPalette.primary),
             onPressed: () {
               if (nameCtrl.text.trim().isEmpty) return;
               state.addCustomer(
@@ -272,21 +273,21 @@ class _Directory extends StatelessWidget {
         children: [
           TextField(
             onChanged: state.setCustomerQuery,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Search customers',
               prefixIcon:
-                  Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
-              prefixIconConstraints: BoxConstraints(minWidth: 42),
+                  Icon(Icons.search_rounded, size: 18, color: AppPalette.muted),
+              prefixIconConstraints: const BoxConstraints(minWidth: 42),
             ),
           ),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
             child: Text('${customers.length} customers',
-                style: const TextStyle(
+                style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12,
-                    color: AppColors.textMuted)),
+                    color: AppPalette.muted)),
           ),
           const SizedBox(height: 4),
 
@@ -303,8 +304,8 @@ class _Directory extends StatelessWidget {
             }
             return Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12, left: 4, right: 4),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
                   child: Row(
                     children: [
                       Expanded(
@@ -315,7 +316,7 @@ class _Directory extends StatelessWidget {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.1,
-                                  color: AppColors.textMuted))),
+                                  color: AppPalette.muted))),
                       Expanded(
                           flex: 2,
                           child: Text('RENTALS',
@@ -324,7 +325,7 @@ class _Directory extends StatelessWidget {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.1,
-                                  color: AppColors.textMuted))),
+                                  color: AppPalette.muted))),
                       Expanded(
                           flex: 3,
                           child: Text('LIFETIME SPEND',
@@ -333,7 +334,7 @@ class _Directory extends StatelessWidget {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.1,
-                                  color: AppColors.textMuted))),
+                                  color: AppPalette.muted))),
                       Expanded(
                           flex: 3,
                           child: Text('LAST BOOKING',
@@ -342,8 +343,8 @@ class _Directory extends StatelessWidget {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.1,
-                                  color: AppColors.textMuted))),
-                      SizedBox(width: 40),
+                                  color: AppPalette.muted))),
+                      const SizedBox(width: 40),
                     ],
                   ),
                 ),
@@ -351,9 +352,9 @@ class _Directory extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(
                         vertical: 12, horizontal: 4),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(
-                          top: BorderSide(color: AppColors.cardBorder)),
+                          top: BorderSide(color: AppPalette.stroke)),
                     ),
                     child: Row(
                       children: [
@@ -374,20 +375,20 @@ class _Directory extends StatelessWidget {
                                     Text(cust.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontFamily:
                                                 AppTheme.fontFamily,
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.w700,
-                                            color: AppColors.textDark)),
+                                            color: AppPalette.ink)),
                                     Text(cust.company,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontFamily:
                                                 AppTheme.fontFamily,
                                             fontSize: 11.5,
-                                            color: AppColors.textMuted)),
+                                            color: AppPalette.muted)),
                                   ],
                                 ),
                               ),
@@ -397,28 +398,28 @@ class _Directory extends StatelessWidget {
                         Expanded(
                           flex: 2,
                           child: Text('${cust.rentals} rentals',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13,
-                                  color: AppColors.textBody)),
+                                  color: AppPalette.body)),
                         ),
                         Expanded(
                           flex: 3,
                           child: Text(
                               '\$${NumberFormat('#,##0').format(cust.lifetimeSpend)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textDark)),
+                                  color: AppPalette.ink)),
                         ),
                         Expanded(
                           flex: 3,
                           child: Text(df.format(cust.lastBooking),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13,
-                                  color: AppColors.textBody)),
+                                  color: AppPalette.body)),
                         ),
                         SizedBox(
                           width: 40,
@@ -430,10 +431,10 @@ class _Directory extends StatelessWidget {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: AppColors.cardBorder),
+                                    color: AppPalette.stroke),
                               ),
-                              child: const Icon(Icons.more_horiz,
-                                  size: 15, color: AppColors.textMuted),
+                              child: Icon(Icons.more_horiz,
+                                  size: 15, color: AppPalette.muted),
                             ),
                           ),
                         ),
@@ -458,8 +459,8 @@ class _CustomerCardWide extends StatelessWidget {
     final df = DateFormat('MMM d, yyyy');
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppPalette.stroke)),
       ),
       child: Row(
         children: [
@@ -473,16 +474,16 @@ class _CustomerCardWide extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(cust.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textDark)),
+                        color: AppPalette.ink)),
                 Text(cust.company,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
               ],
             ),
           ),
@@ -490,18 +491,18 @@ class _CustomerCardWide extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text('\$${NumberFormat('#,##0').format(cust.lifetimeSpend)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textDark)),
+                      color: AppPalette.ink)),
               const SizedBox(height: 2),
               Text(
                   '${cust.rentals} rentals · ${df.format(cust.lastBooking)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11.5,
-                      color: AppColors.textMuted)),
+                      color: AppPalette.muted)),
             ],
           ),
         ],
@@ -519,9 +520,11 @@ class _PulsePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F3FE),
+        color: AppPalette.purpleBg,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: const Color(0xFFE5DFFB)),
+        border: Border.all(
+            color: AppPalette.purple
+                .withOpacity(AppPalette.dark ? 0.28 : 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,22 +532,22 @@ class _PulsePanel extends StatelessWidget {
           const Eyebrow('Relationship pulse',
               color: Color(0xFF8B5CF6)),
           const SizedBox(height: 10),
-          const Text('Customers are booking earlier.',
+          Text('Customers are booking earlier.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 16,
                   height: 1.25,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
-                  color: AppColors.textDark)),
+                  color: AppPalette.ink)),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Average lead time is up to 23 days, giving the team more room to prep and upsell.',
             style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 13,
               height: 1.55,
-              color: AppColors.textBody,
+              color: AppPalette.body,
             ),
           ),
           const SizedBox(height: 14),
@@ -559,13 +562,13 @@ class _PulsePanel extends StatelessWidget {
                       letterSpacing: -0.8,
                       color: const Color(0xFF7C3AED))),
               const SizedBox(width: 9),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Text('average lead time',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
               ),
             ],
           ),

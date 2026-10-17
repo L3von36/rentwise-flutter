@@ -28,7 +28,9 @@ bool FlutterWindow::OnCreate() {
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
+    // Window is shown by window_manager (waitUntilReadyToShow) after the
+    // Dart side applies WindowOptions (frameless custom title bar).
+    // Showing here would flash the native caption before that.
   });
 
   // Flutter can complete the first frame before the "show window" callback is

@@ -3,6 +3,7 @@ import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../core/density.dart';
 import 'cards.dart';
+import '../core/palette.dart';
 
 /// The 4-up metric card used on Dashboard / Inventory / Orders / Customers.
 class KpiCard extends StatelessWidget {
@@ -30,9 +31,9 @@ class KpiCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppPalette.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Column(
@@ -56,11 +57,11 @@ class KpiCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppColors.textBody,
+              color: AppPalette.body,
             ),
           ),
           const SizedBox(height: 4),
@@ -72,7 +73,7 @@ class KpiCard extends StatelessWidget {
               height: 1.1,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
-              color: AppColors.textDark,
+              color: AppPalette.ink,
             ),
           ),
           const SizedBox(height: 6),
@@ -80,10 +81,10 @@ class KpiCard extends StatelessWidget {
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 11.5,
-              color: AppColors.textMuted,
+              color: AppPalette.muted,
             ),
           ),
         ],
@@ -118,9 +119,9 @@ class KpiTileMini extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppPalette.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Column(
@@ -144,10 +145,10 @@ class KpiTileMini extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 11,
-              color: AppColors.textMuted,
+              color: AppPalette.muted,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -159,7 +160,7 @@ class KpiTileMini extends StatelessWidget {
               fontSize: Density.compact(context) ? 16 : 17,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.4,
-              color: AppColors.textDark,
+              color: AppPalette.ink,
             ),
           ),
           const SizedBox(height: 2),
@@ -167,10 +168,10 @@ class KpiTileMini extends StatelessWidget {
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 10,
-              color: AppColors.textFaint,
+              color: AppPalette.faint,
             ),
           ),
         ],

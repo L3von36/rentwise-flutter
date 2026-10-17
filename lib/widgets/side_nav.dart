@@ -6,6 +6,7 @@ import '../state/workspace_state.dart';
 import 'brand_logo.dart';
 import 'chips.dart';
 import 'cards.dart';
+import '../core/palette.dart';
 
 /// Destinations shown in the sidebar / drawer.
 class _NavItem {
@@ -41,7 +42,7 @@ class SideNav extends StatelessWidget {
       bottom: false,
       child: Container(
         width: width,
-        color: AppColors.sidebar,
+        color: AppPalette.panel,
         child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -62,15 +63,15 @@ class SideNav extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 22),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22),
             child: Text('WORKSPACE',
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,
-                  color: AppColors.textFaint,
+                  color: AppPalette.faint,
                 )),
           ),
           const SizedBox(height: 8),
@@ -105,35 +106,35 @@ class SideNav extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(horizontal: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySoft.withOpacity(0.65),
+                    color: AppPalette.primarySoft.withOpacity(0.65),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: AppColors.primaryTint.withOpacity(0.5)),
+                        color: AppPalette.primaryTint.withOpacity(0.5)),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       IconChipLite(
                           icon: Icons.auto_awesome,
-                          color: AppColors.primary,
+                          color: AppPalette.primary,
                           bg: Colors.white,
                           size: 28),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text('All caught up',
                           style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textDark,
+                            color: AppPalette.ink,
                           )),
-                      SizedBox(height: 3),
+                      const SizedBox(height: 3),
                       Text(
                         'Every active rental is on track today.',
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 11.5,
                           height: 1.38,
-                          color: AppColors.textBody,
+                          color: AppPalette.body,
                         ),
                       ),
                     ],
@@ -160,8 +161,8 @@ class SideNav extends StatelessWidget {
 
           // User footer
           Container(
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColors.cardBorder)),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: AppPalette.stroke)),
             ),
             padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
             child: Row(
@@ -182,29 +183,29 @@ class SideNav extends StatelessWidget {
                         state.account?.name ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
+                          color: AppPalette.ink,
                         ),
                       ),
                       Text(
                         state.account?.title ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 11,
-                          color: AppColors.textMuted,
+                          color: AppPalette.muted,
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.more_horiz,
-                      size: 18, color: AppColors.textMuted),
+                  icon: Icon(Icons.more_horiz,
+                      size: 18, color: AppPalette.muted),
                   onPressed: () => _showUserMenu(context),
                 ),
               ],
@@ -219,7 +220,7 @@ class SideNav extends StatelessWidget {
   void _showUserMenu(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppPalette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
@@ -229,17 +230,17 @@ class SideNav extends StatelessWidget {
           children: [
             const SizedBox(height: 10),
             ListTile(
-              leading: const Icon(Icons.account_circle_outlined,
-                  color: AppColors.textBody),
+              leading: Icon(Icons.account_circle_outlined,
+                  color: AppPalette.body),
               title: Text(context.read<WorkspaceState>().account?.name ?? ''),
               subtitle: Text(context.read<WorkspaceState>().account?.email ?? ''),
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout, color: AppColors.red),
-              title: const Text('Sign out',
+              leading: Icon(Icons.logout, color: AppPalette.red),
+              title: Text('Sign out',
                   style: TextStyle(
-                      color: AppColors.red, fontWeight: FontWeight.w600)),
+                      color: AppPalette.red, fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 context.read<WorkspaceState>().signOut();
@@ -270,11 +271,11 @@ class _SideItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.textBody;
+    final color = selected ? AppPalette.primary : AppPalette.body;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
-        color: selected ? AppColors.primarySoft : Colors.transparent,
+        color: selected ? AppPalette.primarySoft : Colors.transparent,
         borderRadius: BorderRadius.circular(11),
         child: InkWell(
           onTap: onTap,
@@ -285,9 +286,9 @@ class _SideItem extends StatelessWidget {
             decoration: selected
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(11),
-                    border: const Border(
+                    border: Border(
                         left: BorderSide(
-                            color: AppColors.primary, width: 3)),
+                            color: AppPalette.primary, width: 3)),
                   )
                 : null,
             child: Row(
@@ -313,16 +314,16 @@ class _SideItem extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
+                      color: AppPalette.primarySoft,
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
                       '$badge',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                        color: AppPalette.primary,
                       ),
                     ),
                   ),
@@ -342,7 +343,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.card,
+      color: AppPalette.surface,
       borderRadius: BorderRadius.circular(13),
       child: InkWell(
         borderRadius: BorderRadius.circular(13),
@@ -351,7 +352,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: AppPalette.stroke),
             boxShadow: AppShadow.card(opacity: 0.04),
           ),
           child: Row(
@@ -361,19 +362,19 @@ class _WorkspaceSwitcher extends StatelessWidget {
                 height: 28,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: AppPalette.primarySoft,
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: const Text('R',
+                child: Text('R',
                     style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      color: AppPalette.primary,
                     )),
               ),
               const SizedBox(width: 9),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -382,9 +383,9 @@ class _WorkspaceSwitcher extends StatelessWidget {
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textMuted,
+                          color: AppPalette.muted,
                         )),
-                    SizedBox(height: 1),
+                    const SizedBox(height: 1),
                     Text('Riverside Events',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -392,13 +393,13 @@ class _WorkspaceSwitcher extends StatelessWidget {
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
+                          color: AppPalette.ink,
                         )),
                   ],
                 ),
               ),
-              const Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 16, color: AppColors.textMuted),
+              Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 16, color: AppPalette.muted),
             ],
           ),
         ),
@@ -413,11 +414,11 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Drawer(
-      backgroundColor: AppColors.sidebar,
-      surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(),
-      child: SafeArea(
+    return Drawer(
+      backgroundColor: AppPalette.panel,
+      surfaceTintColor: AppPalette.panel,
+      shape: const RoundedRectangleBorder(),
+      child: const SafeArea(
         right: false,
         child: SideNav(width: 254),
       ),

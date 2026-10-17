@@ -4,10 +4,12 @@ import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../models/account.dart';
+import '../../state/shell_state.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/restricted.dart';
+import '../../core/palette.dart';
 
 class AccessRolesScreen extends StatelessWidget {
   const AccessRolesScreen({super.key});
@@ -26,6 +28,7 @@ class AccessRolesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
+    final shell = context.watch<ShellState>();
 
     // Owner-only console: even if this screen is somehow mounted for an
     // employee, only the restricted panel renders (no role switcher,
@@ -47,10 +50,10 @@ class AccessRolesScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const IconChipLite(
+              IconChipLite(
                   icon: Icons.verified_user_outlined,
-                  color: AppColors.primary,
-                  bg: AppColors.primarySoft,
+                  color: AppPalette.primary,
+                  bg: AppPalette.primarySoft,
                   size: 40),
               const SizedBox(width: 14),
               Expanded(
@@ -65,36 +68,36 @@ class AccessRolesScreen extends StatelessWidget {
                             fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
-                            color: AppColors.textDark)),
+                            color: AppPalette.ink)),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          const Text('Control what employees can see and do across Riverside Events.',
+          Text('Control what employees can see and do across Riverside Events.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
           const SizedBox(height: 22),
 
           // role-based access banner
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: AppColors.primarySoft.withOpacity(0.55),
+              color: AppPalette.primarySoft.withOpacity(0.55),
               borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppColors.primaryTint),
+              border: Border.all(color: AppPalette.primaryTint),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 IconChipLite(
                     icon: Icons.shield_outlined,
-                    color: AppColors.primary,
-                    bg: Colors.white,
+                    color: AppPalette.primary,
+                    bg: AppPalette.surface,
                     size: 40),
-                SizedBox(width: 14),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,22 +107,22 @@ class AccessRolesScreen extends StatelessWidget {
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textDark)),
-                      SizedBox(height: 3),
+                              color: AppPalette.ink)),
+                      const SizedBox(height: 3),
                       Text(
                           'Every action is logged, and sensitive owner controls stay protected.',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 12.5,
-                              color: AppColors.textBody)),
+                              color: AppPalette.body)),
                     ],
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 StatusBadge.custom(
                   label: 'Protected',
-                  fg: AppColors.green,
-                  bg: AppColors.greenBg,
+                  fg: AppPalette.green,
+                  bg: AppPalette.greenBg,
                   dot: true,
                 ),
               ],
@@ -153,6 +156,38 @@ class AccessRolesScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
+          // appearance — the cross-platform home of the theme toggle
+          // (the desktop title bar and tray menu expose the same control).
+          SectionCard(
+            icon: Icons.contrast_rounded,
+            title: 'Appearance',
+            subtitle: 'Choose how RentWise looks on this device.',
+            child: Row(
+              children: [
+                for (final mode in AppThemeSetting.values) ...[
+                  _ThemeChoice(
+                    mode: mode,
+                    selected: shell.themeSetting == mode,
+                    onTap: () => shell.setThemeSetting(mode),
+                  ),
+                  if (mode != AppThemeSetting.values.last)
+                    const SizedBox(width: 10),
+                ],
+                const Spacer(),
+                Flexible(
+                  child: Text('Remembered on this device',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11.5,
+                          color: AppPalette.muted)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
           // permission matrix
           SectionCard(
             icon: Icons.key_outlined,
@@ -166,8 +201,8 @@ class AccessRolesScreen extends StatelessWidget {
             child: Column(
               children: [
                 // header
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12, left: 4, right: 4),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
                   child: Row(
                     children: [
                       Expanded(
@@ -178,7 +213,7 @@ class AccessRolesScreen extends StatelessWidget {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.1,
-                                  color: AppColors.textMuted))),
+                                  color: AppPalette.muted))),
                       Expanded(
                           flex: 2,
                           child: Text('EMPLOYEE',
@@ -188,8 +223,8 @@ class AccessRolesScreen extends StatelessWidget {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.1,
-                                  color: AppColors.textMuted))),
-                      SizedBox(width: 16),
+                                  color: AppPalette.muted))),
+                      const SizedBox(width: 16),
                       Expanded(
                           flex: 2,
                           child: Text('OWNER',
@@ -199,7 +234,7 @@ class AccessRolesScreen extends StatelessWidget {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.1,
-                                  color: AppColors.textMuted))),
+                                  color: AppPalette.muted))),
                     ],
                   ),
                 ),
@@ -207,20 +242,20 @@ class AccessRolesScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(
                         vertical: 12, horizontal: 4),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(
-                          top: BorderSide(color: AppColors.cardBorder)),
+                          top: BorderSide(color: AppPalette.stroke)),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           flex: 6,
                           child: Text(cap.label,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w500,
-                                  color: AppColors.textDark)),
+                                  color: AppPalette.ink)),
                         ),
                         Expanded(
                           flex: 2,
@@ -253,9 +288,9 @@ class AccessRolesScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: AppPalette.surface,
               borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppColors.cardBorder),
+              border: Border.all(color: AppPalette.stroke),
             ),
             child: Row(
               children: [
@@ -267,37 +302,37 @@ class AccessRolesScreen extends StatelessWidget {
                       const SizedBox(height: 5),
                       Text(
                           '${state.account?.name ?? '—'} · ${state.role.label}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textDark)),
+                              color: AppPalette.ink)),
                       const SizedBox(height: 2),
                       Text(
                           'Signed in with ${state.account?.email ?? '—'}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 12,
-                              color: AppColors.textMuted)),
+                              color: AppPalette.muted)),
                     ],
                   ),
                 ),
                 InkWell(
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => state.signOut(),
-                  child: const Padding(
-                    padding: EdgeInsets.all(6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
                     child: Row(
                       children: [
                         Icon(Icons.logout_rounded,
-                            size: 16, color: AppColors.red),
-                        SizedBox(width: 6),
+                            size: 16, color: AppPalette.red),
+                        const SizedBox(width: 6),
                         Text('Sign out',
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.red)),
+                                color: AppPalette.red)),
                       ],
                     ),
                   ),
@@ -336,7 +371,7 @@ class _RoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? Colors.white : AppColors.card,
+      color: selected ? Colors.white : AppPalette.surface,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -347,12 +382,12 @@ class _RoleCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: selected ? AppColors.primary : AppColors.cardBorder,
+                color: selected ? AppPalette.primary : AppPalette.stroke,
                 width: selected ? 1.6 : 1),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                        color: AppColors.primary.withOpacity(0.10),
+                        color: AppPalette.primary.withOpacity(0.10),
                         blurRadius: 16,
                         offset: const Offset(0, 6)),
                   ]
@@ -363,10 +398,10 @@ class _RoleCard extends StatelessWidget {
               IconChipLite(
                   icon: icon,
                   color:
-                      selected ? AppColors.primary : AppColors.textBody,
+                      selected ? AppPalette.primary : AppPalette.body,
                   bg: selected
-                      ? AppColors.primarySoft
-                      : AppColors.subtleFill,
+                      ? AppPalette.primarySoft
+                      : AppPalette.fill,
                   size: 38),
               const SizedBox(width: 12),
               Expanded(
@@ -379,14 +414,14 @@ class _RoleCard extends StatelessWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: selected
-                                ? AppColors.primary
-                                : AppColors.textDark)),
+                                ? AppPalette.primary
+                                : AppPalette.ink)),
                     const SizedBox(height: 2),
                     Text(subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 12,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                   ],
                 ),
               ),
@@ -396,7 +431,7 @@ class _RoleCard extends StatelessWidget {
                     : Icons.radio_button_unchecked_rounded,
                 size: 22,
                 color:
-                    selected ? AppColors.primary : AppColors.textFaint,
+                    selected ? AppPalette.primary : AppPalette.faint,
               ),
             ],
           ),
@@ -414,9 +449,9 @@ class _CheckMark extends StatelessWidget {
     return Container(
       width: 20,
       height: 20,
-      decoration: const BoxDecoration(
-          color: AppColors.greenBg, shape: BoxShape.circle),
-      child: const Icon(Icons.check_rounded, size: 13, color: AppColors.green),
+      decoration: BoxDecoration(
+          color: AppPalette.greenBg, shape: BoxShape.circle),
+      child: Icon(Icons.check_rounded, size: 13, color: AppPalette.green),
     );
   }
 }
@@ -426,10 +461,61 @@ class _Dash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text('—',
+    return Text('—',
         style: TextStyle(
             fontFamily: AppTheme.fontFamily,
             fontSize: 13,
-            color: AppColors.textFaint));
+            color: AppPalette.faint));
+  }
+}
+
+/// Pill selector for the three theme modes (Appearance card).
+class _ThemeChoice extends StatelessWidget {
+  final AppThemeSetting mode;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemeChoice(
+      {required this.mode, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, label) = switch (mode) {
+      AppThemeSetting.system => (Icons.brightness_auto_outlined, 'System'),
+      AppThemeSetting.light => (Icons.light_mode_outlined, 'Light'),
+      AppThemeSetting.dark => (Icons.dark_mode_outlined, 'Dark'),
+    };
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: selected ? AppPalette.primarySoft : AppPalette.fill,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(
+                color: selected ? AppPalette.primary : AppPalette.stroke,
+                width: selected ? 1.4 : 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 14,
+                  color: selected ? AppPalette.primary : AppPalette.body),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? AppPalette.primary : AppPalette.body)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
@@ -10,6 +9,7 @@ import '../../widgets/kpi_card.dart';
 import '../../widgets/indicators.dart';
 import '../../widgets/restricted.dart';
 import '../../state/workspace_state.dart';
+import '../../core/palette.dart';
 
 /// Owner-only performance monitor.
 class ReportsScreen extends StatelessWidget {
@@ -46,13 +46,13 @@ class ReportsScreen extends StatelessWidget {
                   fontSize: Density.compact(context) ? 17 : 21,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.8,
-                  color: AppColors.textDark)),
+                  color: AppPalette.ink)),
           const SizedBox(height: 6),
-          const Text('Your business performance at a glance.',
+          Text('Your business performance at a glance.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
           const SizedBox(height: 22),
 
           // top KPIs
@@ -66,27 +66,27 @@ class ReportsScreen extends StatelessWidget {
               children: [
                 SizedBox(
                   width: w,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.payments_outlined,
-                    iconColor: AppColors.primary,
-                    iconBg: AppColors.primarySoft,
+                    iconColor: AppPalette.primary,
+                    iconBg: AppPalette.primarySoft,
                     label: 'Gross revenue',
                     value: '\$28.9k',
                     subtitle: 'this month',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '18.4%', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: w,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.donut_small_outlined,
-                    iconColor: AppColors.purple,
-                    iconBg: AppColors.purpleBg,
+                    iconColor: AppPalette.purple,
+                    iconBg: AppPalette.purpleBg,
                     label: 'Utilization',
                     value: '72.8%',
                     subtitle: 'this month',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '+6.2%', positive: true),
                   ),
                 ),
@@ -99,12 +99,12 @@ class ReportsScreen extends StatelessWidget {
           SectionCard(
             title: 'Revenue trend',
             subtitle: _monthLabel(now),
-            action: const Text('\$28.9k',
+            action: Text('\$28.9k',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary)),
+                    color: AppPalette.primary)),
             child: SizedBox(
               height: 210,
               child: BarChart(
@@ -127,7 +127,7 @@ class ReportsScreen extends StatelessWidget {
                   ),
                   barTouchData: BarTouchData(
                     touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => AppColors.textDark,
+                      getTooltipColor: (_) => AppPalette.ink,
                       getTooltipItem: (group, _, __, ___) {
                         final p = trend[group.x.toInt()];
                         return BarTooltipItem(
@@ -151,12 +151,12 @@ class ReportsScreen extends StatelessWidget {
                             width: 30,
                             borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(6)),
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
                               colors: [
-                                Color(0xFFB9B5F5),
-                                AppColors.primary,
+                                const Color(0xFFB9B5F5),
+                                AppPalette.primary,
                               ],
                             ),
                           ),
@@ -184,19 +184,19 @@ class ReportsScreen extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(cat.category,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontFamily: AppTheme.fontFamily,
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColors.textDark)),
+                                      color: AppPalette.ink)),
                             ),
                             Text(
                                 '\$${_money(cat.amount)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontFamily: AppTheme.fontFamily,
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.primary)),
+                                    color: AppPalette.primary)),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -207,12 +207,12 @@ class ReportsScreen extends StatelessWidget {
                             child: Stack(
                               children: [
                                 Container(
-                                    color: AppColors.primarySoft),
+                                    color: AppPalette.primarySoft),
                                 FractionallySizedBox(
                                   widthFactor: cat.amount /
                                       Seed.categoryRevenue.first.amount,
                                   child: Container(
-                                      color: AppColors.primary),
+                                      color: AppPalette.primary),
                                 ),
                               ],
                             ),
@@ -251,10 +251,10 @@ class ReportsScreen extends StatelessWidget {
       padding: const EdgeInsets.only(top: 6),
       child: Text(
         'Oct ${d.day}',
-        style: const TextStyle(
+        style: TextStyle(
             fontFamily: AppTheme.fontFamily,
             fontSize: 11,
-            color: AppColors.textMuted),
+            color: AppPalette.muted),
       ),
     );
   }

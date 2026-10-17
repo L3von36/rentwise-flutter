@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/breakpoints.dart';
+import '../core/palette.dart';
 import '../state/workspace_state.dart';
 import '../screens/booking/new_booking_sheet.dart';
 import '../screens/dashboard/dashboard_screen.dart';
@@ -77,13 +78,18 @@ class AppShell extends StatelessWidget {
           () => showShortcutsHelp(context),
     };
 
+    final brightness = Theme.of(context).brightness;
+    final dark = brightness == Brightness.dark;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
+        statusBarIconBrightness:
+            dark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: brightness,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness:
+            dark ? Brightness.light : Brightness.dark,
       ),
       child: CallbackShortcuts(
         bindings: shortcuts,
@@ -94,7 +100,7 @@ class AppShell extends StatelessWidget {
             drawer: useDrawer ? const AppDrawer() : null,
             bottomNavigationBar:
                 useBottomNav ? const RentWiseBottomNav() : null,
-            backgroundColor: AppShellColors.background,
+            backgroundColor: AppPalette.canvas,
             body: (useDrawer || useBottomNav)
                 ? Column(
                     children: [
@@ -130,8 +136,4 @@ class AppShell extends StatelessWidget {
       ),
     );
   }
-}
-
-class AppShellColors {
-  static const background = Color(0xFFF6F7FB);
 }

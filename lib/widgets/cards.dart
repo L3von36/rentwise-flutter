@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../core/density.dart';
+import '../core/palette.dart';
 
 /// White section card with icon + title (+ subtitle) and trailing action.
 class SectionCard extends StatelessWidget {
   final IconData? icon;
-  final Color iconColor;
-  final Color iconBg;
+  final Color? iconColor;
+  final Color? iconBg;
   final String title;
   final String? subtitle;
   final Widget? action;
@@ -17,8 +18,8 @@ class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,
     this.icon,
-    this.iconColor = AppColors.primary,
-    this.iconBg = AppColors.primarySoft,
+    this.iconColor,
+    this.iconBg,
     required this.title,
     this.subtitle,
     this.action,
@@ -33,9 +34,9 @@ class SectionCard extends StatelessWidget {
           ? const EdgeInsets.fromLTRB(14, 12, 14, 12)
           : padding,
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppPalette.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppPalette.stroke),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Column(
@@ -45,7 +46,10 @@ class SectionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (icon != null) ...[
-                IconChipLite(icon: icon!, color: iconColor, bg: iconBg),
+                IconChipLite(
+                    icon: icon!,
+                    color: iconColor ?? AppPalette.primary,
+                    bg: iconBg ?? AppPalette.primarySoft),
                 const SizedBox(width: 10),
               ],
               Expanded(
@@ -104,8 +108,8 @@ class IconChipLite extends StatelessWidget {
 /// Uppercase micro label (eyebrow) used above page titles and KPI values.
 class Eyebrow extends StatelessWidget {
   final String text;
-  final Color color;
-  const Eyebrow(this.text, {super.key, this.color = AppColors.textMuted});
+  final Color? color;
+  const Eyebrow(this.text, {super.key, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +120,7 @@ class Eyebrow extends StatelessWidget {
         fontSize: 10.5,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
-        color: color,
+        color: color ?? AppPalette.muted,
       ),
     );
   }
@@ -144,7 +148,7 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final button = Material(
-      color: onTap == null ? AppColors.textFaint : AppColors.primary,
+      color: onTap == null ? AppPalette.faint : AppPalette.primary,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
@@ -186,7 +190,7 @@ class OutlineButton extends StatelessWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onTap;
-  final Color fg;
+  final Color? fg;
   final double height;
 
   const OutlineButton({
@@ -194,14 +198,15 @@ class OutlineButton extends StatelessWidget {
     required this.label,
     this.icon,
     this.onTap,
-    this.fg = AppColors.textBody,
+    this.fg,
     this.height = 36,
   });
 
   @override
   Widget build(BuildContext context) {
+    final fg = this.fg ?? AppPalette.body;
     return Material(
-      color: Colors.white,
+      color: AppPalette.surface,
       borderRadius: BorderRadius.circular(9),
       child: InkWell(
         onTap: onTap,
@@ -211,7 +216,7 @@ class OutlineButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: AppPalette.stroke),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

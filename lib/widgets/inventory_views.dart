@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
 import '../../models/inventory_item.dart';
 import 'chips.dart';
 import 'cards.dart';
 import 'indicators.dart';
+import '../core/palette.dart';
 
 /// Column headers of the inventory table.
 class _HeaderCell extends StatelessWidget {
@@ -15,12 +15,12 @@ class _HeaderCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppTheme.fontFamily,
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.0,
-        color: AppColors.textMuted,
+        color: AppPalette.muted,
       ),
     );
   }
@@ -94,8 +94,8 @@ class _InventoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppPalette.stroke)),
       ),
       child: Row(
         children: [
@@ -105,8 +105,8 @@ class _InventoryRow extends StatelessWidget {
               children: [
                 IconChipLite(
                   icon: item.icon,
-                  color: AppColors.primary,
-                  bg: AppColors.primarySoft,
+                  color: AppPalette.primary,
+                  bg: AppPalette.primarySoft,
                   size: 30,
                 ),
                 const SizedBox(width: 10),
@@ -117,20 +117,20 @@ class _InventoryRow extends StatelessWidget {
                       Text(item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textDark,
+                            color: AppPalette.ink,
                           )),
                       const SizedBox(height: 1),
                       Text(item.note,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11.5,
-                            color: AppColors.textMuted,
+                            color: AppPalette.muted,
                           )),
                     ],
                   ),
@@ -141,20 +141,20 @@ class _InventoryRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(item.category,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13,
-                  color: AppColors.textBody,
+                  color: AppPalette.body,
                 )),
           ),
           Expanded(
             flex: 2,
             child: Text('${item.totalStock}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textDark,
+                  color: AppPalette.ink,
                 )),
           ),
           Expanded(
@@ -166,17 +166,17 @@ class _InventoryRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('${item.available}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
+                        color: AppPalette.ink,
                       )),
                   Text(' / ${item.totalStock}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12,
-                        color: AppColors.textFaint,
+                        color: AppPalette.faint,
                       )),
                   const SizedBox(width: 8),
                   AvailabilityBar(
@@ -201,25 +201,25 @@ class _InventoryRow extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Material(
-                    color: AppColors.primarySoft,
+                    color: AppPalette.primarySoft,
                     borderRadius: BorderRadius.circular(9),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(9),
                       onTap: onRent,
-                      child: const Padding(
+                      child: Padding(
                         padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                         child: Row(
                           children: [
                             Icon(Icons.add_rounded,
-                                size: 15, color: AppColors.primary),
-                            SizedBox(width: 4),
+                                size: 15, color: AppPalette.primary),
+                            const SizedBox(width: 4),
                             Text('Rent',
                                 style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
+                                  color: AppPalette.primary,
                                 )),
                           ],
                         ),
@@ -238,10 +238,10 @@ class _InventoryRow extends StatelessWidget {
                         height: 34,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(9),
-                          border: Border.all(color: AppColors.cardBorder),
+                          border: Border.all(color: AppPalette.stroke),
                         ),
-                        child: const Icon(Icons.edit_outlined,
-                            size: 15, color: AppColors.textBody),
+                        child: Icon(Icons.edit_outlined,
+                            size: 15, color: AppPalette.body),
                       ),
                     ),
                   ),
@@ -268,15 +268,15 @@ class InventoryListTile extends StatelessWidget {
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.cardBorder)),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppPalette.stroke)),
           ),
           child: Row(
             children: [
               IconChipLite(
                 icon: item.icon,
-                color: AppColors.primary,
-                bg: AppColors.primarySoft,
+                color: AppPalette.primary,
+                bg: AppPalette.primarySoft,
                 size: 38,
               ),
               const SizedBox(width: 12),
@@ -287,19 +287,19 @@ class InventoryListTile extends StatelessWidget {
                     Text(item.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
+                          color: AppPalette.ink,
                         )),
                     const SizedBox(height: 3),
                     Text(
                       '${item.available} of ${item.totalStock} available',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12,
-                        color: AppColors.textMuted,
+                        color: AppPalette.muted,
                       ),
                     ),
                   ],

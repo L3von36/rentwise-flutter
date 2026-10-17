@@ -10,6 +10,7 @@ import 'brand_logo.dart';
 import 'chips.dart';
 import 'cards.dart';
 import 'desktop.dart';
+import '../core/palette.dart';
 
 /// Global search result payload.
 class SearchHit {
@@ -46,14 +47,14 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     final baseHeight = phoneApp ? 50.0 : 54.0;
     return Container(
       height: baseHeight + topInset,
-      color: Colors.white,
+      color: AppPalette.surface,
       padding: EdgeInsets.only(top: topInset),
       child: Row(
         children: [
           if (showHamburger) ...[
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.menu, color: AppColors.textDark),
+              icon: Icon(Icons.menu, color: AppPalette.ink),
               onPressed: onOpenDrawer,
             ),
             const Expanded(
@@ -113,27 +114,27 @@ class _Breadcrumb extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
+        Text(
           'Riverside Events',
           style: TextStyle(
             fontFamily: AppTheme.fontFamily,
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
-            color: AppColors.textMuted,
+            color: AppPalette.muted,
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Icon(Icons.chevron_right_rounded,
-              size: 16, color: AppColors.textFaint),
+              size: 16, color: AppPalette.faint),
         ),
         Text(
           state.section.breadcrumb,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppTheme.fontFamily,
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
-            color: AppColors.textDark,
+            color: AppPalette.ink,
           ),
         ),
       ],
@@ -149,7 +150,7 @@ class _SearchIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppPalette.fill,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -159,10 +160,10 @@ class _SearchIconButton extends StatelessWidget {
           height: 34,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: AppPalette.stroke),
           ),
-          child: const Icon(Icons.search_rounded,
-              size: 18, color: AppColors.textBody),
+          child: Icon(Icons.search_rounded,
+              size: 18, color: AppPalette.body),
         ),
       ),
     );
@@ -183,16 +184,16 @@ class _SearchField extends StatelessWidget {
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: AppColors.subtleFill,
+          color: AppPalette.fill,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: AppPalette.stroke),
         ),
         child: Row(
           children: [
-            const Icon(Icons.search_rounded,
-                size: 16, color: AppColors.textMuted),
+            Icon(Icons.search_rounded,
+                size: 16, color: AppPalette.muted),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Search items, orders, or customers',
                 maxLines: 1,
@@ -201,7 +202,7 @@ class _SearchField extends StatelessWidget {
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textFaint,
+                  color: AppPalette.faint,
                 ),
               ),
             ),
@@ -209,16 +210,16 @@ class _SearchField extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppPalette.fill,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.cardBorder),
+                border: Border.all(color: AppPalette.stroke),
               ),
               child: Text(searchShortcutLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
+                    color: AppPalette.muted,
                   )),
             ),
           ],
@@ -261,7 +262,7 @@ class _SearchDialogState extends State<_SearchDialog> {
     final state = context.watch<WorkspaceState>();
     final results = _results(state);
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppPalette.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 70),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
@@ -276,16 +277,16 @@ class _SearchDialogState extends State<_SearchDialog> {
                 onChanged: (v) => setState(() => _query = v),
                 decoration: InputDecoration(
                   hintText: 'Search items, orders, or customers…',
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      size: 20, color: AppColors.textMuted),
-                  fillColor: AppColors.subtleFill,
+                  prefixIcon: Icon(Icons.search_rounded,
+                      size: 20, color: AppPalette.muted),
+                  fillColor: AppPalette.fill,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.cardBorder),
+                    borderSide: BorderSide(color: AppPalette.stroke),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.cardBorder),
+                    borderSide: BorderSide(color: AppPalette.stroke),
                   ),
                 ),
               ),
@@ -306,8 +307,8 @@ class _SearchDialogState extends State<_SearchDialog> {
                             : hit.type == 'Order'
                                 ? Icons.receipt_long_outlined
                                 : Icons.person_outline,
-                        color: AppColors.primary,
-                        bg: AppColors.primarySoft,
+                        color: AppPalette.primary,
+                        bg: AppPalette.primarySoft,
                         size: 28,
                       ),
                       title: Text(hit.title,
@@ -327,15 +328,15 @@ class _SearchDialogState extends State<_SearchDialog> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.subtleFill,
+                          color: AppPalette.fill,
                           borderRadius: BorderRadius.circular(99),
                         ),
                         child: Text(hit.type,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textMuted)),
+                                color: AppPalette.muted)),
                       ),
                       onTap: () {
                         context.read<WorkspaceState>().navigate(hit.target);
@@ -343,13 +344,13 @@ class _SearchDialogState extends State<_SearchDialog> {
                       },
                     ),
                   if (results.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(24),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
                       child: Center(
                         child: Text('No matches found',
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                color: AppColors.textMuted,
+                                color: AppPalette.muted,
                                 fontSize: 13.5)),
                       ),
                     ),
@@ -360,9 +361,9 @@ class _SearchDialogState extends State<_SearchDialog> {
             // fast paths while search is open.
             if (isDesktop)
               Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
-                      top: BorderSide(color: AppColors.cardBorder)),
+                      top: BorderSide(color: AppPalette.stroke)),
                 ),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
                 child: const Row(
@@ -401,7 +402,7 @@ class _BellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: Colors.white,
+          color: AppPalette.fill,
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
@@ -411,10 +412,10 @@ class _BellButton extends StatelessWidget {
               height: 34,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.cardBorder),
+                border: Border.all(color: AppPalette.stroke),
               ),
-              child: const Icon(Icons.notifications_none_rounded,
-                  size: 18, color: AppColors.textBody),
+              child: Icon(Icons.notifications_none_rounded,
+                  size: 18, color: AppPalette.body),
             ),
           ),
         ),
@@ -427,7 +428,7 @@ class _BellButton extends StatelessWidget {
               height: 15,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: AppPalette.primary,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
               ),
@@ -467,13 +468,13 @@ class _BellButton extends StatelessWidget {
                           fontSize: 15,
                           fontWeight: FontWeight.w700)),
                 ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(18, 0, 18, 8),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
                   child: Text('Latest employee actions in the workspace.',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12,
-                          color: AppColors.textMuted)),
+                          color: AppPalette.muted)),
                 ),
                 Flexible(
                   child: ListView(
@@ -518,10 +519,10 @@ class _NotificationRow extends StatelessWidget {
                 _RichActivityText(body: entry.body, fontSize: 12),
                 const SizedBox(height: 3),
                 Text(_timeLabel(entry.at),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 10.5,
-                        color: AppColors.textFaint)),
+                        color: AppPalette.faint)),
               ],
             ),
           ),
@@ -556,10 +557,10 @@ class _UserChip extends StatelessWidget {
     return PopupMenuButton<String>(
       tooltip: 'Account',
       offset: const Offset(0, 46),
-      color: Colors.white,
+      color: AppPalette.surface,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.cardBorder)),
+          side: BorderSide(color: AppPalette.stroke)),
       onSelected: (v) {
         if (v == 'signout') state.signOut();
       },
@@ -576,25 +577,25 @@ class _UserChip extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
               Text(state.account?.email ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11.5,
-                      color: AppColors.textMuted)),
+                      color: AppPalette.muted)),
             ],
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'signout',
           child: Row(
             children: [
-              Icon(Icons.logout, size: 17, color: AppColors.red),
-              SizedBox(width: 8),
+              Icon(Icons.logout, size: 17, color: AppPalette.red),
+              const SizedBox(width: 8),
               Text('Sign out',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13,
-                      color: AppColors.red,
+                      color: AppPalette.red,
                       fontWeight: FontWeight.w600)),
             ],
           ),
@@ -603,9 +604,9 @@ class _UserChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppPalette.surface,
           borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: AppPalette.stroke),
         ),
         child: Row(
           children: [
@@ -623,21 +624,21 @@ class _UserChip extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(state.account?.name ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textDark)),
+                        color: AppPalette.ink)),
                 Text(state.role.label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 10,
-                        color: AppColors.textMuted)),
+                        color: AppPalette.muted)),
               ],
             ),
             const SizedBox(width: 6),
-            const Icon(Icons.keyboard_arrow_down_rounded,
-                size: 16, color: AppColors.textMuted),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 16, color: AppPalette.muted),
           ],
         ),
       ),
@@ -665,7 +666,7 @@ class _RichActivityText extends StatelessWidget {
         text: match.group(1),
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: AppColors.textDark,
+          color: AppPalette.ink,
           fontSize: fontSize,
         ),
       ));
@@ -679,7 +680,7 @@ class _RichActivityText extends StatelessWidget {
         style: TextStyle(
           fontFamily: AppTheme.fontFamily,
           fontSize: fontSize,
-          color: AppColors.textBody,
+          color: AppPalette.body,
           height: 1.4,
         ),
         children: spans,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
@@ -12,6 +11,7 @@ import '../booking/new_booking_sheet.dart';
 import 'item_adjust_dialog.dart';
 import '../../widgets/filters.dart';
 import '../../widgets/indicators.dart';
+import '../../core/palette.dart';
 
 class InventoryScreen extends StatelessWidget {
   const InventoryScreen({super.key});
@@ -37,10 +37,10 @@ class InventoryScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const IconChipLite(
+              IconChipLite(
                   icon: Icons.inventory_2_outlined,
-                  color: AppColors.primary,
-                  bg: AppColors.primarySoft,
+                  color: AppPalette.primary,
+                  bg: AppPalette.primarySoft,
                   size: 40),
               const SizedBox(width: 11),
               Expanded(
@@ -55,7 +55,7 @@ class InventoryScreen extends StatelessWidget {
                             fontSize: Density.compact(context) ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
-                            color: AppColors.textDark)),
+                            color: AppPalette.ink)),
                   ],
                 ),
               ),
@@ -70,11 +70,11 @@ class InventoryScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text('Track every piece of equipment from shelf to event site.',
+          Text('Track every piece of equipment from shelf to event site.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
-                  color: AppColors.textMuted)),
+                  color: AppPalette.muted)),
           const SizedBox(height: 14),
 
           // KPI grid
@@ -88,22 +88,22 @@ class InventoryScreen extends StatelessWidget {
               children: [
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.inventory_2_outlined,
-                    iconColor: AppColors.primary,
-                    iconBg: AppColors.primarySoft,
+                    iconColor: AppPalette.primary,
+                    iconBg: AppPalette.primarySoft,
                     label: 'Total items',
                     value: '${Seed.inventoryTotal}',
                     subtitle: 'Across 6 categories',
-                    trailing: TrendChip(text: '+24', positive: true),
+                    trailing: const TrendChip(text: '+24', positive: true),
                   ),
                 ),
                 SizedBox(
                   width: cardW,
                   child: KpiCard(
                     icon: Icons.check_circle_outline_rounded,
-                    iconColor: AppColors.green,
-                    iconBg: AppColors.greenBg,
+                    iconColor: AppPalette.green,
+                    iconBg: AppPalette.greenBg,
                     label: 'Available now',
                     value: '${Seed.inventoryAvailable}',
                     subtitle: 'Of total inventory',
@@ -116,8 +116,8 @@ class InventoryScreen extends StatelessWidget {
                   width: cardW,
                   child: KpiCard(
                     icon: Icons.local_shipping_outlined,
-                    iconColor: AppColors.amber,
-                    iconBg: AppColors.amberBg,
+                    iconColor: AppPalette.amber,
+                    iconBg: AppPalette.amberBg,
                     label: 'On rent',
                     value: '${Seed.inventoryOnRent}',
                     subtitle: 'Across 24 bookings',
@@ -128,14 +128,14 @@ class InventoryScreen extends StatelessWidget {
                 ),
                 SizedBox(
                   width: cardW,
-                  child: const KpiCard(
+                  child: KpiCard(
                     icon: Icons.build_circle_outlined,
-                    iconColor: AppColors.blue,
-                    iconBg: AppColors.blueBg,
+                    iconColor: AppPalette.blue,
+                    iconBg: AppPalette.blueBg,
                     label: 'Needs attention',
                     value: '${Seed.inventoryAttention}',
                     subtitle: 'Maintenance queue',
-                    trailing: TrendChip(
+                    trailing: const TrendChip(
                         text: '${Seed.attentionDelta} items',
                         positive: false),
                   ),
@@ -168,12 +168,12 @@ class InventoryScreen extends StatelessWidget {
                     Expanded(
                       child: TextField(
                         onChanged: state.setInventoryQuery,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Search inventory',
                           prefixIcon: Icon(Icons.search_rounded,
-                              size: 18, color: AppColors.textMuted),
+                              size: 18, color: AppPalette.muted),
                           prefixIconConstraints:
-                              BoxConstraints(minWidth: 42),
+                              const BoxConstraints(minWidth: 42),
                         ),
                       ),
                     ),
@@ -189,10 +189,10 @@ class InventoryScreen extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text('${items.length} of ${state.inventory.length} items',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12,
-                          color: AppColors.textMuted)),
+                          color: AppPalette.muted)),
                 ),
                 const SizedBox(height: 6),
                 if (compactList)
@@ -209,13 +209,13 @@ class InventoryScreen extends StatelessWidget {
                     onEdit: (item) => showItemAdjustDialog(context, item),
                   ),
                 if (items.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 36),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
                     child: Text('No items match your filters.',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13.5,
-                            color: AppColors.textMuted)),
+                            color: AppPalette.muted)),
                   ),
               ],
             ),
@@ -292,14 +292,14 @@ class InventoryScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel',
+              child: Text('Cancel',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
-                      color: AppColors.textBody)),
+                      color: AppPalette.body)),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppPalette.primary,
               ),
               onPressed: () {
                 if (nameCtrl.text.trim().isEmpty) return;

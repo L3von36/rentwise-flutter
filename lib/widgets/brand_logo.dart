@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/app_colors.dart';
+import '../core/palette.dart';
 
 /// RentWise brand mark — indigo rounded swoosh.
 class BrandMark extends StatelessWidget {
@@ -19,10 +19,10 @@ class _BrandMarkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final gradient = const LinearGradient(
+    final gradient = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF6A63F0), AppColors.primary, Color(0xFF3B34C4)],
+      colors: [const Color(0xFF6A63F0), AppPalette.primary, const Color(0xFF3B34C4)],
     ).createShader(rect);
 
     // Slanted rounded "feather" like the design logo.
@@ -85,7 +85,7 @@ class BrandLockup extends StatelessWidget {
                   fontSize: fontSize,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
-                  color: dark ? AppColors.textDark : Colors.white,
+                  color: dark ? AppPalette.ink : Colors.white,
                 ),
               ),
               WidgetSpan(
@@ -99,7 +99,7 @@ class BrandLockup extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.3,
                   color: dark
-                      ? AppColors.textMuted
+                      ? AppPalette.muted
                       : Colors.white.withOpacity(0.8),
                 ),
               ),
