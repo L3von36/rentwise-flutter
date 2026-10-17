@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
@@ -7,6 +8,8 @@ import '../../data/seed_data.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/kpi_card.dart';
 import '../../widgets/indicators.dart';
+import '../../widgets/restricted.dart';
+import '../../state/workspace_state.dart';
 
 /// Owner-only performance monitor.
 class ReportsScreen extends StatelessWidget {
@@ -14,6 +17,18 @@ class ReportsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<WorkspaceState>();
+
+    // Defensive guard: navigation already hides Reports from employees —
+    // this keeps financial data unreachable even if the screen mounts.
+    if (!state.isOwner) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
+            Density.pagePad(context), 24),
+        child: const RestrictedPanel(area: 'Reports'),
+      );
+    }
+
     final now = DateTime.now();
     final trend = Seed.revenueTrend(now);
 

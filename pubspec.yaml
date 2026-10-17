@@ -1,7 +1,7 @@
 name: rentwise
 description: RentWise — one calm, connected place for event rental inventory, orders, customers and activity.
 publish_to: 'none'
-version: 1.5.0+1
+version: 1.6.0+1
 
 environment:
   sdk: '>=3.4.0 <4.0.0'

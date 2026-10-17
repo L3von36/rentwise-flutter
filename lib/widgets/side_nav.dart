@@ -21,7 +21,6 @@ const List<_NavItem> _kNavItems = [
   _NavItem(Section.orders, Icons.receipt_long_outlined, Icons.receipt_long),
   _NavItem(Section.customers, Icons.people_outline, Icons.people),
   _NavItem(Section.activity, Icons.show_chart, Icons.show_chart),
-  _NavItem(Section.access, Icons.verified_user_outlined, Icons.verified_user),
 ];
 
 const _NavItem _kReportsItem =
@@ -142,15 +141,19 @@ class SideNav extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                _SideItem(
-                  item: const _NavItem(Section.access, Icons.tune, Icons.tune),
-                  selected: false,
-                  badge: 0,
-                  overrideLabel: 'Settings',
-                  onTap: () => context
-                      .read<WorkspaceState>()
-                      .navigate(Section.access),
-                ),
+                // Workspace settings live in the owner-only Access & roles
+                // console — employees never see this destination.
+                if (state.isOwner)
+                  _SideItem(
+                    item: const _NavItem(
+                        Section.access, Icons.tune, Icons.tune),
+                    selected: state.section == Section.access,
+                    badge: 0,
+                    overrideLabel: 'Settings',
+                    onTap: () => context
+                        .read<WorkspaceState>()
+                        .navigate(Section.access),
+                  ),
               ],
             ),
           ),

@@ -146,17 +146,20 @@ class RentWiseBottomNav extends StatelessWidget {
               badge: state.unreadActivity,
               onTap: () => _go(sheetCtx, Section.activity),
             ),
-            if (state.isOwner)
+            if (state.isOwner) ...[
               _MoreTile(
                 icon: Icons.donut_small_outlined,
                 label: 'Reports',
                 onTap: () => _go(sheetCtx, Section.reports),
               ),
-            _MoreTile(
-              icon: Icons.verified_user_outlined,
-              label: 'Access & roles',
-              onTap: () => _go(sheetCtx, Section.access),
-            ),
+              // The access console is owner-only: employees must never be
+              // able to reach (or change) role assignments.
+              _MoreTile(
+                icon: Icons.verified_user_outlined,
+                label: 'Access & roles',
+                onTap: () => _go(sheetCtx, Section.access),
+              ),
+            ],
             const Divider(height: 10),
             _MoreTile(
               icon: Icons.logout_rounded,

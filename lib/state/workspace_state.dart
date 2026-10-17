@@ -77,13 +77,20 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Switch role in place (used by Access & roles screen).
+  /// Switch role in place (used by the owner-only Access & roles screen).
   /// Swaps the demo persona to match the design captures
   /// (Jordan Miller for Employee, Olivia Wells for Owner).
+  ///
+  /// Owners may switch to the employee role to preview their view;
+  /// employees can never promote themselves — only owners manage access.
   void switchRole(UserRole role) {
+    if (!isOwner) return;
     if (_account == null || _account!.role == role) return;
     _account = role == UserRole.owner ? Seed.demoOwner : Seed.demoEmployee;
-    if (!isOwner && _section == Section.reports) _section = Section.dashboard;
+    if (!isOwner &&
+        (section == Section.reports || section == Section.access)) {
+      _section = Section.dashboard; // preview lands somewhere allowed
+    }
     notifyListeners();
   }
 
@@ -93,6 +100,21 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ------------------------------------------------------------------ access
+  /// Sections an employee may open. The owner role has access to
+  /// everything — employees work for the owner and never see business
+  /// finances, the permission console or workspace settings.
+  static const Set<Section> _employeeSections = {
+    Section.dashboard,
+    Section.inventory,
+    Section.orders,
+    Section.customers,
+    Section.activity,
+  };
+
+  /// Single source of truth for section-level permissions.
+  bool canAccess(Section s) => isOwner || _employeeSections.contains(s);
+
   // -------------------------------------------------------------- navigation
   Section _section = Section.dashboard;
 
@@ -100,7 +122,7 @@ class WorkspaceState extends ChangeNotifier {
 
   void navigate(Section s) {
     if (!isSignedIn) return;
-    if (!isOwner && s == Section.reports) return;
+    if (!canAccess(s)) return; // owner-only areas stay locked
     if (_section == s) return;
     _section = s;
     if (s == Section.activity) _unreadActivity = 0;

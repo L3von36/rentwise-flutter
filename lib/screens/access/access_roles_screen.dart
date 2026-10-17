@@ -7,6 +7,7 @@ import '../../models/account.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
+import '../../widgets/restricted.dart';
 
 class AccessRolesScreen extends StatelessWidget {
   const AccessRolesScreen({super.key});
@@ -15,7 +16,9 @@ class AccessRolesScreen extends StatelessWidget {
     _Capability('View dashboard & activity', employee: true, owner: true),
     _Capability('Create and edit bookings', employee: true, owner: true),
     _Capability('Record payments', employee: true, owner: true),
-    _Capability('Export reports', employee: false, owner: true),
+    _Capability('Adjust stock on hand', employee: true, owner: true),
+    _Capability('Add inventory items', employee: false, owner: true),
+    _Capability('View financial reports', employee: false, owner: true),
     _Capability('Manage team access', employee: false, owner: true),
     _Capability('Change workspace settings', employee: false, owner: true),
   ];
@@ -23,6 +26,17 @@ class AccessRolesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
+
+    // Owner-only console: even if this screen is somehow mounted for an
+    // employee, only the restricted panel renders (no role switcher,
+    // no permission matrix — an employee can never promote themselves).
+    if (!state.isOwner) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
+            Density.pagePad(context), 24),
+        child: const RestrictedPanel(area: 'Access & roles'),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,

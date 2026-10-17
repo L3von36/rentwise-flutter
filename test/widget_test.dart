@@ -5,6 +5,7 @@ import 'package:rentwise/app.dart';
 import 'package:rentwise/models/account.dart';
 import 'package:rentwise/state/workspace_state.dart';
 import 'package:rentwise/widgets/bottom_nav.dart';
+import 'package:rentwise/widgets/side_nav.dart';
 
 /// Plain unit test (no fake async) — exercises the store directly.
 void main() {
@@ -34,16 +35,52 @@ void main() {
     expect(state.orders.first.eventName, 'Test Gala');
   });
 
-  test('role switch gates the reports section and updates the account',
+  test('employees are restricted: no owner areas, no self-promotion',
       () async {
     final state = WorkspaceState();
     await state.signIn(UserRole.employee);
 
     expect(state.isOwner, isFalse);
 
+    // Owner-only areas are permission-gated.
+    expect(state.canAccess(Section.reports), isFalse);
+    expect(state.canAccess(Section.access), isFalse);
+    state.navigate(Section.reports);
+    state.navigate(Section.access);
+    expect(state.section, Section.dashboard); // navigation refused
+
+    // An employee can never promote themselves to owner.
     state.switchRole(UserRole.owner);
+    expect(state.isOwner, isFalse);
+    expect(state.account!.name, 'Jordan Miller');
+
+    // Day-to-day sections stay open.
+    expect(state.canAccess(Section.inventory), isTrue);
+    expect(state.canAccess(Section.orders), isTrue);
+    state.navigate(Section.orders);
+    expect(state.section, Section.orders);
+  });
+
+  test('owner manages access and can preview the employee role', () async {
+    final state = WorkspaceState();
+    await state.signIn(UserRole.owner);
+
     expect(state.isOwner, isTrue);
-    expect(state.account!.name, 'Olivia Wells');
+    expect(state.canAccess(Section.reports), isTrue);
+    expect(state.canAccess(Section.access), isTrue);
+    state.navigate(Section.access);
+    expect(state.section, Section.access);
+
+    // Owner previews the employee experience...
+    state.switchRole(UserRole.employee);
+    expect(state.isOwner, isFalse);
+    // ...and is dropped onto a section the employee role may open.
+    expect(state.section, Section.dashboard);
+
+    // But the preview session cannot switch back — only owners manage
+    // access, so sign out/in is required.
+    state.switchRole(UserRole.owner);
+    expect(state.isOwner, isFalse);
   });
 
   testWidgets('sign-in as employee lands on the operations dashboard',
@@ -96,6 +133,18 @@ void main() {
     // Employee quick actions differ from owner shortcuts.
     expect(find.text('Record payment'), findsOneWidget);
     expect(find.text('Reports'), findsNothing);
+
+    // Privilege separation: owner destinations never render for staff.
+    expect(find.text('Access & roles'), findsNothing);
+    expect(find.text('Settings'), findsNothing);
+
+    // Inventory is open to employees, but catalog management is not.
+    await tester.tap(find.descendant(
+      of: find.byType(SideNav),
+      matching: find.text('Inventory'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Add inventory'), findsNothing);
   });
 
   testWidgets('sign-in as owner lands on the business-pulse dashboard',
@@ -128,9 +177,18 @@ void main() {
     expect(find.text('Business Open'), findsOneWidget);
     // Owner quick actions = business levers.
     expect(find.text('Access & roles'), findsWidgets); // sidebar + quick tile
+    expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Record payment'), findsNothing);
     expect(find.text('Your task list'), findsNothing);
     expect(find.text('My recent actions'), findsNothing);
+
+    // Catalog management is an owner privilege.
+    await tester.tap(find.descendant(
+      of: find.byType(SideNav),
+      matching: find.text('Inventory'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Add inventory'), findsOneWidget);
   });
 
   testWidgets('phone viewport shows bottom app nav instead of drawer',
@@ -176,12 +234,15 @@ void main() {
     // also exist on the underlying screen, so allow multiple hits).
     expect(find.text('New rental booking'), findsWidgets);
 
-    // More sheet exposes secondary sections.
+    // More sheet exposes secondary sections — but the access console
+    // and reports stay owner-only, so an employee never sees them.
     await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
     await tester.tap(find.text('More'));
     await tester.pumpAndSettle();
     expect(find.text('Activity Log'), findsWidgets);
-    expect(find.text('Access & roles'), findsOneWidget);
+    expect(find.text('Access & roles'), findsNothing);
+    expect(find.text('Reports'), findsNothing);
+    expect(find.text('Sign out'), findsOneWidget);
   });
 }

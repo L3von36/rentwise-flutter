@@ -59,11 +59,14 @@ class InventoryScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              PrimaryButton(
-                label: 'Add inventory',
-                icon: Icons.add_rounded,
-                onTap: () => _showAddDialog(context),
-              ),
+              // Adding catalog items is a purchasing decision — owner-only.
+              // Employees adjust stock counts from the table instead.
+              if (state.isOwner)
+                PrimaryButton(
+                  label: 'Add inventory',
+                  icon: Icons.add_rounded,
+                  onTap: () => _showAddDialog(context),
+                ),
             ],
           ),
           const SizedBox(height: 6),
