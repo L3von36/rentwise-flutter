@@ -70,6 +70,15 @@ CI builds and publishes installers for every release tag — grab them from the 
 
 Each release also includes `SHA256SUMS.txt`. Android builds additionally run `flutter analyze` + `flutter test` as a quality gate.
 
+## Windows desktop experience
+
+The Windows build behaves like a native desktop app, not a web page in a window:
+
+- **Window management** — opens at 1280×800, centered, with a 960×640 minimum size (the responsive layout never breaks) and a proper `RentWise — <section>` window title that follows navigation (via `window_manager`).
+- **Keyboard shortcuts** — `Ctrl+K` global search, `Ctrl+B` new rental booking, `Ctrl+1–5` jump to Dashboard / Inventory / Orders / Customers / Activity, `Ctrl+/` shortcuts help panel, `Esc` closes dialogs (⌘ equivalents on macOS).
+- **Branded app icon** — the runner ships a RentWise .ico (indigo rounded square + white R) for the title bar, taskbar, and shortcuts.
+- **Search dialog hints** — the footer reminds keyboard users of the fast paths; the search field badge shows `Ctrl K` on Windows (⌘K on macOS).
+
 **Cutting a release:**
 1. Push a tag: `git tag v1.0.1 && git push origin v1.0.1`, **or**
 2. Go to **Actions → Build & Release → Run workflow** and enter a version (e.g. `v1.0.1`). Empty input uses the pubspec version.

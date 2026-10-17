@@ -4,14 +4,22 @@ import 'package:provider/provider.dart';
 
 import 'state/workspace_state.dart';
 import 'app.dart';
+import 'widgets/desktop.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Edge-to-edge: draw behind the status bar / system nav bar.
-  // SafeArea + the custom TopBar consume the insets (see app_shell/top_bar).
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-      AppSystemChrome.lightSurfaces); // dark icons on light backgrounds
+  if (isDesktop) {
+    // Windows/macOS/Linux: size, center and title the native window
+    // before the first frame (see widgets/desktop.dart).
+    await initDesktopWindow();
+  } else {
+    // Touch platforms: edge-to-edge, draw behind the status bar /
+    // system nav bar. SafeArea + the custom TopBar consume the insets
+    // (see app_shell/top_bar).
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(
+        AppSystemChrome.lightSurfaces); // dark icons on light backgrounds
+  }
   runApp(
     ChangeNotifierProvider(
       create: (_) => WorkspaceState(),

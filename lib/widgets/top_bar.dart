@@ -9,6 +9,7 @@ import '../state/workspace_state.dart';
 import 'brand_logo.dart';
 import 'chips.dart';
 import 'cards.dart';
+import 'desktop.dart';
 
 /// Global search result payload.
 class SearchHit {
@@ -70,10 +71,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 
           if (!compact) ...[
             const Spacer(),
-            _SearchField(onOpen: () => _openSearch(context)),
+            _SearchField(onOpen: () => openGlobalSearch(context)),
             const SizedBox(width: 10),
           ] else if (phoneApp) ...[
-            _SearchIconButton(onOpen: () => _openSearch(context)),
+            _SearchIconButton(onOpen: () => openGlobalSearch(context)),
             const SizedBox(width: 6),
           ] else
             const Spacer(),
@@ -91,13 +92,15 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _openSearch(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.28),
-      builder: (_) => const _SearchDialog(),
-    );
-  }
+}
+
+/// Opens the global search dialog (shared with the Ctrl+K shortcut).
+void openGlobalSearch(BuildContext context) {
+  showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withOpacity(0.28),
+    builder: (_) => const _SearchDialog(),
+  );
 }
 
 // ------------------------------------------------------------------ breadcrumb
@@ -210,8 +213,8 @@ class _SearchField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: AppColors.cardBorder),
               ),
-              child: const Text('⌘K',
-                  style: TextStyle(
+              child: Text(searchShortcutLabel,
+                  style: const TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
@@ -353,6 +356,33 @@ class _SearchDialogState extends State<_SearchDialog> {
                 ],
               ),
             ),
+            // Desktop affordance: remind keyboard users of the other
+            // fast paths while search is open.
+            if (isDesktop)
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                      top: BorderSide(color: AppColors.cardBorder)),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                child: const Row(
+                  children: [
+                    Expanded(
+                      child: ShortcutHint(
+                          keys: ['Ctrl B'], action: 'New booking'),
+                    ),
+                    Expanded(
+                      child: ShortcutHint(
+                          keys: ['Ctrl 1–5'], action: 'Sections'),
+                    ),
+                    Expanded(
+                      child: ShortcutHint(
+                          keys: ['Ctrl /'],
+                          action: 'All shortcuts'),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
