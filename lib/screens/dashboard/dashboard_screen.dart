@@ -61,7 +61,12 @@ class _ShiftTask {
   final String chip;
   final Color chipFg;
   final Color chipBg;
-  const _ShiftTask(this.title, this.meta, this.chip, this.chipFg, this.chipBg);
+
+  /// Bucket used by the task-list filters: prep | delivery | payment.
+  final String kind;
+  const _ShiftTask(
+      this.title, this.meta, this.chip, this.chipFg, this.chipBg,
+      {required this.kind});
 }
 
 /// Derives today's task feed from live order + pickup data.
@@ -76,6 +81,7 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
           'Prep',
           AppColors.amber,
           AppColors.amberBg,
+          kind: 'prep',
         ));
       case OrderStatus.outForDelivery:
         tasks.add(_ShiftTask(
@@ -84,6 +90,7 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
           'On the road',
           AppColors.blue,
           AppColors.blueBg,
+          kind: 'delivery',
         ));
       case OrderStatus.needsPayment:
         tasks.add(_ShiftTask(
@@ -92,6 +99,7 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
           'Payment',
           AppColors.purple,
           AppColors.purpleBg,
+          kind: 'payment',
         ));
       case OrderStatus.confirmed:
       case OrderStatus.returned:
@@ -106,6 +114,7 @@ List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
       'Upcoming',
       AppColors.green,
       AppColors.greenBg,
+      kind: 'prep',
     ));
   }
   return tasks;
@@ -393,7 +402,21 @@ class _ShiftBanner extends StatelessWidget {
 }
 
 // ------------------------------------------------------------ task list
-class _TaskListCard extends StatelessWidget {
+/// Filter buckets for the shift task list.
+class _TaskFilter {
+  final String label;
+  final String? kind;
+  const _TaskFilter(this.label, [this.kind]);
+}
+
+const List<_TaskFilter> _kTaskFilters = [
+  _TaskFilter('All'),
+  _TaskFilter('Prep', 'prep'),
+  _TaskFilter('Deliveries', 'delivery'),
+  _TaskFilter('Payments', 'payment'),
+];
+
+class _TaskListCard extends StatefulWidget {
   final WorkspaceState state;
   final List<_ShiftTask> tasks;
   final int? limit;
@@ -401,20 +424,51 @@ class _TaskListCard extends StatelessWidget {
   const _TaskListCard({required this.state, required this.tasks, this.limit});
 
   @override
+  State<_TaskListCard> createState() => _TaskListCardState();
+}
+
+class _TaskListCardState extends State<_TaskListCard> {
+  String? _kind; // null = all buckets
+
+  @override
   Widget build(BuildContext context) {
-    final shown = limit == null ? tasks : tasks.take(limit!).toList();
+    final tasks = widget.tasks;
+    final filtered =
+        _kind == null ? tasks : tasks.where((t) => t.kind == _kind).toList();
+    final shown =
+        widget.limit == null ? filtered : filtered.take(widget.limit!).toList();
     return SectionCard(
       icon: Icons.checklist_rounded,
       title: 'Your task list',
-      subtitle: tasks.isEmpty
-          ? 'Nothing pending — nice work.'
+      subtitle: filtered.isEmpty
+          ? 'Nothing in this bucket — all clear.'
           : 'Ordered by priority — work top to bottom.',
       action: LinkChip(
         label: 'Open orders',
-        onTap: () => state.navigate(Section.orders),
+        onTap: () => widget.state.navigate(Section.orders),
       ),
-      child: tasks.isEmpty
-          ? const Padding(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ---- filter pills
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final f in _kTaskFilters)
+                _FilterPill(
+                  label: f.label,
+                  count: f.kind == null
+                      ? tasks.length
+                      : tasks.where((t) => t.kind == f.kind).length,
+                  selected: _kind == f.kind,
+                  onTap: () => setState(() => _kind = f.kind),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (shown.isEmpty)
+            const Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
               child: Row(
                 children: [
@@ -429,7 +483,8 @@ class _TaskListCard extends StatelessWidget {
                 ],
               ),
             )
-          : Column(
+          else
+            Column(
               children: [
                 for (var i = 0; i < shown.length; i++)
                   _TaskRow(
@@ -438,6 +493,53 @@ class _TaskListCard extends StatelessWidget {
                   ),
               ],
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Small choice pill used by the task-list filters.
+class _FilterPill extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterPill({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color:
+          selected ? AppColors.primarySoft : AppColors.subtleFill.withOpacity(0.7),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+                color: selected ? AppColors.primaryBorder : Colors.transparent),
+          ),
+          child: Text(
+            count == 0 ? label : '$label · $count',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                color:
+                    selected ? AppColors.primaryDeep : AppColors.textBody),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -634,46 +736,80 @@ class _RunRow extends StatelessWidget {
 }
 
 // --------------------------------------------------------- quick actions
+/// One-tap shortcuts, tuned per role:
+///  - employee: booking flow + counter work (payments, returns, customers)
+///  - owner: business levers (reports, access & roles) + shared flow entry
 class _QuickActionsCard extends StatelessWidget {
   final WorkspaceState state;
   const _QuickActionsCard({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      (
-        Icons.add_rounded,
-        AppColors.primary,
-        AppColors.primarySoft,
-        'New booking',
-        () => showNewBookingSheet(context)
-      ),
-      (
-        Icons.payments_outlined,
-        AppColors.purple,
-        AppColors.purpleBg,
-        'Record payment',
-        () => state.navigate(Section.orders)
-      ),
-      (
-        Icons.assignment_turned_in_outlined,
-        AppColors.green,
-        AppColors.greenBg,
-        'Check-in return',
-        () => state.navigate(Section.orders)
-      ),
-      (
-        Icons.person_add_alt_1_outlined,
-        AppColors.blue,
-        AppColors.blueBg,
-        'Add customer',
-        () => state.navigate(Section.customers)
-      ),
-    ];
+    final actions = state.isOwner
+        ? [
+            (
+              Icons.add_rounded,
+              AppColors.primary,
+              AppColors.primarySoft,
+              'New booking',
+              () => showNewBookingSheet(context)
+            ),
+            (
+              Icons.bar_chart_rounded,
+              AppColors.purple,
+              AppColors.purpleBg,
+              'Reports',
+              () => state.navigate(Section.reports)
+            ),
+            (
+              Icons.person_add_alt_1_outlined,
+              AppColors.green,
+              AppColors.greenBg,
+              'Add customer',
+              () => state.navigate(Section.customers)
+            ),
+            (
+              Icons.shield_outlined,
+              AppColors.blue,
+              AppColors.blueBg,
+              'Access & roles',
+              () => state.navigate(Section.access)
+            ),
+          ]
+        : [
+            (
+              Icons.add_rounded,
+              AppColors.primary,
+              AppColors.primarySoft,
+              'New booking',
+              () => showNewBookingSheet(context)
+            ),
+            (
+              Icons.payments_outlined,
+              AppColors.purple,
+              AppColors.purpleBg,
+              'Record payment',
+              () => state.navigate(Section.orders)
+            ),
+            (
+              Icons.assignment_turned_in_outlined,
+              AppColors.green,
+              AppColors.greenBg,
+              'Check-in return',
+              () => state.navigate(Section.orders)
+            ),
+            (
+              Icons.person_add_alt_1_outlined,
+              AppColors.blue,
+              AppColors.blueBg,
+              'Add customer',
+              () => state.navigate(Section.customers)
+            ),
+          ];
     return SectionCard(
       icon: Icons.bolt_rounded,
       title: 'Quick actions',
-      subtitle: 'One tap, straight to work.',
+      subtitle: state.isOwner ? 'Owner shortcuts.' : 'One tap, straight to work.',
       child: Column(
         children: [
           Row(
@@ -911,6 +1047,10 @@ class _OwnerWideDashboard extends StatelessWidget {
           }),
           const SizedBox(height: 14),
 
+          // ---- earnings overview (full width)
+          _EarningsCard(now: now),
+          const SizedBox(height: 14),
+
           // ---- main grid
           IntrinsicHeight(
             child: Row(
@@ -932,7 +1072,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                   flex: 5,
                   child: Column(
                     children: [
-                      _RevenueTrendCard(now: now),
+                      _QuickActionsCard(state: state),
                       const SizedBox(height: 20),
                       _RecentActivity(state: state),
                       const SizedBox(height: 20),
@@ -949,69 +1089,192 @@ class _OwnerWideDashboard extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------- revenue trend
-class _RevenueTrendCard extends StatelessWidget {
+// ------------------------------------------------------- earnings card
+/// Full-width owner earnings overview: 12-day bar chart on the left,
+/// month-to-date total + top revenue categories on the right.
+class _EarningsCard extends StatelessWidget {
   final DateTime now;
-  const _RevenueTrendCard({required this.now});
+  const _EarningsCard({required this.now});
 
   @override
   Widget build(BuildContext context) {
-    final points = Seed.revenueTrend(now);
+    final points = Seed.earningsDaily(now);
     final maxV = points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
-    return SectionCard(
-      icon: Icons.show_chart,
-      title: 'Revenue trend',
-      subtitle: 'Gross bookings · last 2 weeks',
-      action: const TrendChip(
-          text: '${Seed.grossRevenueTrend}%', positive: true),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 92,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (var i = 0; i < points.length; i++)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: FractionallySizedBox(
-                        heightFactor:
-                            (points[i].value / maxV).clamp(0.18, 1.0),
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: i == points.length - 1
-                                ? AppColors.primary
-                                : AppColors.primaryTint,
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(5)),
-                          ),
+    const categories = Seed.categoryRevenue;
+    final maxCat =
+        categories.map((c) => c.amount).reduce((a, b) => a > b ? a : b);
+    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    final wide = MediaQuery.sizeOf(context).width >= 1240;
+
+    final bars = Column(
+      children: [
+        SizedBox(
+          height: 118,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (var i = 0; i < points.length; i++)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: FractionallySizedBox(
+                      heightFactor:
+                          (points[i].value / maxV).clamp(0.15, 1.0),
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: i == points.length - 1
+                              ? AppColors.primary
+                              : AppColors.primaryTint,
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(5)),
                         ),
                       ),
                     ),
                   ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(DateFormat('MMM d').format(points.first.day),
-                  style: const TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 10.5,
-                      color: AppColors.textFaint)),
-              const Text('Today',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 10.5,
-                      color: AppColors.textFaint)),
+                ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(DateFormat('MMM d').format(points.first.day),
+                style: const TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 10.5,
+                    color: AppColors.textFaint)),
+            const Text('Today',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 10.5,
+                    color: AppColors.textFaint)),
+          ],
+        ),
+      ],
+    );
+
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('\$${Seed.grossRevenueMonth.toStringAsFixed(1)}k',
+            style: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 24,
+                height: 1.05,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+                color: AppColors.textDark)),
+        const SizedBox(height: 3),
+        const Text('Month to date · October',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 11.5,
+                color: AppColors.textMuted)),
+        const SizedBox(height: 12),
+        const Divider(),
+        const SizedBox(height: 10),
+        const Eyebrow('Top categories'),
+        const SizedBox(height: 8),
+        for (final c in categories)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 9),
+            child: _CategoryStatRow(
+              label: c.category,
+              amount: money.format(c.amount),
+              fraction: (c.amount / maxCat).clamp(0.0, 1.0),
+            ),
+          ),
+      ],
+    );
+
+    return SectionCard(
+      icon: Icons.show_chart,
+      title: 'Earnings overview',
+      subtitle: 'Daily gross bookings · last 12 days',
+      action: const TrendChip(
+          text: '${Seed.grossRevenueTrend}%', positive: true),
+      child: wide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 12, child: bars),
+                const SizedBox(width: 26),
+                Expanded(flex: 5, child: summary),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                bars,
+                const SizedBox(height: 16),
+                summary,
+              ],
+            ),
+    );
+  }
+}
+
+/// Category revenue row: name · progress bar · amount.
+class _CategoryStatRow extends StatelessWidget {
+  final String label;
+  final String amount;
+  final double fraction;
+
+  const _CategoryStatRow({
+    required this.label,
+    required this.amount,
+    required this.fraction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 62,
+          child: Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBody)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            height: 5,
+            decoration: BoxDecoration(
+              color: AppColors.subtleFill,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: fraction,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 52,
+          child: Text(amount,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 11,
+                  color: AppColors.textMuted)),
+        ),
+      ],
     );
   }
 }
@@ -1167,6 +1430,10 @@ class _OwnerCompactDashboard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 14),
+
+          // Quick actions (owner set)
+          _QuickActionsCard(state: state),
           const SizedBox(height: 14),
 
           // Live activity

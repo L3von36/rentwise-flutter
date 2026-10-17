@@ -76,6 +76,26 @@ void main() {
     // Financial/owner-only widgets stay hidden from employees.
     expect(find.text('Month to date'), findsNothing);
     expect(find.text('Business Open'), findsNothing);
+
+    // ---- task-list filters narrow the list live
+    expect(find.text('All · 5'), findsOneWidget);
+    await tester.tap(find.text('Payments · 1'));
+    await tester.pumpAndSettle();
+    expect(find.text('Collect payment'), findsOneWidget);
+    expect(find.text('Stage & pack'), findsNothing);
+    expect(find.text('Pull & stage'), findsNothing);
+    await tester.tap(find.text('Prep · 3'));
+    await tester.pumpAndSettle();
+    expect(find.text('Stage & pack'), findsOneWidget);
+    expect(find.text('Pull & stage'), findsNWidgets(2)); // two pickups
+    expect(find.text('Collect payment'), findsNothing);
+    await tester.tap(find.text('All · 5'));
+    await tester.pumpAndSettle();
+    expect(find.text('Stage & pack'), findsOneWidget);
+
+    // Employee quick actions differ from owner shortcuts.
+    expect(find.text('Record payment'), findsOneWidget);
+    expect(find.text('Reports'), findsNothing);
   });
 
   testWidgets('sign-in as owner lands on the business-pulse dashboard',
@@ -100,11 +120,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
 
-    // Owner sees the financial pulse, not the employee shift view.
+    // Owner sees the financial pulse + earnings chart, not the shift view.
     expect(find.text('Month to date'), findsOneWidget);
     expect(find.text('Awaiting payment'), findsOneWidget);
-    expect(find.text('Revenue trend'), findsOneWidget);
+    expect(find.text('Earnings overview'), findsOneWidget);
+    expect(find.text('TOP CATEGORIES'), findsOneWidget); // Eyebrow uppercases
     expect(find.text('Business Open'), findsOneWidget);
+    // Owner quick actions = business levers.
+    expect(find.text('Access & roles'), findsWidgets); // sidebar + quick tile
+    expect(find.text('Record payment'), findsNothing);
     expect(find.text('Your task list'), findsNothing);
     expect(find.text('My recent actions'), findsNothing);
   });

@@ -323,6 +323,21 @@ class Seed {
     );
   }
 
+  /// Daily gross bookings for the owner earnings chart (last 12 days,
+  /// in $k). Sums to the month-to-date figure (28.9k).
+  static List<RevenuePoint> earningsDaily(DateTime now) {
+    final values = [
+      1.9, 2.3, 2.1, 2.6, 2.2, 2.8, 2.4, 2.9, 2.0, 2.6, 2.4, 2.7,
+    ];
+    return List.generate(
+      values.length,
+      (i) => RevenuePoint(
+        day: now.subtract(Duration(days: values.length - 1 - i)),
+        value: values[i],
+      ),
+    );
+  }
+
   static const List<CategoryRevenue> categoryRevenue = [
     CategoryRevenue(category: 'Seating', amount: 8420),
     CategoryRevenue(category: 'Tables', amount: 5120),
