@@ -7,9 +7,12 @@ import '../models/account.dart';
 import '../models/activity_entry.dart';
 import '../state/workspace_state.dart';
 import '../state/shell_state.dart';
+import '../screens/notifications/notifications_screen.dart';
+import '../screens/profile/profile_screen.dart';
 import 'brand_logo.dart';
 import 'chips.dart';
 import 'cards.dart';
+import 'motion.dart';
 import 'desktop.dart';
 import '../core/palette.dart';
 
@@ -128,7 +131,7 @@ class _Breadcrumb extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Riverside Events',
+          state.workspace,
           style: TextStyle(
             fontFamily: AppTheme.fontFamily,
             fontSize: 12.5,
@@ -508,18 +511,42 @@ class _BellButton extends StatelessWidget {
             side: BorderSide(color: AppPalette.stroke),
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 440),
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 480),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(18, 16, 18, 4),
-                  child: Text('Notifications',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text('Notifications',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () {
+                          Navigator.of(dialogCtx).pop();
+                          openNotifications(context);
+                        },
+                        child: Text('View all',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppPalette.primary)),
+                      ),
+                    ],
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
@@ -554,44 +581,60 @@ class _NotificationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InitialsAvatar(
-              initials: entry.actorInitials,
-              color: entry.actorColor,
-              size: 26,
-              fontSize: 10),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _RichActivityText(body: entry.body, fontSize: 12),
-                const SizedBox(height: 3),
-                Text(_timeLabel(entry.at),
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 10.5,
-                        color: AppPalette.faint)),
-              ],
+    return HoverFill(
+      onTap: () {
+        // close the dialog, then land on the mapped workspace section
+        Navigator.of(context, rootNavigator: true).pop();
+        context.read<WorkspaceState>().navigate(_targetFor(entry.type));
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InitialsAvatar(
+                initials: entry.actorInitials,
+                color: entry.actorColor,
+                size: 26,
+                fontSize: 10),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _RichActivityText(body: entry.body, fontSize: 12),
+                  const SizedBox(height: 3),
+                  Text(_timeLabel(entry.at),
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 10.5,
+                          color: AppPalette.faint)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          StatusBadge.custom(
-            label: entry.type.label,
-            fg: entry.type.fg,
-            bg: entry.type.bg,
-            fontSize: 10,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-          ),
-        ],
+            const SizedBox(width: 8),
+            StatusBadge.custom(
+              label: entry.type.label,
+              fg: entry.type.fg,
+              bg: entry.type.bg,
+              fontSize: 10,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Section _targetFor(ActivityType type) => switch (type) {
+        ActivityType.payment => Section.orders,
+        ActivityType.orderUpdate => Section.orders,
+        ActivityType.newBooking => Section.orders,
+        ActivityType.rental => Section.inventory,
+        ActivityType.returnItem => Section.inventory,
+        ActivityType.note => Section.activity,
+      };
 }
 
 String _timeLabel(DateTime at) {
@@ -616,6 +659,10 @@ class _UserChip extends StatelessWidget {
           side: BorderSide(color: AppPalette.stroke)),
       onSelected: (v) {
         if (v == 'signout') state.signOut();
+        if (v == 'profile') {
+          Navigator.of(context, rootNavigator: true).pop();
+          openProfile(context);
+        }
       },
       itemBuilder: (_) => [
         PopupMenuItem(
@@ -638,6 +685,23 @@ class _UserChip extends StatelessWidget {
           ),
         ),
         const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'profile',
+          height: 40,
+          child: Row(
+            children: [
+              Icon(Icons.account_circle_outlined,
+                  size: 17, color: AppPalette.body),
+              const SizedBox(width: 8),
+              Text('View profile',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 13,
+                      color: AppPalette.ink,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
         PopupMenuItem(
           value: 'signout',
           child: Row(

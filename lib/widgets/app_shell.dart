@@ -16,6 +16,7 @@ import 'side_nav.dart';
 import 'top_bar.dart';
 import 'bottom_nav.dart';
 import 'desktop.dart';
+import 'motion.dart';
 
 /// Responsive workspace scaffold:
 /// ≥950px → permanent sidebar; 768–950 → hamburger + drawer;
@@ -41,11 +42,15 @@ class AppShell extends StatelessWidget {
       Section.reports => const ReportsScreen(),
     };
 
+    // Crossfade + slide between sections (motion kit).
+    final Widget animatedContent =
+        SectionFade(tag: state.section, child: content);
+
     final Widget scrolledContent = LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: content,
+          child: animatedContent,
         ),
       ),
     );

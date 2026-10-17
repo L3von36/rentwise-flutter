@@ -1,8 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
+import '../../models/inventory_item.dart';
+import '../../services/csv_export.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/inventory_views.dart';
@@ -93,9 +97,10 @@ class InventoryScreen extends StatelessWidget {
                     iconColor: AppPalette.primary,
                     iconBg: AppPalette.primarySoft,
                     label: 'Total items',
-                    value: '${Seed.inventoryTotal}',
-                    subtitle: 'Across 6 categories',
+                    value: '${state.totalUnits}',
+                    subtitle: 'Tap for a category breakdown',
                     trailing: const TrendChip(text: '+24', positive: true),
+                    onTap: () => _showCategoryBreakdown(context),
                   ),
                 ),
                 SizedBox(
@@ -105,11 +110,12 @@ class InventoryScreen extends StatelessWidget {
                     iconColor: AppPalette.green,
                     iconBg: AppPalette.greenBg,
                     label: 'Available now',
-                    value: '${Seed.inventoryAvailable}',
-                    subtitle: 'Of total inventory',
+                    value: '${state.availableUnits}',
+                    subtitle: 'Tap for a category breakdown',
                     trailing: TrendChip(
                         text: '${availablePct.toStringAsFixed(0)}%',
                         positive: true),
+                    onTap: () => _showCategoryBreakdown(context),
                   ),
                 ),
                 SizedBox(
@@ -119,11 +125,12 @@ class InventoryScreen extends StatelessWidget {
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
                     label: 'On rent',
-                    value: '${Seed.inventoryOnRent}',
-                    subtitle: 'Across 24 bookings',
+                    value: '${state.onRentUnits}',
+                    subtitle: 'Across live bookings',
                     trailing: TrendChip(
                         text: '${onRentPct.toStringAsFixed(1)}%',
                         positive: false),
+                    onTap: () => _showCategoryBreakdown(context),
                   ),
                 ),
                 SizedBox(
@@ -133,11 +140,12 @@ class InventoryScreen extends StatelessWidget {
                     iconColor: AppPalette.blue,
                     iconBg: AppPalette.blueBg,
                     label: 'Needs attention',
-                    value: '${Seed.inventoryAttention}',
-                    subtitle: 'Maintenance queue',
+                    value: '${state.attentionItems}',
+                    subtitle: 'Tap to see the watch list',
                     trailing: const TrendChip(
                         text: '${Seed.attentionDelta} items',
                         positive: false),
+                    onTap: () => _showAttentionList(context),
                   ),
                 ),
               ],
@@ -153,11 +161,25 @@ class InventoryScreen extends StatelessWidget {
             action: OutlineButton(
               label: 'Export CSV',
               icon: Icons.file_download_outlined,
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Inventory exported as CSV (demo)'),
-                  behavior: SnackBarBehavior.floating,
-                ),
+              onTap: () => showCsvExport(
+                context,
+                title: 'Inventory',
+                filename: 'inventory.csv',
+                header: const [
+                  'id', 'name', 'category', 'total_stock', 'available',
+                  'on_rent', 'rate_per_day'
+                ],
+                rows: state.inventory
+                    .map((i) => [
+                          i.id,
+                          i.name,
+                          i.category,
+                          '${i.totalStock}',
+                          '${i.available}',
+                          '${i.totalStock - i.available}',
+                          i.ratePerDay.toStringAsFixed(2),
+                        ])
+                    .toList(),
               ),
             ),
             child: Column(
@@ -219,6 +241,175 @@ class InventoryScreen extends StatelessWidget {
                   ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Live per-category availability drill-in (KPI tap target).
+  void _showCategoryBreakdown(BuildContext context) {
+    final state = context.read<WorkspaceState>();
+    final byCategory = <String, List<InventoryItem>>{};
+    for (final item in state.inventory) {
+      byCategory.putIfAbsent(item.category, () => []).add(item);
+    }
+    final categories = byCategory.keys.toList()..sort();
+    final maxUnits = byCategory.values
+        .map((l) => l.fold<int>(0, (s, i) => s + i.totalStock))
+        .fold(0, math.max);
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Inventory breakdown',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 15,
+                fontWeight: FontWeight.w800)),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final category in categories)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(category,
+                                style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppPalette.ink)),
+                          ),
+                          Text(
+                              '${byCategory[category]!.fold<int>(0, (s, i) => s + i.available)} free of ${byCategory[category]!.fold<int>(0, (s, i) => s + i.totalStock)}',
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 11.5,
+                                  color: AppPalette.muted)),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(
+                            begin: 0,
+                            end: maxUnits == 0
+                                ? 0.0
+                                : byCategory[category]!
+                                        .fold<int>(
+                                            0, (s, i) => s + i.totalStock) /
+                                    maxUnits),
+                        duration: const Duration(milliseconds: 450),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, t, _) => Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: AppPalette.fill,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: t,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppPalette.primary,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Close',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    color: AppPalette.body)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The items that need attention right now (low availability).
+  void _showAttentionList(BuildContext context) {
+    final state = context.read<WorkspaceState>();
+    final watch = state.inventory
+        .where((i) => i.needsAttention)
+        .toList()
+      ..sort((a, b) => a.availabilityFraction.compareTo(b.availabilityFraction));
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Needs attention',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 15,
+                fontWeight: FontWeight.w800)),
+        content: SizedBox(
+          width: 420,
+          child: watch.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text('Nothing needs attention — all healthy.',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12.5,
+                          color: AppPalette.muted)),
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final item in watch)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: IconChipLite(
+                            icon: item.icon,
+                            color: AppPalette.amber,
+                            bg: AppPalette.amberBg,
+                            size: 30),
+                        title: Text(item.name,
+                            style: const TextStyle(fontSize: 13)),
+                        subtitle: Text(item.note,
+                            style: const TextStyle(fontSize: 11.5)),
+                        trailing: Text(
+                            '${item.available}/${item.totalStock} free',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: item.available == 0
+                                    ? AppPalette.red
+                                    : AppPalette.amber)),
+                      ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Close',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    color: AppPalette.body)),
           ),
         ],
       ),

@@ -115,6 +115,14 @@ class Seed {
           itemCount: 18,
           total: 1840,
           status: OrderStatus.preparing,
+          notes:
+              'Deliver to loading dock B before 2 PM. Stage crates are labeled NORTHSTAR. Venue contact: Mia Chen.',
+          lineItems: const [
+            OrderLine(itemName: 'Folding Chairs', qty: 10, unitPrice: 40),
+            OrderLine(itemName: '6ft Round Tables', qty: 4, unitPrice: 90),
+            OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 180),
+            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 360),
+          ],
         ),
         RentalOrder(
           id: 'RW-2048',
@@ -126,6 +134,15 @@ class Seed {
           itemCount: 42,
           total: 3240,
           status: OrderStatus.confirmed,
+          notes:
+              'Ceremony setup complete by 10 AM — linens pressed white-on-white. Oak bar set backs the cake table.',
+          lineItems: const [
+            OrderLine(itemName: 'Folding Chairs', qty: 20, unitPrice: 40),
+            OrderLine(itemName: '6ft Round Tables', qty: 8, unitPrice: 90),
+            OrderLine(itemName: 'String Lights', qty: 6, unitPrice: 120),
+            OrderLine(itemName: 'White Linen 90"', qty: 6, unitPrice: 90),
+            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 230),
+          ],
         ),
         RentalOrder(
           id: 'RW-2046',
@@ -137,6 +154,14 @@ class Seed {
           itemCount: 64,
           total: 2110,
           status: OrderStatus.needsPayment,
+          notes:
+              'Balance due on delivery. Park pavilion has limited power — pack spare extension cords and the heaters.',
+          lineItems: const [
+            OrderLine(itemName: 'Folding Chairs', qty: 36, unitPrice: 25),
+            OrderLine(itemName: '6ft Round Tables', qty: 10, unitPrice: 55),
+            OrderLine(itemName: 'White Linen 90"', qty: 14, unitPrice: 30),
+            OrderLine(itemName: 'Bistro Heaters', qty: 4, unitPrice: 60),
+          ],
         ),
         RentalOrder(
           id: 'RW-2042',
@@ -148,6 +173,14 @@ class Seed {
           itemCount: 12,
           total: 720,
           status: OrderStatus.outForDelivery,
+          notes:
+              'Narrow stairwell at the studio — carry tables flat. Call Eli on arrival for parking access.',
+          lineItems: const [
+            OrderLine(itemName: 'Folding Chairs', qty: 6, unitPrice: 30),
+            OrderLine(itemName: '6ft Round Tables', qty: 3, unitPrice: 80),
+            OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 75),
+            OrderLine(itemName: 'Oak Bar Set', qty: 1, unitPrice: 150),
+          ],
         ),
         RentalOrder(
           id: 'RW-2039',
@@ -159,6 +192,15 @@ class Seed {
           itemCount: 31,
           total: 2680,
           status: OrderStatus.returned,
+          notes:
+              'Teardown happened the same night. Confirm glassware count against the manifest before restocking.',
+          lineItems: const [
+            OrderLine(itemName: 'Folding Chairs', qty: 14, unitPrice: 35),
+            OrderLine(itemName: '6ft Round Tables', qty: 6, unitPrice: 100),
+            OrderLine(itemName: 'String Lights', qty: 5, unitPrice: 150),
+            OrderLine(itemName: 'White Linen 90"', qty: 4, unitPrice: 75),
+            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 270),
+          ],
         ),
       ];
 

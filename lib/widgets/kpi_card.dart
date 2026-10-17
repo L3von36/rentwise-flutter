@@ -3,9 +3,11 @@ import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../core/density.dart';
 import 'cards.dart';
+import 'motion.dart';
 import '../core/palette.dart';
 
 /// The 4-up metric card used on Dashboard / Inventory / Orders / Customers.
+/// With [onTap] set it becomes a live drill-in: hover lift + press + ink.
 class KpiCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -14,6 +16,7 @@ class KpiCard extends StatelessWidget {
   final String value;
   final String subtitle;
   final Widget? trailing;
+  final VoidCallback? onTap;
 
   const KpiCard({
     super.key,
@@ -24,16 +27,18 @@ class KpiCard extends StatelessWidget {
     required this.value,
     required this.subtitle,
     this.trailing,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppPalette.stroke),
+        border: Border.all(
+            color: onTap != null ? AppPalette.stroke : AppPalette.stroke),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Column(
@@ -65,16 +70,31 @@ class KpiCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: AppTheme.fontFamily,
-              fontSize: Density.compact(context) ? 18 : 21,
-              height: 1.1,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-              color: AppPalette.ink,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: Density.compact(context) ? 18 : 21,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: AppPalette.ink,
+                  ),
+                ),
+              ),
+              if (onTap != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Icon(Icons.chevron_right_rounded,
+                      size: 16,
+                      color: AppPalette.faint),
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
@@ -90,6 +110,14 @@ class KpiCard extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap == null) return card;
+    return HoverLift(
+      onTap: onTap,
+      radius: AppRadius.card,
+      lift: 2,
+      child: card,
+    );
   }
 }
 
@@ -102,6 +130,7 @@ class KpiTileMini extends StatelessWidget {
   final String value;
   final String subtitle;
   final Widget? trailing;
+  final VoidCallback? onTap;
 
   const KpiTileMini({
     super.key,
@@ -112,11 +141,12 @@ class KpiTileMini extends StatelessWidget {
     required this.value,
     required this.subtitle,
     this.trailing,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final tile = Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppPalette.surface,
@@ -155,6 +185,8 @@ class KpiTileMini extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: Density.compact(context) ? 16 : 17,
@@ -177,5 +209,8 @@ class KpiTileMini extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap == null) return tile;
+    return HoverLift(onTap: onTap, radius: 12, lift: 1.5, child: tile);
   }
 }

@@ -6,6 +6,7 @@ import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../models/inventory_item.dart';
+import '../../models/shift_task.dart';
 import '../../models/activity_entry.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
@@ -14,8 +15,12 @@ import '../../widgets/chips.dart';
 import '../../widgets/inventory_views.dart';
 import '../../widgets/kpi_card.dart';
 import '../../widgets/rows.dart';
+import '../../widgets/motion.dart';
 import '../../screens/booking/new_booking_sheet.dart';
 import '../../screens/inventory/item_adjust_dialog.dart';
+import '../../screens/tasks/tasks_screen.dart';
+import '../../screens/calendar/calendar_screen.dart';
+import '../../screens/orders/order_detail_screen.dart';
 import '../../widgets/filters.dart';
 import '../../widgets/indicators.dart';
 import '../../core/palette.dart';
@@ -56,70 +61,16 @@ String _greeting(DateTime now) {
 String _firstName(WorkspaceState state) =>
     state.account?.name.split(' ').first ?? 'there';
 
-/// One actionable item on the employee's shift task list.
-class _ShiftTask {
-  final String title;
-  final String meta;
-  final String chip;
-  final Color chipFg;
-  final Color chipBg;
-
-  /// Bucket used by the task-list filters: prep | delivery | payment.
-  final String kind;
-  const _ShiftTask(
-      this.title, this.meta, this.chip, this.chipFg, this.chipBg,
-      {required this.kind});
-}
-
-/// Derives today's task feed from live order + pickup data.
-List<_ShiftTask> _shiftTasks(WorkspaceState state, DateTime now) {
-  final tasks = <_ShiftTask>[];
-  for (final o in state.orders) {
-    switch (o.status) {
-      case OrderStatus.preparing:
-        tasks.add(_ShiftTask(
-          'Stage & pack',
-          '#${o.id} · ${o.eventName} · ${o.itemCount} items',
-          'Prep',
-          AppPalette.amber,
-          AppPalette.amberBg,
-          kind: 'prep',
-        ));
-      case OrderStatus.outForDelivery:
-        tasks.add(_ShiftTask(
-          'Confirm delivery',
-          '#${o.id} · ${o.eventName} · ${o.contactName}',
-          'On the road',
-          AppPalette.blue,
-          AppPalette.blueBg,
-          kind: 'delivery',
-        ));
-      case OrderStatus.needsPayment:
-        tasks.add(_ShiftTask(
-          'Collect payment',
-          '#${o.id} · ${o.eventName} · \$${o.total.toStringAsFixed(0)}',
-          'Payment',
-          AppPalette.purple,
-          AppPalette.purpleBg,
-          kind: 'payment',
-        ));
-      case OrderStatus.confirmed:
-      case OrderStatus.returned:
-        break;
-    }
+/// Opens the record behind a task: the order detail for order tasks,
+/// the calendar for pickup runs.
+void _openTaskSource(BuildContext context, ShiftTask task) {
+  final state = context.read<WorkspaceState>();
+  final order = task.orderId == null ? null : state.orderById(task.orderId!);
+  if (order != null) {
+    openOrderDetail(context, order);
+  } else {
+    openCalendar(context);
   }
-  final df = DateFormat('EEE, MMM d');
-  for (final p in state.pickups.take(2)) {
-    tasks.add(_ShiftTask(
-      'Pull & stage',
-      '${p.itemCount} items · ${p.venue} · ${df.format(p.date)}',
-      'Upcoming',
-      AppPalette.green,
-      AppPalette.greenBg,
-      kind: 'prep',
-    ));
-  }
-  return tasks;
 }
 
 // ======================================================= employee dashboard
@@ -139,7 +90,7 @@ class _EmployeeDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = _shiftTasks(state, now);
+    final tasks = state.shiftTasks(now);
     final wide = !compact;
 
     return Padding(
@@ -178,6 +129,7 @@ class _EmployeeDashboard extends StatelessWidget {
                       subtitle:
                           'Pickups, deliveries & check-ins',
                       trailing: const TrendChip.flat(text: 'Today'),
+                      onTap: () => openTasks(context),
                     ),
                   ),
                   SizedBox(
@@ -191,6 +143,10 @@ class _EmployeeDashboard extends StatelessWidget {
                       subtitle:
                           'Next: ${Seed.nextDispatchVenue} · ${Seed.nextDispatchTime}',
                       trailing: const TrendChip.flat(text: 'Live'),
+                      onTap: () {
+                        state.setOrderStatusFilter(OrderStatus.outForDelivery);
+                        state.navigate(Section.orders);
+                      },
                     ),
                   ),
                   SizedBox(
@@ -205,6 +161,7 @@ class _EmployeeDashboard extends StatelessWidget {
                       trailing: const TrendChip(
                           text: '${Seed.returnsDueToday} due',
                           positive: false),
+                      onTap: () => state.navigate(Section.orders),
                     ),
                   ),
                   SizedBox(
@@ -219,56 +176,63 @@ class _EmployeeDashboard extends StatelessWidget {
                           ? '${state.orders.firstWhere((o) => o.status == OrderStatus.preparing).eventName} · ${Seed.nextDispatchItems} items'
                           : 'Queue is clear',
                       trailing: const TrendChip.flat(text: 'Queue'),
+                      onTap: () {
+                        state.setOrderStatusFilter(OrderStatus.preparing);
+                        state.navigate(Section.orders);
+                      },
                     ),
                   ),
                 ],
               );
             })
           else
-            SizedBox(
-              height: 122,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: KpiTileMini(
-                      icon: Icons.checklist_rounded,
-                      iconColor: AppPalette.primary,
-                      iconBg: AppPalette.primarySoft,
-                      label: 'Tasks due',
-                      value: '${tasks.length}',
-                      subtitle: 'today',
-                      trailing: const TrendChip.flat(text: 'Shift'),
+              SizedBox(
+                height: 122,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: KpiTileMini(
+                        icon: Icons.checklist_rounded,
+                        iconColor: AppPalette.primary,
+                        iconBg: AppPalette.primarySoft,
+                        label: 'Tasks due',
+                        value: '${tasks.length}',
+                        subtitle: 'today',
+                        trailing: const TrendChip.flat(text: 'Shift'),
+                        onTap: () => openTasks(context),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: KpiTileMini(
-                      icon: Icons.local_shipping_outlined,
-                      iconColor: AppPalette.blue,
-                      iconBg: AppPalette.blueBg,
-                      label: 'On delivery',
-                      value: '${state.outForDeliveryCount}',
-                      subtitle: 'on the road',
-                      trailing: const TrendChip.flat(text: 'Live'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: KpiTileMini(
+                        icon: Icons.local_shipping_outlined,
+                        iconColor: AppPalette.blue,
+                        iconBg: AppPalette.blueBg,
+                        label: 'On delivery',
+                        value: '${state.outForDeliveryCount}',
+                        subtitle: 'on the road',
+                        trailing: const TrendChip.flat(text: 'Live'),
+                        onTap: () => state.navigate(Section.orders),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: KpiTileMini(
-                      icon: Icons.assignment_return_outlined,
-                      iconColor: AppPalette.amber,
-                      iconBg: AppPalette.amberBg,
-                      label: 'Returns',
-                      value: '${Seed.pendingReturns}',
-                      subtitle: 'to check in',
-                      trailing: const TrendChip(
-                          text: '${Seed.returnsDueToday} due',
-                          positive: false),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: KpiTileMini(
+                        icon: Icons.assignment_return_outlined,
+                        iconColor: AppPalette.amber,
+                        iconBg: AppPalette.amberBg,
+                        label: 'Returns',
+                        value: '${Seed.pendingReturns}',
+                        subtitle: 'to check in',
+                        trailing: const TrendChip(
+                            text: '${Seed.returnsDueToday} due',
+                            positive: false),
+                        onTap: () => state.navigate(Section.orders),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
           // ---- main content
           if (wide) ...[
@@ -323,7 +287,7 @@ class _EmployeeDashboard extends StatelessWidget {
 class _ShiftHero extends StatelessWidget {
   final WorkspaceState state;
   final DateTime now;
-  final List<_ShiftTask> tasks;
+  final List<ShiftTask> tasks;
   final bool compact;
 
   const _ShiftHero({
@@ -480,65 +444,78 @@ class _ShiftHero extends StatelessWidget {
               // ---- right rail (wide): up-next + actions
               if (!compact) ...[
                 const SizedBox(width: 22),
-                Container(
-                  width: 232,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(color: Colors.white.withOpacity(0.22)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('UP NEXT',
+                InkWell(
+                  borderRadius: BorderRadius.circular(13),
+                  onTap: () => openTasks(context),
+                  child: Container(
+                    width: 232,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(color: Colors.white.withOpacity(0.22)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text('UP NEXT',
+                                  style: TextStyle(
+                                      fontFamily: AppTheme.fontFamily,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.3,
+                                      color: Colors.white70)),
+                            ),
+                            Icon(Icons.open_in_new_rounded,
+                                size: 12,
+                                color: Colors.white.withOpacity(0.75)),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          nextTask == null
+                              ? 'Enjoy the calm shift'
+                              : 'Next: ${nextTask.title}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          nextTask?.meta ?? 'Every active rental is on track.',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.3,
-                              color: Colors.white.withOpacity(0.72))),
-                      const SizedBox(height: 5),
-                      Text(
-                        nextTask == null
-                            ? 'Enjoy the calm shift'
-                            : 'Next: ${nextTask.title}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        nextTask?.meta ?? 'Every active rental is on track.',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 11,
-                            color: Colors.white.withOpacity(0.8)),
-                      ),
-                      const SizedBox(height: 11),
-                      _HeroButton(
-                        label: 'Check-in return',
-                        icon: Icons.assignment_turned_in_outlined,
-                        solid: false,
-                        expanded: true,
-                        onTap: () => state.navigate(Section.orders),
-                      ),
-                      const SizedBox(height: 7),
-                      _HeroButton(
-                        label: 'New rental booking',
-                        icon: Icons.add_rounded,
-                        solid: true,
-                        expanded: true,
-                        onTap: () => showNewBookingSheet(context),
-                      ),
-                    ],
+                              fontSize: 11,
+                              color: Colors.white.withOpacity(0.8)),
+                        ),
+                        const SizedBox(height: 11),
+                        _HeroButton(
+                          label: 'Check-in return',
+                          icon: Icons.assignment_turned_in_outlined,
+                          solid: false,
+                          expanded: true,
+                          onTap: () => state.navigate(Section.orders),
+                        ),
+                        const SizedBox(height: 7),
+                        _HeroButton(
+                          label: 'New rental booking',
+                          icon: Icons.add_rounded,
+                          solid: true,
+                          expanded: true,
+                          onTap: () => showNewBookingSheet(context),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -681,7 +658,7 @@ const List<_TaskFilter> _kTaskFilters = [
 
 class _TaskListCard extends StatefulWidget {
   final WorkspaceState state;
-  final List<_ShiftTask> tasks;
+  final List<ShiftTask> tasks;
   final int? limit;
 
   const _TaskListCard({required this.state, required this.tasks, this.limit});
@@ -705,10 +682,10 @@ class _TaskListCardState extends State<_TaskListCard> {
       title: 'Your task list',
       subtitle: filtered.isEmpty
           ? 'Nothing in this bucket — all clear.'
-          : 'Ordered by priority — work top to bottom.',
+          : 'Ordered by priority — tap any task to open it.',
       action: LinkChip(
-        label: 'Open orders',
-        onTap: () => widget.state.navigate(Section.orders),
+        label: 'All tasks',
+        onTap: () => openTasks(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,6 +728,7 @@ class _TaskListCardState extends State<_TaskListCard> {
               children: [
                 for (var i = 0; i < shown.length; i++)
                   _TaskRow(
+                    widget: widget,
                     task: shown[i],
                     index: i,
                     showDivider: i < shown.length - 1,
@@ -809,11 +787,13 @@ class _FilterPill extends StatelessWidget {
 }
 
 class _TaskRow extends StatelessWidget {
-  final _ShiftTask task;
+  final _TaskListCard widget;
+  final ShiftTask task;
   final int index;
   final bool showDivider;
 
   const _TaskRow({
+    required this.widget,
     required this.task,
     required this.index,
     required this.showDivider,
@@ -879,6 +859,9 @@ class _TaskRow extends StatelessWidget {
           const SizedBox(width: 10),
           StatusBadge.custom(
               label: task.chip, fg: task.chipFg, bg: task.chipBg),
+          const SizedBox(width: 6),
+          Icon(Icons.chevron_right_rounded,
+              size: 15, color: AppPalette.faint),
         ],
       ),
     );
@@ -899,7 +882,11 @@ class _TaskRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        highlighted,
+        HoverFill(
+          onTap: () => _openTaskSource(context, task),
+          radius: 11,
+          child: highlighted,
+        ),
         if (showDivider)
           const Padding(
             padding: EdgeInsets.only(left: 46),
@@ -930,6 +917,7 @@ class _DispatchCard extends StatelessWidget {
         chip: 'In progress',
         chipFg: AppPalette.blue,
         chipBg: AppPalette.blueBg,
+        orderId: prep.isNotEmpty ? prep.first.id : null,
       ),
       if (prep.isNotEmpty)
         (
@@ -940,6 +928,7 @@ class _DispatchCard extends StatelessWidget {
           chip: 'Staging',
           chipFg: AppPalette.amber,
           chipBg: AppPalette.amberBg,
+          orderId: prep.first.id,
         ),
       if (state.pickups.isNotEmpty)
         (
@@ -950,6 +939,7 @@ class _DispatchCard extends StatelessWidget {
           chip: 'Scheduled',
           chipFg: AppPalette.green,
           chipBg: AppPalette.greenBg,
+          orderId: null,
         ),
     ];
     return SectionCard(
@@ -957,8 +947,8 @@ class _DispatchCard extends StatelessWidget {
       title: "Today's dispatch",
       subtitle: 'Runs scheduled for the rest of the day.',
       action: LinkChip(
-        label: 'Open orders',
-        onTap: () => state.navigate(Section.orders),
+        label: 'Open calendar',
+        onTap: () => openCalendar(context),
       ),
       child: Column(
         children: [
@@ -973,6 +963,7 @@ class _DispatchCard extends StatelessWidget {
                 chip: runs[i].chip,
                 chipFg: runs[i].chipFg,
                 chipBg: runs[i].chipBg,
+                orderId: runs[i].orderId,
               ),
             ),
         ],
@@ -1039,6 +1030,7 @@ class _RunRow extends StatelessWidget {
   final String chip;
   final Color chipFg;
   final Color chipBg;
+  final String? orderId;
 
   const _RunRow({
     required this.time,
@@ -1047,11 +1039,12 @@ class _RunRow extends StatelessWidget {
     required this.chip,
     required this.chipFg,
     required this.chipBg,
+    this.orderId,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         children: [
@@ -1096,8 +1089,26 @@ class _RunRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         StatusBadge.custom(label: chip, fg: chipFg, bg: chipBg),
+        const SizedBox(width: 6),
+        Icon(Icons.chevron_right_rounded,
+            size: 15, color: AppPalette.faint),
       ],
       ),
+    );
+
+    if (orderId == null) return row;
+    return HoverFill(
+      onTap: () {
+        final state = context.read<WorkspaceState>();
+        final order = state.orderById(orderId!);
+        if (order != null) {
+          openOrderDetail(context, order);
+        } else {
+          openCalendar(context);
+        }
+      },
+      radius: 10,
+      child: row,
     );
   }
 }
@@ -1281,7 +1292,11 @@ class _MyActivityCard extends StatelessWidget {
                     dotColor: mine[i].type.fg,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 5),
-                      child: ActivityRow(entry: mine[i], showDivider: false),
+                      child: ActivityRow(
+                        entry: mine[i],
+                        showDivider: false,
+                        onTap: () => state.navigate(Section.activity),
+                      ),
                     ),
                   ),
               ],
@@ -1325,7 +1340,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                         style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: 6),
                     Text(
-                        "Here's the pulse of ${Seed.workspaceName} today.",
+                        "Here's the pulse of ${state.workspace} today.",
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
@@ -1372,6 +1387,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     value: '\$2,480',
                     subtitle: 'vs. \$2,200 yesterday',
                     trailing: const TrendChip(text: '12.8%', positive: true),
+                    onTap: () => state.navigate(Section.reports),
                   ),
                 ),
                 SizedBox(
@@ -1387,6 +1403,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     trailing: const TrendChip(
                         text: '${Seed.grossRevenueTrend}%',
                         positive: true),
+                    onTap: () => state.navigate(Section.reports),
                   ),
                 ),
                 SizedBox(
@@ -1401,6 +1418,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     trailing: const TrendChip(
                         text: '${Seed.utilizationTrend}%',
                         positive: true),
+                    onTap: () => state.navigate(Section.inventory),
                   ),
                 ),
                 SizedBox(
@@ -1414,6 +1432,10 @@ class _OwnerWideDashboard extends StatelessWidget {
                     subtitle:
                         '${state.needsPaymentCount} order(s) pending',
                     trailing: const TrendChip.flat(text: 'Follow up'),
+                    onTap: () {
+                      state.setOrderStatusFilter(OrderStatus.needsPayment);
+                      state.navigate(Section.orders);
+                    },
                   ),
                 ),
               ],
@@ -1670,37 +1692,48 @@ class _BusinessOpenBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppPalette.greenBg.withOpacity(AppPalette.dark ? 0.8 : 0.55),
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(
-            color: AppPalette.green.withOpacity(AppPalette.dark ? 0.28 : 0.0)),
-      ),
-      child: Row(
-        children: [
-          Dot(color: AppPalette.green),
-          const SizedBox(width: 9),
-          Text('Business Open',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppPalette.green)),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 14, color: AppPalette.greenBg),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text('Closes at ${Seed.businessCloseTime}',
+    return HoverFill(
+      onTap: () => openCalendar(context),
+      radius: 11,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppPalette.greenBg.withOpacity(AppPalette.dark ? 0.8 : 0.55),
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(
+              color: AppPalette.green.withOpacity(AppPalette.dark ? 0.28 : 0.0)),
+        ),
+        child: Row(
+          children: [
+            Dot(color: AppPalette.green),
+            const SizedBox(width: 9),
+            Text('Business Open',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
-                    fontSize: 12,
-                    color: AppPalette.body)),
-          ),
-          Icon(Icons.chevron_right_rounded,
-              size: 16, color: AppPalette.green),
-        ],
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppPalette.green)),
+            const SizedBox(width: 12),
+            Container(width: 1, height: 14, color: AppPalette.greenBg),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Closes at ${Seed.businessCloseTime}',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 12,
+                      color: AppPalette.body)),
+            ),
+            Text('Calendar',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppPalette.green)),
+            const SizedBox(width: 3),
+            Icon(Icons.chevron_right_rounded,
+                size: 16, color: AppPalette.green),
+          ],
+        ),
       ),
     );
   }
@@ -1791,7 +1824,7 @@ class _OwnerHero extends StatelessWidget {
                             color: Colors.white)),
                     const SizedBox(height: 6),
                     Text(
-                        "Here's the pulse of ${Seed.workspaceName} today.",
+                        "Here's the pulse of ${state.workspace} today.",
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -1895,6 +1928,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                     value: '\$2,480',
                     subtitle: 'vs. yesterday',
                     trailing: const TrendChip(text: '12.8%', positive: true),
+                    onTap: () => state.navigate(Section.reports),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1907,6 +1941,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                     value: '24',
                     subtitle: 'since yesterday',
                     trailing: const TrendChip(text: '+4', positive: true),
+                    onTap: () => state.navigate(Section.orders),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1920,6 +1955,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                     subtitle: 'today',
                     trailing: const TrendChip(
                         text: '2 due', positive: false),
+                    onTap: () => state.navigate(Section.orders),
                   ),
                 ),
               ],
@@ -1971,7 +2007,11 @@ class _OwnerCompactDashboard extends StatelessWidget {
                 for (final e in entries)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: ActivityRow(entry: e, showDivider: false),
+                    child: ActivityRow(
+                      entry: e,
+                      showDivider: false,
+                      onTap: () => state.navigate(Section.activity),
+                    ),
                   ),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -1986,90 +2026,94 @@ class _OwnerCompactDashboard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Next dispatch
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppPalette.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppPalette.stroke),
-              boxShadow: AppShadow.card(opacity: 0.04),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconChipLite(
-                        icon: Icons.local_shipping_outlined,
-                        color: AppPalette.blue,
-                        bg: AppPalette.blueBg,
-                        size: 30),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Eyebrow('Next dispatch'),
-                          const SizedBox(height: 3),
-                          Text('Oakwood Estate',
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppPalette.ink)),
-                        ],
+          HoverLift(
+            onTap: () => openCalendar(context),
+            radius: 14,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppPalette.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppPalette.stroke),
+                boxShadow: AppShadow.card(opacity: 0.04),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconChipLite(
+                          icon: Icons.local_shipping_outlined,
+                          color: AppPalette.blue,
+                          bg: AppPalette.blueBg,
+                          size: 30),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Eyebrow('Next dispatch'),
+                            const SizedBox(height: 3),
+                            Text('Oakwood Estate',
+                                style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppPalette.ink)),
+                          ],
+                        ),
                       ),
-                    ),
-                    Text('3:30 PM',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: AppPalette.primary)),
-                  ],
-                ),
-                const SizedBox(height: 11),
-                const Divider(),
-                const SizedBox(height: 10),
-                // meta facts wrap to a second line on narrow phones
-                Wrap(
-                  spacing: 14,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.event_outlined,
-                          size: 15, color: AppPalette.muted),
-                      const SizedBox(width: 6),
-                      Text('Sat, Oct 18',
+                      Text('3:30 PM',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              fontSize: 12,
-                              color: AppPalette.muted)),
-                    ]),
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.inventory_2_outlined,
-                          size: 15, color: AppPalette.muted),
-                      const SizedBox(width: 6),
-                      Text('12 items',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 12,
-                              color: AppPalette.muted)),
-                    ]),
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.person_outline,
-                          size: 15, color: AppPalette.muted),
-                      const SizedBox(width: 6),
-                      Text('Mia Chen',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 12,
-                              color: AppPalette.muted)),
-                    ]),
-                  ],
-                ),
-              ],
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: AppPalette.primary)),
+                    ],
+                  ),
+                  const SizedBox(height: 11),
+                  const Divider(),
+                  const SizedBox(height: 10),
+                  // meta facts wrap to a second line on narrow phones
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.event_outlined,
+                            size: 15, color: AppPalette.muted),
+                        const SizedBox(width: 6),
+                        Text('Sat, Oct 18',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                color: AppPalette.muted)),
+                      ]),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.inventory_2_outlined,
+                            size: 15, color: AppPalette.muted),
+                        const SizedBox(width: 6),
+                        Text('12 items',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                color: AppPalette.muted)),
+                      ]),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.person_outline,
+                            size: 15, color: AppPalette.muted),
+                        const SizedBox(width: 6),
+                        Text('Mia Chen',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                color: AppPalette.muted)),
+                      ]),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -2152,7 +2196,7 @@ class _UpcomingPickups extends StatelessWidget {
       subtitle: 'Next three bookings on the calendar',
       action: LinkChip(
         label: 'Open calendar',
-        onTap: () => state.navigate(Section.orders),
+        onTap: () => openCalendar(context),
       ),
       child: Column(
         children: [
@@ -2161,6 +2205,7 @@ class _UpcomingPickups extends StatelessWidget {
               pickup: state.pickups[i],
               now: now,
               showDivider: i < state.pickups.length - 1,
+              onTap: () => openCalendar(context),
             ),
         ],
       ),
@@ -2180,13 +2225,20 @@ class _RecentActivity extends StatelessWidget {
       icon: Icons.show_chart,
       title: 'Recent activity',
       subtitle: "What's happening in the workspace.",
-      action: Icon(Icons.more_horiz, size: 20, color: AppPalette.muted),
+      action: LinkChip(
+        label: 'Open log',
+        onTap: () => state.navigate(Section.activity),
+      ),
       child: Column(
         children: [
           for (var i = 0; i < entries.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
-              child: ActivityRow(entry: entries[i], showDivider: false),
+              child: ActivityRow(
+                entry: entries[i],
+                showDivider: false,
+                onTap: () => state.navigate(Section.activity),
+              ),
             ),
           const SizedBox(height: 2),
           Align(

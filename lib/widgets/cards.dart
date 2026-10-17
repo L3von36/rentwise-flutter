@@ -3,6 +3,7 @@ import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../core/density.dart';
 import '../core/palette.dart';
+import 'motion.dart';
 
 /// White section card with icon + title (+ subtitle) and trailing action.
 class SectionCard extends StatelessWidget {
@@ -193,15 +194,58 @@ class PrimaryButton extends StatelessWidget {
         ),
       ),
     );
+    final lifted = onTap == null
+        ? button
+        : PressableScale(
+            onTap: onTap,
+            child: _ButtonHover(
+              radius: 10,
+              child: button,
+            ),
+          );
     if (expanded) {
-      return SizedBox(width: double.infinity, child: button);
+      return SizedBox(width: double.infinity, child: lifted);
     }
-    return button;
+    return lifted;
   }
 }
 
-/// Secondary outlined button.
-class OutlineButton extends StatelessWidget {
+/// Subtle brighten on hover for the filled primary button (the gradient
+/// stays put — only the shadow grows).
+class _ButtonHover extends StatefulWidget {
+  final Widget child;
+  final double radius;
+  const _ButtonHover({required this.child, required this.radius});
+
+  @override
+  State<_ButtonHover> createState() => _ButtonHoverState();
+}
+
+class _ButtonHoverState extends State<_ButtonHover> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.radius),
+          boxShadow: _hover
+              ? AppShadow.glow(blur: 18)
+              : const [],
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Secondary outlined button — border tints toward the brand on hover.
+class OutlineButton extends StatefulWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onTap;
@@ -218,38 +262,67 @@ class OutlineButton extends StatelessWidget {
   });
 
   @override
+  State<OutlineButton> createState() => _OutlineButtonState();
+}
+
+class _OutlineButtonState extends State<OutlineButton> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    final fg = this.fg ?? AppPalette.body;
-    return Material(
-      color: AppPalette.surface,
-      borderRadius: BorderRadius.circular(9),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(9),
-        child: Container(
-          height: height,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+    final fg = widget.fg ?? AppPalette.body;
+    final onTap = widget.onTap;
+    return PressableScale(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor:
+            onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: AppPalette.stroke),
+            boxShadow: _hover && onTap != null
+                ? AppShadow.card(opacity: AppPalette.dark ? 0.4 : 0.08)
+              : const [],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 15, color: fg),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
+          child: Material(
+            color: AppPalette.surface,
+            borderRadius: BorderRadius.circular(9),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(9),
+              child: Container(
+                height: widget.height,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                      color: _hover && onTap != null
+                          ? AppPalette.primaryBorder
+                          : AppPalette.stroke),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.icon != null) ...[
+                      Icon(widget.icon, size: 15, color: fg),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      widget.label,
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: fg,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

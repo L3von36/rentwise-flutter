@@ -143,13 +143,14 @@ class _StepBtn extends StatelessWidget {
 
 /// New rental booking — centered dialog on wide, bottom sheet on compact.
 Future<void> showNewBookingSheet(BuildContext context,
-    {InventoryItem? prefill}) {
+    {InventoryItem? prefill, String? prefillCustomer}) {
   final wide = MediaQuery.sizeOf(context).width >= 640;
   if (wide) {
     return showDialog<void>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.35),
-      builder: (_) => _BookingDialog(prefill: prefill),
+      builder: (_) => _BookingDialog(
+          prefill: prefill, prefillCustomer: prefillCustomer),
     );
   }
   return showModalBottomSheet<void>(
@@ -163,7 +164,8 @@ Future<void> showNewBookingSheet(BuildContext context,
         bottom: math.max(MediaQuery.viewInsetsOf(context).bottom,
             MediaQuery.paddingOf(context).bottom),
       ),
-      child: _BookingDialog(embed: true, prefill: prefill),
+      child: _BookingDialog(
+          embed: true, prefill: prefill, prefillCustomer: prefillCustomer),
     ),
   );
 }
@@ -171,7 +173,9 @@ Future<void> showNewBookingSheet(BuildContext context,
 class _BookingDialog extends StatefulWidget {
   final bool embed;
   final InventoryItem? prefill;
-  const _BookingDialog({this.embed = false, this.prefill});
+  final String? prefillCustomer;
+  const _BookingDialog(
+      {this.embed = false, this.prefill, this.prefillCustomer});
 
   @override
   State<_BookingDialog> createState() => _BookingDialogState();
@@ -198,6 +202,11 @@ class _BookingDialogState extends State<_BookingDialog> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = context.read<WorkspaceState>();
       setState(() {
+        // Pre-select a customer when opened from a profile / ⋯ menu action.
+        if (widget.prefillCustomer != null) {
+          final name = widget.prefillCustomer!;
+          _customer = state.customers.any((c) => c.name == name) ? name : null;
+        }
         _customer ??=
             state.customers.isNotEmpty ? state.customers.first.name : null;
         _picker ??=

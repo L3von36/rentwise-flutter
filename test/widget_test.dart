@@ -7,6 +7,7 @@ import 'package:flutter/material.dart'
         IconData,
         Material,
         NavigationDrawer,
+        Navigator,
         Scaffold,
         Size,
         Theme,
@@ -17,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rentwise/app.dart';
 import 'package:rentwise/models/account.dart';
+import 'package:rentwise/models/rental_order.dart' show OrderStatus;
 import 'package:rentwise/state/shell_state.dart';
 import 'package:rentwise/state/workspace_state.dart';
 import 'package:rentwise/widgets/bottom_nav.dart';
@@ -457,5 +459,159 @@ void main() {
     // Glance strip still anchors the screen below the hero.
     expect(find.text("Today's revenue"), findsOneWidget);
     expect(find.text('Details'), findsOneWidget);
+  });
+
+  testWidgets('tapping an order row opens its detail page', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign in as employee'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(
+      of: find.byType(SideNav),
+      matching: find.text('Orders'),
+    ));
+    await tester.pumpAndSettle();
+
+    // Row tap → full detail page with the quoted manifest + notes.
+    await tester.tap(find.text('Northstar Product Launch'));
+    await tester.pumpAndSettle();
+    expect(find.text('Item manifest'), findsOneWidget);
+    expect(find.text('Delivery notes'), findsOneWidget);
+    expect(find.text('Order RW-2051'), findsOneWidget);
+    expect(find.text('Folding Chairs'), findsWidgets);
+
+    // Status actions write through to the store.
+    await tester.tap(find.text('Out for delivery'));
+    await tester.pumpAndSettle();
+    final state = tester.state(find.byType(Navigator)).context
+        .read<WorkspaceState>();
+    expect(
+      state.orderById('RW-2051')!.status,
+      OrderStatus.outForDelivery,
+    );
+  });
+
+  testWidgets('view customer insights opens the insights page',
+      (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Owner'));
+    await tester.pump();
+    await tester.tap(find.text('Sign in as owner'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(
+      of: find.byType(SideNav),
+      matching: find.text('Customers'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The purple pulse panel's link now has a real destination.
+    await tester.tap(find.text('View customer insights'));
+    await tester.pumpAndSettle();
+    expect(find.text('Customer insights'), findsOneWidget);
+    expect(find.text('Top customers'), findsOneWidget);
+    expect(find.text('Retention mix'), findsOneWidget);
+    expect(find.text('Avery Harper'), findsOneWidget);
+  });
+
+  testWidgets('tapping a customer row opens the customer profile',
+      (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign in as employee'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(
+      of: find.byType(SideNav),
+      matching: find.text('Customers'),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Avery Harper'));
+    await tester.pumpAndSettle();
+    expect(find.text('Order history'), findsOneWidget);
+    expect(find.text('The Harper Wedding'), findsOneWidget);
+    expect(find.text('Lifetime spend'), findsOneWidget);
+  });
+
+  testWidgets('employee task rows open the source order', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign in as employee'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    // The first task ("Stage & pack" for RW-2051) opens the order detail.
+    await tester.tap(find.text('Stage & pack'));
+    await tester.pumpAndSettle();
+    expect(find.text('Item manifest'), findsOneWidget);
+    expect(find.text('Order RW-2051'), findsOneWidget);
+  });
+
+  test('workspaces can be added and switched', () async {
+    final state = WorkspaceState();
+    await state.signIn(UserRole.owner);
+
+    expect(state.workspace, 'Riverside Events');
+    expect(state.workspaces.length, 1);
+
+    expect(state.addWorkspace('Cedar Loft Co.'), isTrue);
+    expect(state.workspace, 'Cedar Loft Co.');
+    expect(state.workspaces, contains('Riverside Events'));
+
+    // Duplicate / empty names are refused.
+    expect(state.addWorkspace('Cedar Loft Co.'), isFalse);
+    expect(state.addWorkspace('  '), isFalse);
+
+    state.switchWorkspace('Riverside Events');
+    expect(state.workspace, 'Riverside Events');
+  });
+
+  testWidgets('orders KPI cards apply their matching status filter',
+      (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Owner'));
+    await tester.pump();
+    await tester.tap(find.text('Sign in as owner'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(
+      of: find.byType(SideNav),
+      matching: find.text('Orders'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The awaiting-payment KPI card filters the list to that bucket.
+    await tester.tap(find.text('Awaiting payment'));
+    await tester.pumpAndSettle();
+    expect(find.text('Monroe Family Reunion'), findsOneWidget);
+    expect(find.text('Northstar Product Launch'), findsNothing);
   });
 }

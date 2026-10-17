@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
+import '../../services/csv_export.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
 import '../../models/customer.dart';
 import '../../widgets/kpi_card.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/indicators.dart';
+import 'customer_detail_screen.dart';
+import 'customer_insights_screen.dart';
+import '../booking/new_booking_sheet.dart';
 import '../../core/palette.dart';
 
 class CustomersScreen extends StatelessWidget {
@@ -82,10 +88,11 @@ class CustomersScreen extends StatelessWidget {
                     iconColor: AppPalette.primary,
                     iconBg: AppPalette.primarySoft,
                     label: 'Total customers',
-                    value: '${Seed.totalCustomersKpi}',
-                    subtitle: 'This quarter',
+                    value: '${state.customers.length}',
+                    subtitle: 'In the live directory',
                     trailing: const TrendChip(
                         text: '+12', positive: true),
+                    onTap: () => _openInsights(context),
                   ),
                 ),
                 SizedBox(
@@ -95,10 +102,12 @@ class CustomersScreen extends StatelessWidget {
                     iconColor: AppPalette.purple,
                     iconBg: AppPalette.purpleBg,
                     label: 'Repeat customers',
-                    value: '68%',
+                    value:
+                        '${_repeatPct(state)}%',
                     subtitle: 'Healthy retention',
                     trailing: const TrendChip(
                         text: '+8.4%', positive: true),
+                    onTap: () => _openInsights(context),
                   ),
                 ),
                 SizedBox(
@@ -108,10 +117,11 @@ class CustomersScreen extends StatelessWidget {
                     iconColor: AppPalette.green,
                     iconBg: AppPalette.greenBg,
                     label: 'Customer value',
-                    value: '\$42.8k',
+                    value: _totalValue(state),
                     subtitle: 'Year to date',
                     trailing: const TrendChip(
                         text: '14.2%', positive: true),
+                    onTap: () => _openInsights(context),
                   ),
                 ),
                 SizedBox(
@@ -125,6 +135,7 @@ class CustomersScreen extends StatelessWidget {
                     subtitle: 'Keep the loop tight',
                     trailing: const TrendChip(
                         text: 'Due today', positive: false),
+                    onTap: () => _openInsights(context),
                   ),
                 ),
               ],
@@ -154,6 +165,27 @@ class CustomersScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _openInsights(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => const CustomerInsightsScreen(),
+    ));
+  }
+
+  String _repeatPct(WorkspaceState state) {
+    if (state.customers.isEmpty) return '0';
+    final repeat = state.customers.where((c) => c.isRepeat).length;
+    return ((repeat / state.customers.length) * 100).round().toString();
+  }
+
+  String _totalValue(WorkspaceState state) {
+    final total =
+        state.customers.fold<double>(0, (s, c) => s + c.lifetimeSpend);
+    if (total >= 1000) {
+      return '\$${(total / 1000).toStringAsFixed(1)}k';
+    }
+    return '\$${total.toStringAsFixed(0)}';
   }
 
   void _showAddDialog(BuildContext context) {
@@ -262,11 +294,26 @@ class _Directory extends StatelessWidget {
       action: OutlineButton(
         label: 'Export',
         icon: Icons.file_download_outlined,
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Customer list exported (demo)'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        onTap: () => showCsvExport(
+          context,
+          title: 'Customers',
+          filename: 'customers.csv',
+          header: const [
+            'id', 'name', 'company', 'email', 'phone', 'rentals',
+            'lifetime_spend', 'last_booking'
+          ],
+          rows: state.customers
+              .map((c) => [
+                    c.id,
+                    c.name,
+                    c.company,
+                    c.email,
+                    c.phone,
+                    '${c.rentals}',
+                    c.lifetimeSpend.toStringAsFixed(2),
+                    DateFormat('yyyy-MM-dd').format(c.lastBooking),
+                  ])
+              .toList(),
         ),
       ),
       child: Column(
@@ -291,18 +338,19 @@ class _Directory extends StatelessWidget {
           ),
           const SizedBox(height: 4),
 
-          // header (wide only)
-          LayoutBuilder(builder: (context, c) {
-            final wide = c.maxWidth >= 560;
-            if (!wide) {
-              return Column(
-                children: [
-                  for (final cust in customers)
-                    _CustomerCardWide(cust: cust),
-                ],
-              );
-            }
-            return Column(
+          // header (wide only) — resolved from the screen width, NOT a
+          // LayoutBuilder: this card sits inside an IntrinsicHeight (to
+          // stretch beside the pulse panel) and LayoutBuilder cannot
+          // answer intrinsic-dimension queries.
+          if (MediaQuery.sizeOf(context).width < 1050)
+            Column(
+              children: [
+                for (final cust in customers)
+                  _CustomerCardWide(cust: cust),
+              ],
+            )
+          else
+            Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
@@ -349,14 +397,13 @@ class _Directory extends StatelessWidget {
                   ),
                 ),
                 for (final cust in customers)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 4),
-                    decoration: BoxDecoration(
-                      border: Border(
-                          top: BorderSide(color: AppPalette.stroke)),
-                    ),
-                    child: Row(
+                  HoverFill(
+                    onTap: () => openCustomerDetail(context, cust),
+                    radius: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 4),
+                      child: Row(
                       children: [
                         Expanded(
                           flex: 4,
@@ -425,26 +472,108 @@ class _Directory extends StatelessWidget {
                           width: 40,
                           child: Align(
                             alignment: Alignment.centerRight,
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                    color: AppPalette.stroke),
-                              ),
-                              child: Icon(Icons.more_horiz,
-                                  size: 15, color: AppPalette.muted),
-                            ),
+                            child: _CustomerActionsMenu(
+                                cust: cust),
                           ),
                         ),
                       ],
                     ),
                   ),
+                ),
               ],
-            );
-          }),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+/// The ⋯ button on each customer row — real actions: open profile,
+/// new booking, copy contact details.
+class _CustomerActionsMenu extends StatelessWidget {
+  final Customer cust;
+  const _CustomerActionsMenu({required this.cust});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'Customer actions',
+      color: AppPalette.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(11),
+        side: BorderSide(color: AppPalette.stroke),
+      ),
+      onSelected: (v) {
+        switch (v) {
+          case 'profile':
+            openCustomerDetail(context, cust);
+          case 'booking':
+            showNewBookingSheet(context, prefillCustomer: cust.name);
+          case 'email':
+            Clipboard.setData(ClipboardData(text: cust.email));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Email copied — ${cust.email}'),
+              behavior: SnackBarBehavior.floating,
+            ));
+          case 'phone':
+            Clipboard.setData(ClipboardData(text: cust.phone));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Phone copied — ${cust.phone}'),
+              behavior: SnackBarBehavior.floating,
+            ));
+        }
+      },
+      offset: const Offset(0, 8),
+      itemBuilder: (_) => const [
+        PopupMenuItem(
+            value: 'profile',
+            height: 38,
+            child: Row(children: [
+              Icon(Icons.person_outline_rounded, size: 15),
+              SizedBox(width: 8),
+              Text('View profile',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily, fontSize: 13)),
+            ])),
+        PopupMenuItem(
+            value: 'booking',
+            height: 38,
+            child: Row(children: [
+              Icon(Icons.add_rounded, size: 15),
+              SizedBox(width: 8),
+              Text('New booking',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily, fontSize: 13)),
+            ])),
+        PopupMenuItem(
+            value: 'email',
+            height: 38,
+            child: Row(children: [
+              Icon(Icons.copy_rounded, size: 15),
+              SizedBox(width: 8),
+              Text('Copy email',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily, fontSize: 13)),
+            ])),
+        PopupMenuItem(
+            value: 'phone',
+            height: 38,
+            child: Row(children: [
+              Icon(Icons.copy_all_rounded, size: 15),
+              SizedBox(width: 8),
+              Text('Copy phone',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily, fontSize: 13)),
+            ])),
+      ],
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppPalette.stroke),
+        ),
+        child: Icon(Icons.more_horiz, size: 15, color: AppPalette.muted),
       ),
     );
   }
@@ -457,12 +586,15 @@ class _CustomerCardWide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('MMM d, yyyy');
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppPalette.stroke)),
-      ),
-      child: Row(
+    return HoverFill(
+      onTap: () => openCustomerDetail(context, cust),
+      radius: 10,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppPalette.stroke)),
+        ),
+        child: Row(
         children: [
           InitialsAvatar(
               initials: cust.initials,
@@ -505,7 +637,10 @@ class _CustomerCardWide extends StatelessWidget {
                       color: AppPalette.muted)),
             ],
           ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right_rounded, size: 16, color: AppPalette.faint),
         ],
+      ),
       ),
     );
   }
@@ -603,18 +738,30 @@ class _PulsePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Text('View customer insights',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppPalette.purple)),
-              const SizedBox(width: 5),
-              Icon(Icons.north_east_rounded,
-                  size: 14, color: AppPalette.purple),
-            ],
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => const CustomerInsightsScreen(),
+              ));
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('View customer insights',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppPalette.purple)),
+                  const SizedBox(width: 5),
+                  Icon(Icons.north_east_rounded,
+                      size: 14, color: AppPalette.purple),
+                ],
+              ),
+            ),
           ),
         ],
       ),

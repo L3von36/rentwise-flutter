@@ -4,6 +4,7 @@ import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../state/workspace_state.dart';
 import '../screens/booking/new_booking_sheet.dart';
+import '../screens/profile/profile_screen.dart';
 import 'chips.dart';
 import '../core/palette.dart';
 
@@ -100,7 +101,13 @@ class RentWiseBottomNav extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 4),
-              child: Row(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  openProfile(context);
+                },
+                child: Row(
                 children: [
                   InitialsAvatar(
                     initials: state.account?.initials ?? '??',
@@ -132,8 +139,18 @@ class RentWiseBottomNav extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Text('View profile',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppPalette.primary)),
+                  const SizedBox(width: 3),
+                  Icon(Icons.chevron_right_rounded,
+                      size: 16, color: AppPalette.primary),
                 ],
               ),
+            ),
             ),
             const Divider(height: 10),
             _MoreTile(

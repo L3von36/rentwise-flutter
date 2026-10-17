@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
+import '../core/palette.dart';
 import '../data/seed_data.dart';
 import '../models/account.dart';
 import '../models/activity_entry.dart';
@@ -7,6 +8,7 @@ import '../models/customer.dart';
 import '../models/inventory_item.dart';
 import '../models/pickup.dart';
 import '../models/rental_order.dart';
+import '../models/shift_task.dart';
 
 /// Workspace sections (sidebar / drawer destinations).
 enum Section { dashboard, inventory, orders, customers, activity, access, reports }
@@ -53,6 +55,42 @@ class WorkspaceState extends ChangeNotifier {
     _customers = Seed.customers(now);
     _activity = Seed.activity(now);
     _pickups = Seed.pickups(now);
+  }
+
+  // -------------------------------------------------------------- workspace
+  final List<String> _workspaces = [Seed.workspaceName];
+  String _workspace = Seed.workspaceName;
+
+  List<String> get workspaces => List.unmodifiable(_workspaces);
+  String get workspace => _workspace;
+
+  /// True when this workspace is the one being viewed.
+  bool get isSingleWorkspace => _workspaces.length == 1;
+
+  void switchWorkspace(String name) {
+    if (!_workspaces.contains(name) || name == _workspace) return;
+    _workspace = name;
+    _log(
+      type: ActivityType.note,
+      body: '**${_account?.name ?? 'Someone'}** switched to workspace **$name**',
+    );
+    notifyListeners();
+  }
+
+  /// Creates and switches to a new workspace. Returns false when the
+  /// name is empty or already taken.
+  bool addWorkspace(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || _workspaces.contains(trimmed)) return false;
+    _workspaces.add(trimmed);
+    _workspace = trimmed;
+    _log(
+      type: ActivityType.note,
+      body:
+          '**${_account?.name ?? 'Someone'}** created workspace **$trimmed**',
+    );
+    notifyListeners();
+    return true;
   }
 
   // ------------------------------------------------------------------- auth
@@ -127,6 +165,89 @@ class WorkspaceState extends ChangeNotifier {
     _section = s;
     if (s == Section.activity) _unreadActivity = 0;
     notifyListeners();
+  }
+
+  /// Marks every activity entry as read (notifications → “Mark all read”).
+  void markActivityRead() {
+    if (_unreadActivity == 0) return;
+    _unreadActivity = 0;
+    notifyListeners();
+  }
+
+  // ------------------------------------------------------------- lookups
+  RentalOrder? orderById(String id) {
+    for (final o in _orders) {
+      if (o.id == id) return o;
+    }
+    return null;
+  }
+
+  Customer? customerByName(String name) {
+    for (final c in _customers) {
+      if (c.name.toLowerCase() == name.toLowerCase()) return c;
+    }
+    return null;
+  }
+
+  /// Orders that belong to a customer (matched on the customer name).
+  List<RentalOrder> ordersForCustomer(String name) => _orders
+      .where((o) => o.customerName.toLowerCase() == name.toLowerCase())
+      .toList();
+
+  /// Today's shift tasks, derived from live order + pickup data. Shared
+  /// by the employee dashboard and the Tasks screen.
+  List<ShiftTask> shiftTasks(DateTime now) {
+    final tasks = <ShiftTask>[];
+    for (final o in _orders) {
+      switch (o.status) {
+        case OrderStatus.preparing:
+          tasks.add(ShiftTask(
+            title: 'Stage & pack',
+            meta: '#${o.id} · ${o.eventName} · ${o.itemCount} items',
+            chip: 'Prep',
+            chipFg: AppPalette.amber,
+            chipBg: AppPalette.amberBg,
+            kind: 'prep',
+            orderId: o.id,
+          ));
+        case OrderStatus.outForDelivery:
+          tasks.add(ShiftTask(
+            title: 'Confirm delivery',
+            meta: '#${o.id} · ${o.eventName} · ${o.contactName}',
+            chip: 'On the road',
+            chipFg: AppPalette.blue,
+            chipBg: AppPalette.blueBg,
+            kind: 'delivery',
+            orderId: o.id,
+          ));
+        case OrderStatus.needsPayment:
+          tasks.add(ShiftTask(
+            title: 'Collect payment',
+            meta: '#${o.id} · ${o.eventName} · \$${o.total.toStringAsFixed(0)}',
+            chip: 'Payment',
+            chipFg: AppPalette.purple,
+            chipBg: AppPalette.purpleBg,
+            kind: 'payment',
+            orderId: o.id,
+          ));
+        case OrderStatus.confirmed:
+        case OrderStatus.returned:
+          break;
+      }
+    }
+    for (final p in _pickups.take(2)) {
+      tasks.add(ShiftTask(
+        title: 'Pull & stage',
+        meta:
+            '${p.itemCount} items · ${p.venue} · #${p.id}',
+        chip: 'Upcoming',
+        chipFg: AppPalette.green,
+        chipBg: AppPalette.greenBg,
+        kind: 'prep',
+        pickupId: p.id,
+      ));
+    }
+    return tasks;
   }
 
   // -------------------------------------------------------------- inventory
@@ -412,6 +533,14 @@ class WorkspaceState extends ChangeNotifier {
         itemCount: itemCount,
         total: total,
         status: OrderStatus.confirmed,
+        notes: (notes == null || notes.trim().isEmpty) ? '' : notes.trim(),
+        lineItems: lines
+            .map((l) => OrderLine(
+                  itemName: l.item.name,
+                  qty: l.qty,
+                  unitPrice: l.item.ratePerDay,
+                ))
+            .toList(growable: false),
       ),
       ..._orders,
     ];

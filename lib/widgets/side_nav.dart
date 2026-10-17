@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../state/workspace_state.dart';
+import '../screens/profile/profile_screen.dart';
 import 'brand_logo.dart';
 import 'chips.dart';
 import 'cards.dart';
@@ -57,9 +58,9 @@ class SideNav extends StatelessWidget {
           const SizedBox(height: 10),
 
           // Workspace switcher
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
-            child: _WorkspaceSwitcher(workspace: 'Riverside Events'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: _WorkspaceSwitcher(workspace: state.workspace),
           ),
           const SizedBox(height: 12),
 
@@ -234,6 +235,12 @@ class SideNav extends StatelessWidget {
                   color: AppPalette.body),
               title: Text(context.read<WorkspaceState>().account?.name ?? ''),
               subtitle: Text(context.read<WorkspaceState>().account?.email ?? ''),
+              trailing: Icon(Icons.chevron_right_rounded,
+                  size: 18, color: AppPalette.faint),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                openProfile(context);
+              },
             ),
             const Divider(),
             ListTile(
@@ -347,7 +354,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
       borderRadius: BorderRadius.circular(13),
       child: InkWell(
         borderRadius: BorderRadius.circular(13),
-        onTap: () {},
+        onTap: () => _showWorkspaceSheet(context),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
@@ -365,7 +372,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
                   color: AppPalette.primarySoft,
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Text('R',
+                child: Text(workspace.isEmpty ? 'R' : workspace[0].toUpperCase(),
                     style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -386,7 +393,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
                           color: AppPalette.muted,
                         )),
                     const SizedBox(height: 1),
-                    Text('Riverside Events',
+                    Text(workspace,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -404,6 +411,134 @@ class _WorkspaceSwitcher extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Real workspace picker: switch between workspaces or create a new
+  /// one (both write through to the store and the activity log).
+  void _showWorkspaceSheet(BuildContext context) {
+    final state = context.read<WorkspaceState>();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppPalette.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetCtx) {
+        final nameCtrl = TextEditingController();
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your workspaces',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.ink)),
+                const SizedBox(height: 4),
+                Text(
+                  'Switch the whole app to another workspace, or add one.',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 12,
+                      color: AppPalette.muted),
+                ),
+                const SizedBox(height: 12),
+                for (final name in state.workspaces)
+                  ListTile(
+                    dense: true,
+                    leading: Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: name == state.workspace
+                            ? AppPalette.primarySoft
+                            : AppPalette.fill,
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                            color: name == state.workspace
+                                ? AppPalette.primaryBorder
+                                : AppPalette.stroke),
+                      ),
+                      child: Text(
+                          name.isEmpty ? 'R' : name[0].toUpperCase(),
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: name == state.workspace
+                                  ? AppPalette.primary
+                                  : AppPalette.body)),
+                    ),
+                    title: Text(name,
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppPalette.ink)),
+                    trailing: name == state.workspace
+                        ? Icon(Icons.check_rounded,
+                            size: 18, color: AppPalette.primary)
+                        : null,
+                    onTap: name == state.workspace
+                        ? null
+                        : () {
+                            state.switchWorkspace(name);
+                            Navigator.pop(sheetCtx);
+                          },
+                  ),
+                const SizedBox(height: 6),
+                const Divider(),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(
+                            hintText: 'New workspace name'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                          backgroundColor: AppPalette.primary),
+                      icon: const Icon(Icons.add_rounded, size: 16),
+                      label: const Text('Add',
+                          style:
+                              TextStyle(fontFamily: AppTheme.fontFamily)),
+                      onPressed: () {
+                        final ok = state.addWorkspace(nameCtrl.text);
+                        if (ok) {
+                          Navigator.pop(sheetCtx);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Switched to ${nameCtrl.text.trim()}'),
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Enter a unique, non-empty workspace name'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

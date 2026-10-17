@@ -9,28 +9,12 @@ import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/kpi_card.dart';
+import '../../widgets/motion.dart';
+import '../../widgets/order_status_style.dart';
 import '../booking/new_booking_sheet.dart';
+import 'order_detail_screen.dart';
 import '../../widgets/indicators.dart';
 import '../../core/palette.dart';
-
-/// Status pill colors for orders.
-extension _OrderStatusStyle on OrderStatus {
-  Color get fg => switch (this) {
-        OrderStatus.preparing => AppPalette.blue,
-        OrderStatus.confirmed => AppPalette.green,
-        OrderStatus.needsPayment => AppPalette.amber,
-        OrderStatus.outForDelivery => AppPalette.purple,
-        OrderStatus.returned => AppPalette.green,
-      };
-
-  Color get bg => switch (this) {
-        OrderStatus.preparing => AppPalette.blueBg,
-        OrderStatus.confirmed => AppPalette.greenBg,
-        OrderStatus.needsPayment => AppPalette.amberBg,
-        OrderStatus.outForDelivery => AppPalette.purpleBg,
-        OrderStatus.returned => AppPalette.greenBg,
-      };
-}
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
@@ -102,9 +86,10 @@ class OrdersScreen extends StatelessWidget {
                     iconColor: AppPalette.blue,
                     iconBg: AppPalette.blueBg,
                     label: 'Open orders',
-                    value: '${Seed.openOrders}',
-                    subtitle: 'Since yesterday',
+                    value: '${state.openOrdersCount}',
+                    subtitle: 'Live count of open rentals',
                     trailing: const TrendChip(text: '+4', positive: true),
+                    onTap: () => state.setOrderStatusFilter(null),
                   ),
                 ),
                 SizedBox(
@@ -114,11 +99,13 @@ class OrdersScreen extends StatelessWidget {
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
                     label: 'Awaiting payment',
-                    value: '\$4,910',
-                    subtitle: 'Follow up today',
-                    trailing: const TrendChip(
-                        text: '${Seed.awaitingPaymentOrders} orders',
+                    value: '\$${state.awaitingPaymentTotal.toStringAsFixed(0)}',
+                    subtitle: 'Tap to filter · follow up today',
+                    trailing: TrendChip(
+                        text: '${state.needsPaymentCount} orders',
                         positive: false),
+                    onTap: () =>
+                        state.setOrderStatusFilter(OrderStatus.needsPayment),
                   ),
                 ),
                 SizedBox(
@@ -128,9 +115,11 @@ class OrdersScreen extends StatelessWidget {
                     iconColor: AppPalette.purple,
                     iconBg: AppPalette.purpleBg,
                     label: 'Out for delivery',
-                    value: '${Seed.outForDelivery}',
+                    value: '${state.outForDeliveryCount}',
                     subtitle: 'On schedule',
                     trailing: const TrendChip(text: '100%', positive: true),
+                    onTap: () =>
+                        state.setOrderStatusFilter(OrderStatus.outForDelivery),
                   ),
                 ),
                 SizedBox(
@@ -144,6 +133,8 @@ class OrdersScreen extends StatelessWidget {
                     subtitle: 'Needs attention',
                     trailing: const TrendChip(
                         text: '${Seed.returnsLate} late', positive: false),
+                    onTap: () =>
+                        state.setOrderStatusFilter(OrderStatus.returned),
                   ),
                 ),
               ],
@@ -173,7 +164,10 @@ class OrdersScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 if (compactList)
                   for (final order in state.filteredOrders)
-                    _OrderCard(order: order, onAction: (s) => state.updateOrderStatus(order, s))
+                    _OrderCard(
+                      order: order,
+                      onAction: (s) => state.updateOrderStatus(order, s),
+                    )
                 else ...[
                   _OrderHeader(),
                   for (final order in state.filteredOrders)
@@ -411,12 +405,15 @@ class _OrderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('MMM d, yyyy');
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppPalette.stroke)),
-      ),
-      child: Row(
+    return HoverFill(
+      onTap: () => openOrderDetail(context, order),
+      radius: 10,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: AppPalette.stroke)),
+        ),
+        child: Row(
         children: [
           Expanded(
             flex: 3,
@@ -504,6 +501,7 @@ class _OrderRow extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
@@ -516,66 +514,70 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('MMM d, yyyy');
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppPalette.stroke)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('#${order.id}',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppPalette.primary)),
-              const Spacer(),
-              StatusBadge(
-                label: order.status.label,
-                fg: order.status.fg,
-                bg: order.status.bg,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(order.eventName,
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppPalette.ink)),
-          const SizedBox(height: 3),
-          Text('${order.contactName} · ${order.itemCount} items',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 12,
-                  color: AppPalette.muted)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(Icons.event_outlined,
-                  size: 14, color: AppPalette.muted),
-              const SizedBox(width: 5),
-              Text(df.format(order.eventDate),
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 12,
-                      color: AppPalette.muted)),
-              const Spacer(),
-              Text('\$${NumberFormat('#,##0').format(order.total)}',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppPalette.ink)),
-              const SizedBox(width: 10),
-              _OrderMenu(order: order, onAction: onAction),
-            ],
-          ),
-        ],
+    return HoverFill(
+      onTap: () => openOrderDetail(context, order),
+      radius: 10,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppPalette.stroke)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('#${order.id}',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.primary)),
+                const Spacer(),
+                StatusBadge(
+                  label: order.status.label,
+                  fg: order.status.fg,
+                  bg: order.status.bg,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(order.eventName,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppPalette.ink)),
+            const SizedBox(height: 3),
+            Text('${order.contactName} · ${order.itemCount} items',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12,
+                    color: AppPalette.muted)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.event_outlined,
+                    size: 14, color: AppPalette.muted),
+                const SizedBox(width: 5),
+                Text(df.format(order.eventDate),
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12,
+                        color: AppPalette.muted)),
+                const Spacer(),
+                Text('\$${NumberFormat('#,##0').format(order.total)}',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.ink)),
+                const SizedBox(width: 10),
+                _OrderMenu(order: order, onAction: onAction),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -597,6 +599,8 @@ class _OrderMenu extends StatelessWidget {
       ),
       onSelected: (v) {
         switch (v) {
+          case 'details':
+            openOrderDetail(context, order);
           case 'confirmed':
             onAction(OrderStatus.confirmed);
           case 'outForDelivery':
@@ -609,6 +613,18 @@ class _OrderMenu extends StatelessWidget {
       },
       offset: const Offset(0, 8),
       itemBuilder: (_) => [
+        const PopupMenuItem(
+            value: 'details',
+            height: 38,
+            child: Row(
+              children: [
+                Icon(Icons.open_in_new_rounded, size: 15),
+                SizedBox(width: 8),
+                Text('View details',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily, fontSize: 13)),
+              ],
+            )),
         const PopupMenuItem(
             value: 'confirmed',
             height: 38,

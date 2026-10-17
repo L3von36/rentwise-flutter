@@ -3,20 +3,24 @@ import '../core/app_theme.dart';
 import '../models/activity_entry.dart';
 import '../models/pickup.dart';
 import 'chips.dart';
+import 'motion.dart';
 import 'top_bar.dart' show RichActivityText;
 import '../core/palette.dart';
 
 /// Avatar + rich text + time + type badge row (dashboard feed & activity log).
+/// With [onTap] set the whole row is tappable with a hover fill.
 class ActivityRow extends StatelessWidget {
   final ActivityEntry entry;
   final bool showTimeAbove;
   final bool showDivider;
+  final VoidCallback? onTap;
 
   const ActivityRow({
     super.key,
     required this.entry,
     this.showTimeAbove = false,
     this.showDivider = true,
+    this.onTap,
   });
 
   @override
@@ -67,13 +71,22 @@ class ActivityRow extends StatelessWidget {
           fontSize: 10.5,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         ),
+        if (onTap != null) ...[
+          const SizedBox(width: 6),
+          Icon(Icons.chevron_right_rounded,
+              size: 15, color: AppPalette.faint),
+        ],
       ],
     );
 
-    if (!showDivider) return row;
+    final wrapped = onTap == null
+        ? row
+        : HoverFill(onTap: onTap, radius: 9, child: row);
+
+    if (!showDivider) return wrapped;
     return Column(
       children: [
-        row,
+        wrapped,
         const SizedBox(height: 11),
         const Divider(),
         const SizedBox(height: 11),
@@ -90,16 +103,19 @@ String _timeLabel(DateTime at) {
 }
 
 /// "18 OCT" date block + title + venue + "In N days" (upcoming pickups).
+/// With [onTap] set the whole row opens its target (the calendar).
 class PickupRow extends StatelessWidget {
   final Pickup pickup;
   final DateTime now;
   final bool showDivider;
+  final VoidCallback? onTap;
 
   const PickupRow({
     super.key,
     required this.pickup,
     required this.now,
     this.showDivider = true,
+    this.onTap,
   });
 
   @override
@@ -177,13 +193,22 @@ class PickupRow extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: AppPalette.muted,
             )),
+        if (onTap != null) ...[
+          const SizedBox(width: 6),
+          Icon(Icons.chevron_right_rounded,
+              size: 15, color: AppPalette.faint),
+        ],
       ],
     );
 
-    if (!showDivider) return content;
+    final wrapped = onTap == null
+        ? content
+        : HoverFill(onTap: onTap, radius: 9, child: content);
+
+    if (!showDivider) return wrapped;
     return Column(
       children: [
-        content,
+        wrapped,
         const SizedBox(height: 10),
         const Divider(),
         const SizedBox(height: 10),
