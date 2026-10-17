@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
-import '../../data/seed_data.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -129,10 +128,13 @@ class OrdersScreen extends StatelessWidget {
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
                     label: 'Returns today',
-                    value: '${Seed.returnsToday}',
+                    value: '${state.returnsTodayCount}',
                     subtitle: 'Needs attention',
-                    trailing: const TrendChip(
-                        text: '${Seed.returnsLate} late', positive: false),
+                    trailing: state.returnsLateCount > 0
+                        ? TrendChip(
+                            text: '${state.returnsLateCount} late',
+                            positive: false)
+                        : const TrendChip.flat(text: 'On time'),
                     onTap: () =>
                         state.setOrderStatusFilter(OrderStatus.returned),
                   ),

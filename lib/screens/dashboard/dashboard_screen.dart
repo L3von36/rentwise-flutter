@@ -140,8 +140,10 @@ class _EmployeeDashboard extends StatelessWidget {
                       iconBg: AppPalette.blueBg,
                       label: 'Out for delivery',
                       value: '${state.outForDeliveryCount}',
-                      subtitle:
-                          'Next: ${Seed.nextDispatchVenue} · ${Seed.nextDispatchTime}',
+                      subtitle: state.nextDispatch == null
+                          ? 'No dispatches scheduled'
+                          : 'Next: ${state.nextDispatch!.venue} · '
+                              '${DateFormat.jm().format(state.nextDispatch!.date)}',
                       trailing: const TrendChip.flat(text: 'Live'),
                       onTap: () {
                         state.setOrderStatusFilter(OrderStatus.outForDelivery);
@@ -156,10 +158,12 @@ class _EmployeeDashboard extends StatelessWidget {
                       iconColor: AppPalette.amber,
                       iconBg: AppPalette.amberBg,
                       label: 'Returns to check in',
-                      value: '${Seed.pendingReturns}',
-                      subtitle: 'Keep an eye on 3 late items',
-                      trailing: const TrendChip(
-                          text: '${Seed.returnsDueToday} due',
+                      value: '${state.returnsTodayCount}',
+                      subtitle: state.returnsLateCount > 0
+                          ? 'Keep an eye on ${state.returnsLateCount} late returns'
+                          : 'All returns on schedule',
+                      trailing: TrendChip(
+                          text: '${state.pickupsDueTodayCount} due',
                           positive: false),
                       onTap: () => state.navigate(Section.orders),
                     ),
@@ -173,7 +177,7 @@ class _EmployeeDashboard extends StatelessWidget {
                       label: 'To stage & pack',
                       value: '${state.preparingCount}',
                       subtitle: state.preparingCount > 0
-                          ? '${state.orders.firstWhere((o) => o.status == OrderStatus.preparing).eventName} · ${Seed.nextDispatchItems} items'
+                          ? '${state.orders.firstWhere((o) => o.status == OrderStatus.preparing).eventName} · ${state.orders.firstWhere((o) => o.status == OrderStatus.preparing).itemCount} items'
                           : 'Queue is clear',
                       trailing: const TrendChip.flat(text: 'Queue'),
                       onTap: () {
@@ -222,10 +226,10 @@ class _EmployeeDashboard extends StatelessWidget {
                         iconColor: AppPalette.amber,
                         iconBg: AppPalette.amberBg,
                         label: 'Returns',
-                        value: '${Seed.pendingReturns}',
+                        value: '${state.returnsTodayCount}',
                         subtitle: 'to check in',
-                        trailing: const TrendChip(
-                            text: '${Seed.returnsDueToday} due',
+                        trailing: TrendChip(
+                            text: '${state.pickupsDueTodayCount} due',
                             positive: false),
                         onTap: () => state.navigate(Section.orders),
                       ),
@@ -386,7 +390,7 @@ class _ShiftHero extends StatelessWidget {
                       tasks.isEmpty
                           ? 'You are all caught up — nothing pending today.'
                           : 'You have ${tasks.length} tasks on deck today, '
-                              'including ${Seed.returnsDueToday} returns due back.',
+                              'including ${state.returnsTodayCount} out for delivery.',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -908,34 +912,36 @@ class _DispatchCard extends StatelessWidget {
         .where((o) => o.status == OrderStatus.preparing)
         .toList();
     final df = DateFormat('EEE, MMM d');
+    final tf = DateFormat('h:mm a');
+    final next = state.nextDispatch;
     final runs = [
-      (
-        time: Seed.nextDispatchTime,
-        title: Seed.nextDispatchVenue,
-        meta:
-            '${Seed.nextDispatchItems} items · ${prep.isNotEmpty ? prep.first.customerName : 'Team pickup'}',
-        chip: 'In progress',
-        chipFg: AppPalette.blue,
-        chipBg: AppPalette.blueBg,
-        orderId: prep.isNotEmpty ? prep.first.id : null,
-      ),
       if (prep.isNotEmpty)
         (
-          time: '5:15 PM',
+          time: tf.format(prep.first.eventDate),
           title: prep.first.eventName,
           meta:
-              '${prep.first.itemCount} items · ${df.format(prep.first.eventDate)}',
+              '${prep.first.itemCount} items · ${prep.first.customerName}',
+          chip: 'In progress',
+          chipFg: AppPalette.blue,
+          chipBg: AppPalette.blueBg,
+          orderId: prep.first.id,
+        ),
+      if (prep.skip(1).isNotEmpty)
+        (
+          time: tf.format(prep.skip(1).first.eventDate),
+          title: prep.skip(1).first.eventName,
+          meta:
+              '${prep.skip(1).first.itemCount} items · ${df.format(prep.skip(1).first.eventDate)}',
           chip: 'Staging',
           chipFg: AppPalette.amber,
           chipBg: AppPalette.amberBg,
-          orderId: prep.first.id,
+          orderId: prep.skip(1).first.id,
         ),
-      if (state.pickups.isNotEmpty)
+      if (next != null)
         (
-          time: DateFormat('EEE h:mm a').format(state.pickups.first.date),
-          title: state.pickups.first.title,
-          meta:
-              '${state.pickups.first.itemCount} items · ${state.pickups.first.venue}',
+          time: DateFormat('EEE h:mm a').format(next.date),
+          title: next.venue,
+          meta: '${next.itemCount} items · ${next.contactName}',
           chip: 'Scheduled',
           chipFg: AppPalette.green,
           chipBg: AppPalette.greenBg,
@@ -950,24 +956,35 @@ class _DispatchCard extends StatelessWidget {
         label: 'Open calendar',
         onTap: () => openCalendar(context),
       ),
-      child: Column(
-        children: [
-          for (var i = 0; i < runs.length; i++)
-            _TimelineTile(
-              isLast: i == runs.length - 1,
-              dotColor: runs[i].chipFg,
-              child: _RunRow(
-                time: runs[i].time,
-                title: runs[i].title,
-                meta: runs[i].meta,
-                chip: runs[i].chip,
-                chipFg: runs[i].chipFg,
-                chipBg: runs[i].chipBg,
-                orderId: runs[i].orderId,
+      child: runs.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: Text('No runs scheduled — the board is clear.',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12.5,
+                        color: AppPalette.muted)),
               ),
+            )
+          : Column(
+              children: [
+                for (var i = 0; i < runs.length; i++)
+                  _TimelineTile(
+                    isLast: i == runs.length - 1,
+                    dotColor: runs[i].chipFg,
+                    child: _RunRow(
+                      time: runs[i].time,
+                      title: runs[i].title,
+                      meta: runs[i].meta,
+                      chip: runs[i].chip,
+                      chipFg: runs[i].chipFg,
+                      chipBg: runs[i].chipBg,
+                      orderId: runs[i].orderId,
+                    ),
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }
@@ -1384,9 +1401,15 @@ class _OwnerWideDashboard extends StatelessWidget {
                     iconColor: AppPalette.primary,
                     iconBg: AppPalette.primarySoft,
                     label: "Today's revenue",
-                    value: '\$2,480',
-                    subtitle: 'vs. \$2,200 yesterday',
-                    trailing: const TrendChip(text: '12.8%', positive: true),
+                    value: state.earnings.isEmpty
+                        ? '—'
+                        : '\$${(state.earnings.last.value * 1000).toStringAsFixed(0)}',
+                    subtitle: state.earnings.length >= 2
+                        ? 'vs. \$${(state.earnings[state.earnings.length - 2].value * 1000).toStringAsFixed(0)} yesterday'
+                        : 'Bookings today',
+                    trailing: TrendChip(
+                        text: '${state.earningsTrendPct.toStringAsFixed(1)}%',
+                        positive: state.earningsTrendPct >= 0),
                     onTap: () => state.navigate(Section.reports),
                   ),
                 ),
@@ -1398,11 +1421,12 @@ class _OwnerWideDashboard extends StatelessWidget {
                     iconBg: AppPalette.purpleBg,
                     label: 'Month to date',
                     value:
-                        '\$${Seed.grossRevenueMonth.toStringAsFixed(1)}k',
-                    subtitle: 'Gross bookings · October',
-                    trailing: const TrendChip(
-                        text: '${Seed.grossRevenueTrend}%',
-                        positive: true),
+                        '\$${state.monthGrossRevenueK.toStringAsFixed(1)}k',
+                    subtitle:
+                        'Gross bookings · ${DateFormat.MMMM().format(DateTime.now())}',
+                    trailing: TrendChip(
+                        text: '${state.earningsTrendPct.toStringAsFixed(1)}%',
+                        positive: state.earningsTrendPct >= 0),
                     onTap: () => state.navigate(Section.reports),
                   ),
                 ),
@@ -1415,9 +1439,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     label: 'Fleet utilization',
                     value: '${state.utilization.toStringAsFixed(1)}%',
                     subtitle: '${state.totalUnits} units on hand',
-                    trailing: const TrendChip(
-                        text: '${Seed.utilizationTrend}%',
-                        positive: true),
+                    trailing: const TrendChip.flat(text: 'Live'),
                     onTap: () => state.navigate(Section.inventory),
                   ),
                 ),
@@ -1444,7 +1466,7 @@ class _OwnerWideDashboard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ---- earnings overview (full width)
-          _EarningsCard(now: now),
+          const _EarningsCard(),
           const SizedBox(height: 14),
 
           // ---- main grid
@@ -1489,15 +1511,17 @@ class _OwnerWideDashboard extends StatelessWidget {
 /// Full-width owner earnings overview: 12-day bar chart on the left,
 /// month-to-date total + top revenue categories on the right.
 class _EarningsCard extends StatelessWidget {
-  final DateTime now;
-  const _EarningsCard({required this.now});
+  const _EarningsCard();
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
-    final points = state.earningsSeries(now);
-    final maxV = points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
+    final points = state.earnings;
     final categories = state.categorySeries;
+    if (points.isEmpty || categories.isEmpty) {
+      return _EmptyMetricsCard();
+    }
+    final maxV = points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
     final maxCat =
         categories.map((c) => c.amount).reduce((a, b) => a > b ? a : b);
     final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
@@ -1566,7 +1590,7 @@ class _EarningsCard extends StatelessWidget {
     final summary = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('\$${Seed.grossRevenueMonth.toStringAsFixed(1)}k',
+        Text('\$${state.monthGrossRevenueK.toStringAsFixed(1)}k',
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 24,
@@ -1575,7 +1599,8 @@ class _EarningsCard extends StatelessWidget {
                 letterSpacing: -0.5,
                 color: AppPalette.ink)),
         const SizedBox(height: 3),
-        Text('Month to date · October',
+        Text(
+            'Month to date · ${DateFormat.MMMM().format(DateTime.now())}',
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 11.5,
@@ -1601,8 +1626,9 @@ class _EarningsCard extends StatelessWidget {
       icon: Icons.show_chart,
       title: 'Earnings overview',
       subtitle: 'Daily gross bookings · last 12 days',
-      action: const TrendChip(
-          text: '${Seed.grossRevenueTrend}%', positive: true),
+      action: TrendChip(
+          text: '${state.earningsTrendPct.toStringAsFixed(1)}%',
+          positive: state.earningsTrendPct >= 0),
       child: wide
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1683,6 +1709,47 @@ class _CategoryStatRow extends StatelessWidget {
                   color: AppPalette.muted)),
         ),
       ],
+    );
+  }
+}
+
+// --------------------------------------------------- empty metrics state
+/// Shown when the Appwrite metrics document has no series yet — honest
+/// empty state, never a placeholder dataset.
+class _EmptyMetricsCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppPalette.raise,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppPalette.stroke),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.insights_outlined,
+              size: 30, color: AppPalette.muted),
+          const SizedBox(height: 10),
+          Text('No earnings data yet',
+              style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: AppPalette.ink,
+              )),
+          const SizedBox(height: 5),
+          Text(
+              'Revenue analytics appear once bookings start flowing through '
+              'the workspace.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12,
+                color: AppPalette.muted,
+              )),
+        ],
+      ),
     );
   }
 }
@@ -1835,17 +1902,17 @@ class _OwnerHero extends StatelessWidget {
                     const SizedBox(height: 12),
                     // live status + headline number, frosted (wraps on
                     // narrow phones instead of overflowing)
-                    const Wrap(
+                    Wrap(
                       spacing: 8,
                       runSpacing: 6,
                       children: [
-                        _HeroPill(
+                        const _HeroPill(
                           icon: Icons.storefront_outlined,
                           text: 'Open · closes ${Seed.businessCloseTime}',
                         ),
                         _HeroPill(
                           icon: Icons.bolt_rounded,
-                          text: '${Seed.activeRentals} active rentals',
+                          text: '${state.openOrdersCount} active rentals',
                         ),
                       ],
                     ),
@@ -1926,9 +1993,13 @@ class _OwnerCompactDashboard extends StatelessWidget {
                     iconColor: AppPalette.primary,
                     iconBg: AppPalette.primarySoft,
                     label: "Today's revenue",
-                    value: '\$2,480',
+                    value: state.earnings.isEmpty
+                        ? '—'
+                        : '\$${(state.earnings.last.value * 1000).toStringAsFixed(0)}',
                     subtitle: 'vs. yesterday',
-                    trailing: const TrendChip(text: '12.8%', positive: true),
+                    trailing: TrendChip(
+                        text: '${state.earningsTrendPct.toStringAsFixed(1)}%',
+                        positive: state.earningsTrendPct >= 0),
                     onTap: () => state.navigate(Section.reports),
                   ),
                 ),

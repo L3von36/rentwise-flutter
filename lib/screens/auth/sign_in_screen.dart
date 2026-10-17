@@ -7,11 +7,11 @@ import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
 import '../../core/palette.dart';
 
-/// Sign-in screen — role toggle, email/password, Google button.
+/// Sign-in screen — role toggle, email/password.
 ///
 /// The toggle pre-fills the matching Appwrite account. Sign-in runs
-/// against Appwrite Cloud; if the backend can't be reached, a demo-mode
-/// escape hatch keeps the app usable offline.
+/// against Appwrite Cloud only — there is no offline/demo fallback;
+/// failures surface in the inline error box and the user retries.
 class SignInView extends StatefulWidget {
   final VoidCallback onForgotPassword;
   const SignInView({super.key, required this.onForgotPassword});
@@ -28,31 +28,23 @@ class _SignInViewState extends State<SignInView> {
       TextEditingController(text: 'jordan@riverside.events');
   final _passwordCtrl = TextEditingController(text: 'jordan@336');
 
-  static const _demoCreds = {
+  static const _quickCreds = {
     UserRole.employee: ('jordan@riverside.events', 'jordan@336'),
     UserRole.owner: ('selamvenda8@gmail.com', 'selam@336'),
   };
 
-  void _applyDemoPersona(UserRole role) {
-    final (email, password) = _demoCreds[role]!;
+  void _applyQuickCreds(UserRole role) {
+    final (email, password) = _quickCreds[role]!;
     _emailCtrl.text = email;
     _passwordCtrl.text = password;
   }
 
   Future<void> _submit() async {
-    final state = context.read<WorkspaceState>();
-    final error = await state.signInWithEmail(
+    await context.read<WorkspaceState>().signInWithEmail(
       _emailCtrl.text.trim(),
       _passwordCtrl.text,
     );
-    if (!mounted || error == null) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(error),
-      action: SnackBarAction(
-        label: 'Demo mode',
-        onPressed: () => state.signIn(_role),
-      ),
-    ));
+    // Failures render in the inline error box via state.authError.
   }
 
   @override
@@ -121,7 +113,7 @@ class _SignInViewState extends State<SignInView> {
                         selected: _role == UserRole.employee,
                         onTap: () {
                           setState(() => _role = UserRole.employee);
-                          _applyDemoPersona(UserRole.employee);
+                          _applyQuickCreds(UserRole.employee);
                         },
                       ),
                       _RoleTab(
@@ -130,7 +122,7 @@ class _SignInViewState extends State<SignInView> {
                         selected: _role == UserRole.owner,
                         onTap: () {
                           setState(() => _role = UserRole.owner);
-                          _applyDemoPersona(UserRole.owner);
+                          _applyQuickCreds(UserRole.owner);
                         },
                       ),
                     ],
@@ -311,63 +303,6 @@ class _SignInViewState extends State<SignInView> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Divider
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('or continue with',
-                          style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 11.5,
-                            color: AppPalette.muted,
-                          )),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Google
-                SizedBox(
-                  height: 46,
-                  child: Material(
-                    color: AppPalette.raise,
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: state.loadingAuth
-                          ? null
-                          : () =>
-                              context.read<WorkspaceState>().signIn(_role),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border:
-                              Border.all(color: AppPalette.stroke),
-                        ),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const _GoogleG(),
-                            const SizedBox(width: 10),
-                            Text('Continue with Google',
-                                style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppPalette.ink,
-                                )),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
                   'By signing in, you agree to the workspace access policy.',
                   textAlign: TextAlign.center,
@@ -468,56 +403,4 @@ class _FieldLabel extends StatelessWidget {
           color: AppPalette.ink,
         ));
   }
-}
-
-class _GoogleG extends StatelessWidget {
-  const _GoogleG();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 16,
-      height: 16,
-      child: CustomPaint(painter: _GoogleGPainter()),
-    );
-  }
-}
-
-class _GoogleGPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final stroke = s * 0.22;
-    final blue = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke;
-    // Arc segments (simplified G)
-    canvas.drawArc(
-        Rect.fromLTWH(0, 0, s, s), 2.65, 1.85, false, blue);
-    final green = Paint()
-      ..color = const Color(0xFF34A853)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(Rect.fromLTWH(0, 0, s, s), 4.6, 1.0, false, green);
-    final yellow = Paint()
-      ..color = const Color(0xFFFBBC05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(Rect.fromLTWH(0, 0, s, s), 0.2, 0.9, false, yellow);
-    canvas.drawLine(
-        Offset(s * 0.5, s * 0.5),
-        Offset(s - stroke / 2, s * 0.5),
-        Paint()
-          ..color = const Color(0xFFEA4335)
-          ..strokeWidth = stroke);
-    // blue horizontal bar into center
-    canvas.drawLine(Offset(s * 0.5, s * 0.5), Offset(s * 0.5 + s * 0.3, s * 0.5),
-        blue..strokeCap = StrokeCap.butt);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/density.dart';
-import '../../data/seed_data.dart';
 import '../../models/customer.dart';
 import '../../models/shift_task.dart';
 import '../../state/workspace_state.dart';
@@ -105,7 +104,7 @@ class CustomerInsightsScreen extends StatelessWidget {
               iconColor: AppPalette.amber,
               iconBg: AppPalette.amberBg,
               label: 'Open follow-ups',
-              value: '${Seed.followUps}',
+              value: '${state.followUpsCount}',
               subtitle: 'Keep the loop tight',
               trailing: const TrendChip(
                   text: 'Due today', positive: false),
@@ -207,6 +206,9 @@ class CustomerInsightsScreen extends StatelessWidget {
       ),
     );
 
+    // Business target for repeat-rate health (app constant, not data).
+    const benchmarkPct = 68.0;
+
     final retentionCard = SectionCard(
       icon: Icons.donut_small_rounded,
       title: 'Retention mix',
@@ -238,7 +240,7 @@ class CustomerInsightsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           AnimatedBar(
-            fraction: Seed.repeatCustomerPct / 100,
+            fraction: benchmarkPct / 100,
             color: AppPalette.purple,
             height: 8,
           ),
@@ -251,7 +253,7 @@ class CustomerInsightsScreen extends StatelessWidget {
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
                       color: AppPalette.body)),
-              Text('${Seed.repeatCustomerPct.round()}%',
+              Text('${benchmarkPct.round()}%',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -263,7 +265,7 @@ class CustomerInsightsScreen extends StatelessWidget {
           const Divider(),
           const SizedBox(height: 10),
           Text(
-            repeatPct >= Seed.repeatCustomerPct
+            repeatPct >= benchmarkPct
                 ? 'You are ahead of the benchmark — loyalty is compounding.'
                 : 'A few follow-up calls would push you past the benchmark.',
             style: TextStyle(

@@ -142,9 +142,7 @@ class InventoryScreen extends StatelessWidget {
                     label: 'Needs attention',
                     value: '${state.attentionItems}',
                     subtitle: 'Tap to see the watch list',
-                    trailing: const TrendChip(
-                        text: '${Seed.attentionDelta} items',
-                        positive: false),
+                    trailing: const TrendChip.flat(text: 'Watch list'),
                     onTap: () => _showAttentionList(context),
                   ),
                 ),

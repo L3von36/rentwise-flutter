@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
-import '../../data/seed_data.dart';
 import '../../services/csv_export.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -131,7 +130,7 @@ class CustomersScreen extends StatelessWidget {
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
                     label: 'Follow-ups',
-                    value: '${Seed.followUps}',
+                    value: '${state.followUpsCount}',
                     subtitle: 'Keep the loop tight',
                     trailing: const TrendChip(
                         text: 'Due today', positive: false),

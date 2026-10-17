@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
-import '../../data/seed_data.dart';
 import '../../state/shell_state.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -179,7 +178,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Center(
-            child: Text('${Seed.workspaceName} · RentWise',
+            child: Text('${state.workspace} · RentWise',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 11,

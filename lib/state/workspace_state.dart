@@ -49,10 +49,12 @@ class BookingLine {
 /// creating a booking decrements availability, appends an order,
 /// writes an activity entry and bumps the sidebar badge.
 ///
-/// When an [AppwriteBackend] is injected, every mutation is written
-/// through to Appwrite Cloud and sign-in loads the live workspace.
-/// Without one (widget tests / offline demo mode) the store runs on the
-/// local seed dataset exactly as before.
+/// Appwrite Cloud is the ONLY data source in production: sign-in loads
+/// the live workspace and every mutation is written through to the
+/// cloud. There is no offline/demo fallback — if the backend is
+/// unreachable, sign-in fails with an error and the UI stays on the
+/// auth screen. The local seed dataset exists purely as a fixture for
+/// widget tests (a backend is never injected there).
 class WorkspaceState extends ChangeNotifier {
   WorkspaceState({AppwriteBackend? backend}) : _backend = backend {
     final now = DateTime.now();
@@ -61,6 +63,8 @@ class WorkspaceState extends ChangeNotifier {
     _customers = Seed.customers(now);
     _activity = Seed.activity(now);
     _pickups = Seed.pickups(now);
+    _earnings = Seed.earningsDaily(now);
+    _trend = Seed.revenueTrend(now);
   }
 
   final AppwriteBackend? _backend;
@@ -130,6 +134,9 @@ class WorkspaceState extends ChangeNotifier {
   UserRole get role => _account?.role ?? UserRole.employee;
   bool get isOwner => role == UserRole.owner;
 
+  /// Test-fixture persona sign-in (no backend involved). NOT reachable
+  /// from the production UI — the auth screen only ever calls
+  /// [signInWithEmail], which requires a live Appwrite backend.
   Future<void> signIn(UserRole role) async {
     _loadingAuth = true;
     _authError = null;
@@ -152,21 +159,26 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
     try {
       if (b == null) {
-        // No backend configured (tests / offline fallback): map the email
-        // to the closest demo persona so the flow still completes.
-        await signIn(
-            email.trim().toLowerCase().startsWith('selam')
-                ? UserRole.owner
-                : UserRole.employee);
-        return null;
+        // Production builds always inject an AppwriteBackend (main.dart).
+        // Reaching this means a wiring bug — fail honestly instead of
+        // falling back to any local dataset.
+        _loadingAuth = false;
+        _authError =
+            'Appwrite backend is not configured in this build. '
+            'Please reinstall the official release.';
+        notifyListeners();
+        return _authError;
       }
       _account = await b.authenticate(email, password);
       final snap = await b.loadWorkspace();
-      if (snap.inventory.isNotEmpty) _inventory = snap.inventory;
-      if (snap.orders.isNotEmpty) _orders = snap.orders;
-      if (snap.customers.isNotEmpty) _customers = snap.customers;
-      if (snap.activity.isNotEmpty) _activity = snap.activity;
-      if (snap.pickups.isNotEmpty) _pickups = snap.pickups;
+      // Replace the store with EXACTLY what Cloud returns — an empty
+      // collection shows an empty workspace. Seed data never leaks into
+      // a live session.
+      _inventory = snap.inventory;
+      _orders = snap.orders;
+      _customers = snap.customers;
+      _activity = snap.activity;
+      _pickups = snap.pickups;
       if (snap.workspaces.isNotEmpty) {
         _workspaces
           ..clear()
@@ -179,11 +191,9 @@ class WorkspaceState extends ChangeNotifier {
           _workspaces.contains(snap.activeWorkspace)) {
         _workspace = snap.activeWorkspace;
       }
-      if (snap.earnings.isNotEmpty) _earnings = snap.earnings;
-      if (snap.trend.isNotEmpty) _trend = snap.trend;
-      if (snap.categoryRevenue.isNotEmpty) {
-        _categoryRevenue = snap.categoryRevenue;
-      }
+      _earnings = snap.earnings;
+      _trend = snap.trend;
+      _categoryRevenue = snap.categoryRevenue;
       _grossMonthK = snap.grossMonthK;
       _utilizationPct = snap.utilizationPct;
       _loadingAuth = false;
@@ -199,15 +209,15 @@ class WorkspaceState extends ChangeNotifier {
   }
 
   /// Switch role in place (used by the owner-only Access & roles screen).
-  /// Swaps the demo persona to match the design captures
-  /// (Jordan Miller for Employee, Olivia Wells for Owner).
   ///
   /// Owners may switch to the employee role to preview their view;
   /// employees can never promote themselves — only owners manage access.
+  /// The real signed-in identity is kept — only the effective role flips,
+  /// locally, for the session. Revert by signing out and back in.
   void switchRole(UserRole role) {
     if (!isOwner) return;
     if (_account == null || _account!.role == role) return;
-    _account = role == UserRole.owner ? Seed.demoOwner : Seed.demoEmployee;
+    _account = _account!.copyWith(role: role);
     if (!isOwner &&
         (section == Section.reports || section == Section.access)) {
       _section = Section.dashboard; // preview lands somewhere allowed
@@ -460,6 +470,48 @@ class WorkspaceState extends ChangeNotifier {
   int get returnsTodayCount =>
       _orders.where((o) => o.status == OrderStatus.outForDelivery).length;
 
+  /// Out-for-delivery orders whose event date has already passed —
+  /// an honest "late" count derived from live data.
+  int get returnsLateCount => _orders
+      .where((o) =>
+          o.status == OrderStatus.outForDelivery &&
+          o.eventDate.isBefore(DateTime.now()))
+      .length;
+
+  /// Pickups scheduled for today.
+  int get pickupsDueTodayCount {
+    final now = DateTime.now();
+    return _pickups
+        .where((p) =>
+            p.date.year == now.year &&
+            p.date.month == now.month &&
+            p.date.day == now.day)
+        .length;
+  }
+
+  /// Earliest scheduled pickup — feeds the "next dispatch" surfaces.
+  Pickup? get nextDispatch {
+    Pickup? next;
+    for (final p in _pickups) {
+      if (next == null || p.date.isBefore(next.date)) next = p;
+    }
+    return next;
+  }
+
+  /// Customers with no booking in 30+ days — the follow-up shortlist.
+  int get followUpsCount => _customers
+      .where((c) => c.lastBooking
+          .isBefore(DateTime.now().subtract(const Duration(days: 30))))
+      .length;
+
+  /// Day-over-day momentum of the loaded earnings series, in percent.
+  double get earningsTrendPct {
+    if (_earnings.length < 2) return 0;
+    final prev = _earnings[_earnings.length - 2].value;
+    if (prev == 0) return 0;
+    return ((_earnings.last.value - prev) / prev) * 100;
+  }
+
   void setOrderTab(String tab) {
     _orderTab = tab;
     notifyListeners();
@@ -687,19 +739,18 @@ class WorkspaceState extends ChangeNotifier {
     return id;
   }
 
-  /// Aggregate helpers for the Reports screen — numbers loaded from the
-  /// Appwrite metrics document once signed in, seed values before that.
+  // --------------------------------------------------------------- metrics
+  // Seeded for the widget-test fixture; replaced with the live metrics
+  // document the moment an Appwrite sign-in succeeds.
   late double _grossMonthK = Seed.grossRevenueMonth;
   late double _utilizationPct = Seed.utilizationPct;
-  List<RevenuePoint> _earnings = const [];
-  List<RevenuePoint> _trend = const [];
+  late List<RevenuePoint> _earnings;
+  late List<RevenuePoint> _trend;
   List<CategoryRevenue> _categoryRevenue = Seed.categoryRevenue;
 
   double get monthGrossRevenueK => _grossMonthK;
   double get utilization => _utilizationPct;
-  List<RevenuePoint> earningsSeries(DateTime now) =>
-      _earnings.isEmpty ? Seed.earningsDaily(now) : _earnings;
-  List<RevenuePoint> trendSeries(DateTime now) =>
-      _trend.isEmpty ? Seed.revenueTrend(now) : _trend;
+  List<RevenuePoint> get earnings => _earnings;
+  List<RevenuePoint> get revenueTrend => _trend;
   List<CategoryRevenue> get categorySeries => _categoryRevenue;
 }

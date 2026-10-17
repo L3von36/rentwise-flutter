@@ -23,13 +23,68 @@ import 'package:rentwise/state/shell_state.dart';
 import 'package:rentwise/state/workspace_state.dart';
 import 'package:rentwise/widgets/bottom_nav.dart';
 import 'package:rentwise/widgets/side_nav.dart';
+import 'package:rentwise/data/seed_data.dart';
+import 'package:rentwise/models/inventory_item.dart';
+import 'package:rentwise/models/rental_order.dart' show RentalOrder;
+import 'package:rentwise/models/customer.dart';
+import 'package:rentwise/models/activity_entry.dart';
+import 'package:rentwise/services/appwrite_backend.dart';
 import 'package:rentwise/widgets/window_title_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// In-memory stand-in for Appwrite Cloud. Production has NO offline demo
+/// fallback, so UI-flow tests inject this fake backend instead: it serves
+/// the seed dataset as if it were the cloud and swallows writes.
+class FakeBackend extends AppwriteBackend {
+  @override
+  Future<Account> authenticate(String email, String password) async =>
+      email.trim().toLowerCase().startsWith('selam')
+          ? Seed.demoOwner
+          : Seed.demoEmployee;
+
+  @override
+  Future<WorkspaceSnapshot> loadWorkspace() async {
+    final now = DateTime.now();
+    return WorkspaceSnapshot(
+      accountUserId: 'fake-user',
+      inventory: Seed.inventory(),
+      orders: Seed.orders(now),
+      customers: Seed.customers(now),
+      activity: Seed.activity(now),
+      pickups: Seed.pickups(now),
+      workspaces: [Seed.workspaceName],
+      activeWorkspace: Seed.workspaceName,
+      grossMonthK: Seed.grossRevenueMonth,
+      utilizationPct: Seed.utilizationPct,
+      earnings: Seed.earningsDaily(now),
+      categoryRevenue: Seed.categoryRevenue,
+      trend: Seed.revenueTrend(now),
+    );
+  }
+
+  @override
+  Future<void> signOutAccount() async {}
+  @override
+  Future<void> putInventoryItem(InventoryItem item,
+      {bool isNew = false}) async {}
+  @override
+  Future<void> putOrder(RentalOrder order, {bool isNew = false}) async {}
+  @override
+  Future<void> putCustomer(Customer customer, {bool isNew = false}) async {}
+  @override
+  Future<void> putActivity(ActivityEntry entry) async {}
+  @override
+  Future<void> putWorkspace(String name,
+      {required String createdBy}) async {}
+  @override
+  Future<void> setActiveWorkspace(String name) async {}
+}
 
 /// Full provider stack matching production bootstrap.
 Widget _app() => MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => WorkspaceState()),
+        ChangeNotifierProvider(
+            create: (_) => WorkspaceState(backend: FakeBackend())),
         ChangeNotifierProvider(create: (_) => ShellState()),
       ],
       child: const RentWiseApp(),
@@ -37,6 +92,16 @@ Widget _app() => MultiProvider(
 
 /// Plain unit test (no fake async) — exercises the store directly.
 void main() {
+  test('sign-in without a backend fails honestly — no demo fallback', () async {
+    final state = WorkspaceState();
+    final err =
+        await state.signInWithEmail('jordan@riverside.events', 'whatever');
+    expect(err, isNotNull);
+    expect(err, contains('Appwrite'));
+    expect(state.isSignedIn, isFalse);
+    expect(state.authError, isNotNull);
+  });
+
   test('booking creation decrements availability, appends order, logs activity',
       () async {
     final state = WorkspaceState();

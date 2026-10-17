@@ -28,8 +28,7 @@ class ReportsScreen extends StatelessWidget {
       );
     }
 
-    final now = DateTime.now();
-    final trend = state.trendSeries(now);
+    final trend = state.revenueTrend;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
@@ -97,8 +96,9 @@ class ReportsScreen extends StatelessWidget {
           // revenue trend
           SectionCard(
             title: 'Revenue trend',
-            subtitle: _monthLabel(now),
-            action: Text('\$28.9k',
+            subtitle: _monthLabel(DateTime.now()),
+            action: Text(
+                '\$${state.monthGrossRevenueK.toStringAsFixed(1)}k',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 16,

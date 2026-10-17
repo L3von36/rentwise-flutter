@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
-import '../../data/seed_data.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
@@ -85,17 +84,17 @@ class ActivityLogScreen extends StatelessWidget {
                 _StatCard(
                     width: w,
                     dotColor: AppPalette.primary,
-                    value: '${Seed.actionsToday}',
+                    value: '${state.actionsTodayCount}',
                     label: 'actions today'),
                 _StatCard(
                     width: w,
                     dotColor: AppPalette.green,
-                    value: '${Seed.rentalUpdates}',
+                    value: '${state.rentalUpdatesCount}',
                     label: 'rental updates'),
                 _StatCard(
                     width: w,
                     dotColor: AppPalette.amber,
-                    value: '${Seed.paymentsRecorded}',
+                    value: '${state.paymentsTodayCount}',
                     label: 'payments recorded'),
                 _StatCard(
                     width: w,
