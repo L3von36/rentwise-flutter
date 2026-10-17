@@ -25,9 +25,12 @@ class RentWiseApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: shell.themeMode,
       builder: (context, child) {
-        // Compact app: tighten the whole text scale on narrow screens.
+        // Compact app: tighten the whole text scale on narrow screens,
+        // then apply the global trim so every breakpoint reads a touch
+        // smaller (user request: fonts felt big).
         final w = MediaQuery.sizeOf(context).width;
-        final scale = w < 430 ? 0.92 : w < 600 ? 0.94 : w < 1000 ? 0.97 : 1.0;
+        final scale = (w < 430 ? 0.92 : w < 600 ? 0.94 : w < 1000 ? 0.97 : 1.0) *
+            AppTheme.textScale;
         Widget content = MediaQuery(
           data: MediaQuery.of(context)
               .copyWith(textScaler: TextScaler.linear(scale)),

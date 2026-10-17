@@ -9,6 +9,11 @@ class AppTheme {
 
   static const String fontFamily = 'Inter';
 
+  /// Global text-size trim. The design reads slightly large at desktop
+  /// sizes, so every tier of the responsive ramp in `app.dart` is
+  /// multiplied by this — bump to 1.0 to restore the original scale.
+  static const double textScale = 0.93;
+
   static ThemeData light() {
     const scheme = ColorScheme.light(
       primary: AppColors.primary,
