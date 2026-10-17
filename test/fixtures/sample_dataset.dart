@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
-import '../models/account.dart';
-import '../models/activity_entry.dart';
-import '../models/customer.dart';
-import '../models/inventory_item.dart';
-import '../models/pickup.dart';
-import '../models/rental_order.dart';
-import '../core/app_colors.dart';
+import 'package:rentwise/models/account.dart';
+import 'package:rentwise/models/activity_entry.dart';
+import 'package:rentwise/models/customer.dart';
+import 'package:rentwise/models/inventory_item.dart';
+import 'package:rentwise/models/pickup.dart';
+import 'package:rentwise/models/rental_order.dart';
+import 'package:rentwise/core/app_colors.dart';
 
-/// Static demo dataset matching the RentWise design pack.
-class Seed {
-  Seed._();
+/// Test-only sample dataset (the "Riverside Events" workspace) matching
+/// the RentWise design pack. Lives under test/ — the shipped app bundles
+/// no data whatsoever; this fixture feeds the cloud-provisioning harness
+/// and the in-memory fake backend used by UI tests.
+class SampleDataset {
+  SampleDataset._();
 
   static const String workspaceName = 'Riverside Events';
 
@@ -265,7 +268,7 @@ class Seed {
 
   // ----------------------------------------------------------------- activity
   static List<ActivityEntry> activity(DateTime now) {
-    final jm = Seed.demoEmployee;
+    final jm = SampleDataset.demoEmployee;
     Color jmColor = AppColors.avatarGreen;
     return [
       ActivityEntry(

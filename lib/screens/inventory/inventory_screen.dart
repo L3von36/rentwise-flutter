@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
-import '../../data/seed_data.dart';
+import '../../data/catalog.dart';
 import '../../models/inventory_item.dart';
 import '../../services/csv_export.dart';
 import '../../state/workspace_state.dart';
@@ -200,7 +200,7 @@ class InventoryScreen extends StatelessWidget {
                     const SizedBox(width: 12),
                     PopupFilterButton(
                       value: state.categoryFilter,
-                      items: Seed.categories,
+                      items: Catalog.categories,
                       onChanged: state.setCategoryFilter,
                     ),
                   ],
@@ -446,7 +446,7 @@ class InventoryScreen extends StatelessWidget {
                 DropdownButtonFormField<String>(
                   value: category,
                   items: [
-                    for (final c in Seed.categories.skip(1))
+                    for (final c in Catalog.categories.skip(1))
                       DropdownMenuItem(value: c, child: Text(c)),
                   ],
                   onChanged: (v) =>

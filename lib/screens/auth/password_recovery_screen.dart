@@ -26,7 +26,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
       _sending = false;
       _sent = true;
       _sentTo = _emailCtrl.text.trim().isEmpty
-          ? 'you@riverside.events'
+          ? 'your email'
           : _emailCtrl.text.trim();
     });
   }
@@ -34,7 +34,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
-      eyebrow: 'Riverside Events Workspace',
+      eyebrow: 'RentWise Workspace',
       card: Container(
         constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.all(22),
@@ -95,7 +95,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
-            hintText: 'you@riverside.events',
+            hintText: 'you@company.com',
             prefixIcon:
                 Icon(Icons.mail_outline_rounded, size: 18, color: AppPalette.muted),
             prefixIconConstraints: const BoxConstraints(minWidth: 40),

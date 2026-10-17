@@ -66,7 +66,7 @@ Future<void> initDesktopWindow() async {
     size: Size(1280, 800),
     minimumSize: Size(960, 640),
     center: true,
-    title: 'RentWise — Riverside Events',
+    title: 'RentWise',
     titleBarStyle: TitleBarStyle.hidden,
   );
   await windowManager.waitUntilReadyToShow(options, () async {

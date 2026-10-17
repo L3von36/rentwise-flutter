@@ -307,6 +307,8 @@ class _TimelineEntry extends StatelessWidget {
     final ampm = entry.at.hour >= 12 ? 'PM' : 'AM';
     final m = entry.at.minute.toString().padLeft(2, '0');
     final time = '$h:$m $ampm';
+    final ws = context.watch<WorkspaceState>().workspace;
+    final wsLabel = ws.isEmpty ? 'Workspace' : ws;
 
     return IntrinsicHeight(
       child: Row(
@@ -366,7 +368,7 @@ class _TimelineEntry extends StatelessWidget {
                   const SizedBox(height: 6),
                   RichActivityText(body: entry.body, fontSize: 13.5),
                   const SizedBox(height: 4),
-                  Text('Workspace action · Riverside Events',
+                  Text('Workspace action · $wsLabel',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 11.5,

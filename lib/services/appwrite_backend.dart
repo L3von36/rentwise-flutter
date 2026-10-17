@@ -7,7 +7,6 @@ import 'package:appwrite/models.dart' as models;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../data/seed_data.dart';
 import 'appwrite_config.dart';
 import '../data/appwrite_mappers.dart';
 import '../models/account.dart';
@@ -55,8 +54,8 @@ class WorkspaceSnapshot {
 /// The Flutter SDK is client-only — every call below runs with the
 /// signed-in user's session, and collection permissions are granted to
 /// `users`. Collection ids/attributes are provisioned by
-/// `scripts/appwrite_provision.sh`; the seeding harness in
-/// `test/seed_appwrite_test.dart` fills the demo dataset.
+/// `scripts/appwrite_provision.sh`; the one-shot harness in
+/// `test/seed_appwrite_test.dart` fills the live workspace dataset.
 class AppwriteBackend {
   AppwriteBackend() {
     _client = aw.Client()
@@ -109,7 +108,7 @@ class AppwriteBackend {
 
     // First-ever sign-in of an unprovisioned user: provision a safe
     // employee profile (owner access is never granted implicitly).
-    final fallback = Account(
+    final provisioned = Account(
       name: user.name.isEmpty ? email : user.name,
       email: user.email,
       role: UserRole.employee,
@@ -122,13 +121,13 @@ class AppwriteBackend {
       documentId: user.$id,
       data: {
         'userId': user.$id,
-        'name': fallback.name,
-        'email': fallback.email,
+        'name': provisioned.name,
+        'email': provisioned.email,
         'role': 'employee',
-        'title': fallback.title,
+        'title': provisioned.title,
       },
     );
-    return fallback;
+    return provisioned;
   }
 
   Future<models.Document?> _findProfile(String userId) async {
@@ -151,9 +150,9 @@ class AppwriteBackend {
 
   // ------------------------------------------------------------ data load
 
-  /// Pulls every workspace collection. Collections that fail or are empty
-  /// simply contribute empty lists — [WorkspaceState] keeps its current
-  /// (seed/demo) data in that case, so a network blip never bricks the UI.
+  /// Pulls every workspace collection. A hard failure (network, auth)
+  /// propagates to the caller — sign-in fails with an honest error and
+  /// nothing is faked locally.
   Future<WorkspaceSnapshot> loadWorkspace() async {
     final inv = _db.listDocuments(
         databaseId: AppwriteConfig.databaseId,
@@ -193,9 +192,8 @@ class AppwriteBackend {
     final metRes = await met;
     final m = metRes?.data ?? const {};
 
-    final activeWs = _userId == null
-        ? Seed.workspaceName
-        : await _activeWorkspaceFor(_userId!);
+    final activeWs =
+        _userId == null ? '' : await _activeWorkspaceFor(_userId!);
 
     return WorkspaceSnapshot(
       accountUserId: _userId ?? '',
@@ -209,10 +207,10 @@ class AppwriteBackend {
           .where((n) => n.isNotEmpty)
           .toList(),
       activeWorkspace: activeWs,
-      grossMonthK: ((m['grossMonth'] ?? Seed.grossRevenueMonth) as num)
-          .toDouble(),
-      utilizationPct: ((m['utilization'] ?? Seed.utilizationPct) as num)
-          .toDouble(),
+      grossMonthK:
+          ((m['grossMonth'] ?? 0) as num).toDouble(),
+      utilizationPct:
+          ((m['utilization'] ?? 0) as num).toDouble(),
       earnings: pointsFromJson(m['earningsJson']),
       categoryRevenue: categoriesFromJson(m['categoryJson']),
       trend: pointsFromJson(m['trendJson']),
@@ -232,13 +230,14 @@ class AppwriteBackend {
     }
   }
 
+  /// Returns '' when the profile has no saved workspace — the caller
+  /// then falls back to the first workspace the account can see.
   Future<String> _activeWorkspaceFor(String userId) async {
     try {
       final p = await _findProfile(userId);
-      return (p?.data['activeWorkspace'] ?? Seed.workspaceName) as String? ??
-          Seed.workspaceName;
+      return (p?.data['activeWorkspace'] ?? '') as String? ?? '';
     } catch (_) {
-      return Seed.workspaceName;
+      return '';
     }
   }
 

@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rentwise/data/appwrite_mappers.dart';
-import 'package:rentwise/data/seed_data.dart';
+import 'fixtures/sample_dataset.dart';
 import 'package:rentwise/services/appwrite_backend.dart';
 import 'package:rentwise/services/appwrite_config.dart';
 
@@ -14,7 +14,7 @@ import 'package:rentwise/services/appwrite_config.dart';
 /// Run with:
 ///   AW_KEY=<api key> AW_SEED=1 flutter test test/seed_appwrite_test.dart
 ///
-/// Upserts the full demo dataset from [Seed] into Appwrite Cloud using
+/// Upserts the full workspace dataset from [SampleDataset] into Appwrite Cloud using
 /// stable document ids, so it is idempotent — re-running refreshes the
 /// seeded values without duplicating documents. Without the env vars the
 /// suite exits immediately (CI-safe).
@@ -39,7 +39,7 @@ void main() {
       'email': 'selamvenda8@gmail.com',
       'role': 'owner',
       'title': 'Workspace owner',
-      'activeWorkspace': Seed.workspaceName,
+      'activeWorkspace': SampleDataset.workspaceName,
     });
     await api.put(AppwriteConfig.colProfiles, 'employee-jordan', {
       'userId': 'employee-jordan',
@@ -47,11 +47,11 @@ void main() {
       'email': 'jordan@riverside.events',
       'role': 'employee',
       'title': 'Operations associate',
-      'activeWorkspace': Seed.workspaceName,
+      'activeWorkspace': SampleDataset.workspaceName,
     });
 
     // ------------------------------------------------------ inventory
-    final items = Seed.inventory();
+    final items = SampleDataset.inventory();
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       await api.put(AppwriteConfig.colInventory, item.id, {
@@ -67,7 +67,7 @@ void main() {
     }
 
     // ------------------------------------------------------ customers
-    for (final c in Seed.customers(now)) {
+    for (final c in SampleDataset.customers(now)) {
       await api.put(AppwriteConfig.colCustomers, c.id, {
         'name': c.name,
         'company': c.company,
@@ -81,7 +81,7 @@ void main() {
     }
 
     // --------------------------------------------------------- orders
-    for (final o in Seed.orders(now)) {
+    for (final o in SampleDataset.orders(now)) {
       await api.put(AppwriteConfig.colOrders, o.id, {
         'eventName': o.eventName,
         'customerName': o.customerName,
@@ -97,7 +97,7 @@ void main() {
     }
 
     // ------------------------------------------------------ activities
-    for (final a in Seed.activity(now)) {
+    for (final a in SampleDataset.activity(now)) {
       await api.put(AppwriteConfig.colActivities, a.id, {
         'actor': a.actor,
         'actorInitials': a.actorInitials,
@@ -109,7 +109,7 @@ void main() {
     }
 
     // -------------------------------------------------------- pickups
-    for (final p in Seed.pickups(now)) {
+    for (final p in SampleDataset.pickups(now)) {
       await api.put(AppwriteConfig.colPickups, p.id, {
         'date': awDate(p.date),
         'title': p.title,
@@ -121,25 +121,25 @@ void main() {
 
     // ----------------------------------------------------- workspaces
     await api.put(AppwriteConfig.colWorkspaces, 'riverside-events', {
-      'name': Seed.workspaceName,
+      'name': SampleDataset.workspaceName,
       'createdAt': awDate(now),
       'createdBy': 'Tinsae Abeba',
     });
 
     // -------------------------------------------------------- metrics
     await api.put(AppwriteConfig.colMetrics, 'main', {
-      'grossMonth': Seed.grossRevenueMonth,
-      'utilization': Seed.utilizationPct,
-      'earningsJson': pointsToJson(Seed.earningsDaily(now)),
-      'trendJson': pointsToJson(Seed.revenueTrend(now)),
-      'categoryJson': categoriesToJson(Seed.categoryRevenue),
+      'grossMonth': SampleDataset.grossRevenueMonth,
+      'utilization': SampleDataset.utilizationPct,
+      'earningsJson': pointsToJson(SampleDataset.earningsDaily(now)),
+      'trendJson': pointsToJson(SampleDataset.revenueTrend(now)),
+      'categoryJson': categoriesToJson(SampleDataset.categoryRevenue),
     });
 
     print('SEEDED: inventory=${items.length} '
-        'orders=${Seed.orders(now).length} '
-        'customers=${Seed.customers(now).length} '
-        'activities=${Seed.activity(now).length} '
-        'pickups=${Seed.pickups(now).length}');
+        'orders=${SampleDataset.orders(now).length} '
+        'customers=${SampleDataset.customers(now).length} '
+        'activities=${SampleDataset.activity(now).length} '
+        'pickups=${SampleDataset.pickups(now).length}');
   });
 }
 

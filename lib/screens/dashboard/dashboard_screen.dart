@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_colors.dart'; // AppRadius / AppShadow
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
-import '../../data/seed_data.dart';
+import '../../data/catalog.dart';
 import '../../models/inventory_item.dart';
 import '../../models/shift_task.dart';
 import '../../models/activity_entry.dart';
@@ -1785,7 +1785,7 @@ class _BusinessOpenBanner extends StatelessWidget {
             Container(width: 1, height: 14, color: AppPalette.greenBg),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('Closes at ${Seed.businessCloseTime}',
+              child: Text('Closes at ${Catalog.businessCloseTime}',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
@@ -1908,7 +1908,7 @@ class _OwnerHero extends StatelessWidget {
                       children: [
                         const _HeroPill(
                           icon: Icons.storefront_outlined,
-                          text: 'Open · closes ${Seed.businessCloseTime}',
+                          text: 'Open · closes ${Catalog.businessCloseTime}',
                         ),
                         _HeroPill(
                           icon: Icons.bolt_rounded,
@@ -2223,7 +2223,7 @@ class _SnapshotCard extends StatelessWidget {
             children: [
               PopupFilterButton(
                 value: state.categoryFilter,
-                items: Seed.categories,
+                items: Catalog.categories,
                 onChanged: (v) => state.setCategoryFilter(v),
               ),
               const Spacer(),

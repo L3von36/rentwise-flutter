@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/palette.dart';
-import '../data/seed_data.dart';
+import '../data/catalog.dart';
 import '../models/account.dart';
 import '../models/activity_entry.dart';
 import '../models/customer.dart';
@@ -49,22 +49,20 @@ class BookingLine {
 /// creating a booking decrements availability, appends an order,
 /// writes an activity entry and bumps the sidebar badge.
 ///
-/// Appwrite Cloud is the ONLY data source in production: sign-in loads
-/// the live workspace and every mutation is written through to the
-/// cloud. There is no offline/demo fallback — if the backend is
-/// unreachable, sign-in fails with an error and the UI stays on the
-/// auth screen. The local seed dataset exists purely as a fixture for
-/// widget tests (a backend is never injected there).
+/// Appwrite Cloud is the ONLY data source: sign-in loads the live
+/// workspace and every mutation is written through to the cloud.
+/// There is no offline/demo fallback — until a sign-in succeeds the
+/// store is simply empty, and if the backend is unreachable sign-in
+/// fails with an error and the UI stays on the auth screen.
 class WorkspaceState extends ChangeNotifier {
   WorkspaceState({AppwriteBackend? backend}) : _backend = backend {
-    final now = DateTime.now();
-    _inventory = Seed.inventory();
-    _orders = Seed.orders(now);
-    _customers = Seed.customers(now);
-    _activity = Seed.activity(now);
-    _pickups = Seed.pickups(now);
-    _earnings = Seed.earningsDaily(now);
-    _trend = Seed.revenueTrend(now);
+    _inventory = const [];
+    _orders = const [];
+    _customers = const [];
+    _activity = const [];
+    _pickups = const [];
+    _earnings = const [];
+    _trend = const [];
   }
 
   final AppwriteBackend? _backend;
@@ -78,8 +76,10 @@ class WorkspaceState extends ChangeNotifier {
   }
 
   // -------------------------------------------------------------- workspace
-  final List<String> _workspaces = [Seed.workspaceName];
-  String _workspace = Seed.workspaceName;
+  /// Populated from the cloud `workspaces` collection at sign-in; empty
+  /// until then (nothing is bundled or invented locally).
+  final List<String> _workspaces = [];
+  String _workspace = '';
 
   List<String> get workspaces => List.unmodifiable(_workspaces);
   String get workspace => _workspace;
@@ -134,22 +134,6 @@ class WorkspaceState extends ChangeNotifier {
   UserRole get role => _account?.role ?? UserRole.employee;
   bool get isOwner => role == UserRole.owner;
 
-  /// Test-fixture persona sign-in (no backend involved). NOT reachable
-  /// from the production UI — the auth screen only ever calls
-  /// [signInWithEmail], which requires a live Appwrite backend.
-  Future<void> signIn(UserRole role) async {
-    _loadingAuth = true;
-    _authError = null;
-    notifyListeners();
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    _account = role == UserRole.owner
-        ? Seed.demoOwner.copyWith(role: UserRole.owner)
-        : Seed.demoEmployee.copyWith(role: UserRole.employee);
-    _loadingAuth = false;
-    _section = Section.dashboard;
-    notifyListeners();
-  }
-
   /// Real sign-in against Appwrite. Returns null on success or a
   /// human-friendly error message the auth screen can display.
   Future<String?> signInWithEmail(String email, String password) async {
@@ -172,24 +156,22 @@ class WorkspaceState extends ChangeNotifier {
       _account = await b.authenticate(email, password);
       final snap = await b.loadWorkspace();
       // Replace the store with EXACTLY what Cloud returns — an empty
-      // collection shows an empty workspace. Seed data never leaks into
-      // a live session.
+      // collection shows an empty workspace. Nothing is invented locally.
       _inventory = snap.inventory;
       _orders = snap.orders;
       _customers = snap.customers;
       _activity = snap.activity;
       _pickups = snap.pickups;
-      if (snap.workspaces.isNotEmpty) {
-        _workspaces
-          ..clear()
-          ..addAll(snap.workspaces);
-        if (!_workspaces.contains(Seed.workspaceName)) {
-          _workspaces.add(Seed.workspaceName);
-        }
-      }
+      _workspaces
+        ..clear()
+        ..addAll(snap.workspaces);
       if (snap.activeWorkspace.isNotEmpty &&
           _workspaces.contains(snap.activeWorkspace)) {
         _workspace = snap.activeWorkspace;
+      } else if (_workspaces.isNotEmpty) {
+        _workspace = _workspaces.first;
+      } else {
+        _workspace = '';
       }
       _earnings = snap.earnings;
       _trend = snap.trend;
@@ -201,6 +183,9 @@ class WorkspaceState extends ChangeNotifier {
       notifyListeners();
       return null;
     } catch (e) {
+      // Auth or load failed — roll the account back so the user stays
+      // on the auth screen instead of entering an empty workspace.
+      _account = null;
       _loadingAuth = false;
       _authError = AppwriteBackend.authErrorText(e);
       notifyListeners();
@@ -346,7 +331,7 @@ class WorkspaceState extends ChangeNotifier {
 
   // -------------------------------------------------------------- inventory
   late List<InventoryItem> _inventory;
-  String _categoryFilter = Seed.categories.first;
+  String _categoryFilter = Catalog.allCategories;
   String _inventoryQuery = '';
 
   List<InventoryItem> get inventory => List.unmodifiable(_inventory);
@@ -355,7 +340,7 @@ class WorkspaceState extends ChangeNotifier {
 
   List<InventoryItem> get filteredInventory {
     Iterable<InventoryItem> items = _inventory;
-    if (_categoryFilter != Seed.categories.first) {
+    if (_categoryFilter != Catalog.allCategories) {
       items = items.where((i) => i.category == _categoryFilter);
     }
     if (_inventoryQuery.trim().isNotEmpty) {
@@ -393,7 +378,7 @@ class WorkspaceState extends ChangeNotifier {
     required double ratePerDay,
   }) {
     final item = InventoryItem(
-      id: 'INV-${(_inventory.length + 1).toString().padLeft(3, '0')}',
+      id: _nextId('INV'),
       name: name,
       note: 'Just added',
       category: category,
@@ -568,7 +553,7 @@ class WorkspaceState extends ChangeNotifier {
     required String phone,
   }) {
     final customer = Customer(
-      id: 'CUS-${(_customers.length + 1).toString().padLeft(3, '0')}',
+      id: _nextId('CUS'),
       name: name,
       company: company,
       email: email,
@@ -593,7 +578,7 @@ class WorkspaceState extends ChangeNotifier {
 
   // --------------------------------------------------------------- activity
   late List<ActivityEntry> _activity;
-  int _unreadActivity = 4;
+  int _unreadActivity = 0;
   String _activityFilter = 'All';
 
   List<ActivityEntry> get activity => List.unmodifiable(_activity);
@@ -629,10 +614,17 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Unique, sortable document id — cloud-safe (no dependence on how
+  /// many rows happen to be loaded, and no collisions on replay).
+  String _nextId(String prefix) {
+    final ms = DateTime.now().microsecondsSinceEpoch;
+    return '$prefix-${ms.toRadixString(36).toUpperCase()}';
+  }
+
   void _log({required ActivityType type, required String body}) {
     final account = _account;
     final entry = ActivityEntry(
-      id: 'ACT-${1000 + _activity.length + 1}',
+      id: _nextId('ACT'),
       actor: account?.name ?? 'Someone',
       actorInitials: account?.initials ?? '??',
       actorColor: account?.role == UserRole.owner
@@ -663,7 +655,7 @@ class WorkspaceState extends ChangeNotifier {
     required List<BookingLine> lines,
     String? notes,
   }) {
-    final id = 'RW-${2052 + _orders.length - 5}';
+    final id = _nextId('RW');
     final total = lines.fold<double>(
         0, (sum, l) => sum + l.qty * l.item.ratePerDay);
     final itemCount = lines.fold<int>(0, (sum, l) => sum + l.qty);
@@ -740,13 +732,13 @@ class WorkspaceState extends ChangeNotifier {
   }
 
   // --------------------------------------------------------------- metrics
-  // Seeded for the widget-test fixture; replaced with the live metrics
-  // document the moment an Appwrite sign-in succeeds.
-  late double _grossMonthK = Seed.grossRevenueMonth;
-  late double _utilizationPct = Seed.utilizationPct;
+  // Zeroed until a successful Appwrite sign-in replaces them with the
+  // live metrics document. Nothing is pre-seeded.
+  double _grossMonthK = 0;
+  double _utilizationPct = 0;
   late List<RevenuePoint> _earnings;
   late List<RevenuePoint> _trend;
-  List<CategoryRevenue> _categoryRevenue = Seed.categoryRevenue;
+  List<CategoryRevenue> _categoryRevenue = const [];
 
   double get monthGrossRevenueK => _grossMonthK;
   double get utilization => _utilizationPct;

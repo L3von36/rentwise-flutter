@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
-import '../../models/account.dart';
 import '../../state/workspace_state.dart';
 import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
 import '../../core/palette.dart';
 
-/// Sign-in screen — role toggle, email/password.
+/// Sign-in screen — email/password against Appwrite Cloud.
 ///
-/// The toggle pre-fills the matching Appwrite account. Sign-in runs
-/// against Appwrite Cloud only — there is no offline/demo fallback;
-/// failures surface in the inline error box and the user retries.
+/// There are no bundled accounts, quick-fill credentials or role
+/// selection: the signed-in user's role is resolved server-side from
+/// their `profiles` document. Failures surface in the inline error box
+/// and the user retries.
 class SignInView extends StatefulWidget {
   final VoidCallback onForgotPassword;
   const SignInView({super.key, required this.onForgotPassword});
@@ -21,23 +21,10 @@ class SignInView extends StatefulWidget {
 }
 
 class _SignInViewState extends State<SignInView> {
-  UserRole _role = UserRole.employee;
   bool _remember = true;
   bool _obscure = true;
-  final _emailCtrl =
-      TextEditingController(text: 'jordan@riverside.events');
-  final _passwordCtrl = TextEditingController(text: 'jordan@336');
-
-  static const _quickCreds = {
-    UserRole.employee: ('jordan@riverside.events', 'jordan@336'),
-    UserRole.owner: ('selamvenda8@gmail.com', 'selam@336'),
-  };
-
-  void _applyQuickCreds(UserRole role) {
-    final (email, password) = _quickCreds[role]!;
-    _emailCtrl.text = email;
-    _passwordCtrl.text = password;
-  }
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
 
   Future<void> _submit() async {
     await context.read<WorkspaceState>().signInWithEmail(
@@ -53,7 +40,7 @@ class _SignInViewState extends State<SignInView> {
     final compact = MediaQuery.sizeOf(context).width < 1000;
 
     return AuthScaffold(
-      eyebrow: 'Riverside Events Workspace',
+      eyebrow: 'RentWise Workspace',
       card: Stack(
         children: [
           Container(
@@ -93,42 +80,9 @@ class _SignInViewState extends State<SignInView> {
                 Text('Welcome back',
                     style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 6),
-                Text('Sign in to continue to Riverside Events.',
+                Text('Sign in to continue to your workspace.',
                     style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 20),
-
-                // Role toggle
-                Container(
-                  height: 46,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppPalette.fill,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      _RoleTab(
-                        icon: Icons.person_outline,
-                        label: 'Employee',
-                        selected: _role == UserRole.employee,
-                        onTap: () {
-                          setState(() => _role = UserRole.employee);
-                          _applyQuickCreds(UserRole.employee);
-                        },
-                      ),
-                      _RoleTab(
-                        icon: Icons.shield_outlined,
-                        label: 'Owner',
-                        selected: _role == UserRole.owner,
-                        onTap: () {
-                          setState(() => _role = UserRole.owner);
-                          _applyQuickCreds(UserRole.owner);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
 
                 // Email
                 const _FieldLabel('Work email'),
@@ -137,7 +91,7 @@ class _SignInViewState extends State<SignInView> {
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: 'you@riverside.events',
+                    hintText: 'you@company.com',
                     prefixIcon: Icon(Icons.mail_outline_rounded,
                         size: 18, color: AppPalette.muted),
                     prefixIconConstraints:
@@ -279,17 +233,15 @@ class _SignInViewState extends State<SignInView> {
                                       Colors.white),
                                 ),
                               )
-                            : Row(
+                            : const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.login_rounded,
+                                  Icon(Icons.login_rounded,
                                       size: 18, color: Colors.white),
-                                  const SizedBox(width: 9),
+                                  SizedBox(width: 9),
                                   Text(
-                                    _role == UserRole.employee
-                                        ? 'Sign in as employee'
-                                        : 'Sign in as owner',
-                                    style: const TextStyle(
+                                    'Sign in',
+                                    style: TextStyle(
                                       fontFamily: AppTheme.fontFamily,
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
@@ -320,70 +272,6 @@ class _SignInViewState extends State<SignInView> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RoleTab extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RoleTab({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color:
-            selected ? AppPalette.raise : Colors.transparent,
-        borderRadius: BorderRadius.circular(9),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(9),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(9),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : null,
-            ),
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon,
-                    size: 16,
-                    color: selected
-                        ? AppPalette.primary
-                        : AppPalette.muted),
-                const SizedBox(width: 7),
-                Text(label,
-                    style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: selected
-                          ? AppPalette.primary
-                          : AppPalette.muted,
-                    )),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

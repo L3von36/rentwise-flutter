@@ -75,7 +75,8 @@ class AccessRolesScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text('Control what employees can see and do across Riverside Events.',
+          Text('Control what employees can see and do across '
+              '${state.workspace.isEmpty ? 'your workspace' : state.workspace}.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,

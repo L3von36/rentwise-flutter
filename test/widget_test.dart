@@ -10,6 +10,7 @@ import 'package:flutter/material.dart'
         Navigator,
         Scaffold,
         Size,
+        TextField,
         Theme,
         ThemeMode,
         Widget;
@@ -23,75 +24,35 @@ import 'package:rentwise/state/shell_state.dart';
 import 'package:rentwise/state/workspace_state.dart';
 import 'package:rentwise/widgets/bottom_nav.dart';
 import 'package:rentwise/widgets/side_nav.dart';
-import 'package:rentwise/data/seed_data.dart';
-import 'package:rentwise/models/inventory_item.dart';
-import 'package:rentwise/models/rental_order.dart' show RentalOrder;
-import 'package:rentwise/models/customer.dart';
-import 'package:rentwise/models/activity_entry.dart';
-import 'package:rentwise/services/appwrite_backend.dart';
+import 'helpers/recording_backend.dart';
+import 'fixtures/sample_dataset.dart';
 import 'package:rentwise/widgets/window_title_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// In-memory stand-in for Appwrite Cloud. Production has NO offline demo
-/// fallback, so UI-flow tests inject this fake backend instead: it serves
-/// the seed dataset as if it were the cloud and swallows writes.
-class FakeBackend extends AppwriteBackend {
-  @override
-  Future<Account> authenticate(String email, String password) async =>
-      email.trim().toLowerCase().startsWith('selam')
-          ? Seed.demoOwner
-          : Seed.demoEmployee;
-
-  @override
-  Future<WorkspaceSnapshot> loadWorkspace() async {
-    final now = DateTime.now();
-    return WorkspaceSnapshot(
-      accountUserId: 'fake-user',
-      inventory: Seed.inventory(),
-      orders: Seed.orders(now),
-      customers: Seed.customers(now),
-      activity: Seed.activity(now),
-      pickups: Seed.pickups(now),
-      workspaces: [Seed.workspaceName],
-      activeWorkspace: Seed.workspaceName,
-      grossMonthK: Seed.grossRevenueMonth,
-      utilizationPct: Seed.utilizationPct,
-      earnings: Seed.earningsDaily(now),
-      categoryRevenue: Seed.categoryRevenue,
-      trend: Seed.revenueTrend(now),
-    );
-  }
-
-  @override
-  Future<void> signOutAccount() async {}
-  @override
-  Future<void> putInventoryItem(InventoryItem item,
-      {bool isNew = false}) async {}
-  @override
-  Future<void> putOrder(RentalOrder order, {bool isNew = false}) async {}
-  @override
-  Future<void> putCustomer(Customer customer, {bool isNew = false}) async {}
-  @override
-  Future<void> putActivity(ActivityEntry entry) async {}
-  @override
-  Future<void> putWorkspace(String name,
-      {required String createdBy}) async {}
-  @override
-  Future<void> setActiveWorkspace(String name) async {}
-}
 
 /// Full provider stack matching production bootstrap.
 Widget _app() => MultiProvider(
       providers: [
         ChangeNotifierProvider(
-            create: (_) => WorkspaceState(backend: FakeBackend())),
+            create: (_) => WorkspaceState(backend: RecordingBackend())),
         ChangeNotifierProvider(create: (_) => ShellState()),
       ],
       child: const RentWiseApp(),
     );
 
+/// Types real credentials into the auth form and submits — exactly what
+/// a live user does (no persona shortcuts exist anymore).
+Future<void> _signInUi(
+    WidgetTester tester, String email, String password) async {
+  await tester.enterText(find.byType(TextField).at(0), email);
+  await tester.enterText(find.byType(TextField).at(1), password);
+  await tester.tap(find.text('Sign in'));
+  await tester.pumpAndSettle();
+}
+
 /// Plain unit test (no fake async) — exercises the store directly.
 void main() {
+  initTestCloud(); // path-provider shim BEFORE any Appwrite client exists
+
   test('sign-in without a backend fails honestly — no demo fallback', () async {
     final state = WorkspaceState();
     final err =
@@ -104,8 +65,10 @@ void main() {
 
   test('booking creation decrements availability, appends order, logs activity',
       () async {
-    final state = WorkspaceState();
-    await state.signIn(UserRole.employee);
+    final backend = RecordingBackend();
+    final state = WorkspaceState(backend: backend);
+    await state.signInWithEmail(
+        SampleDataset.demoEmployee.email, 'employee-pass');
 
     final chairs = state.inventory.firstWhere((i) => i.name == 'Folding Chairs');
     final availableBefore = chairs.available;
@@ -130,8 +93,9 @@ void main() {
 
   test('employees are restricted: no owner areas, no self-promotion',
       () async {
-    final state = WorkspaceState();
-    await state.signIn(UserRole.employee);
+    final state = WorkspaceState(backend: RecordingBackend());
+    await state.signInWithEmail(
+        SampleDataset.demoEmployee.email, 'employee-pass');
 
     expect(state.isOwner, isFalse);
 
@@ -155,8 +119,9 @@ void main() {
   });
 
   test('owner manages access and can preview the employee role', () async {
-    final state = WorkspaceState();
-    await state.signIn(UserRole.owner);
+    final state = WorkspaceState(backend: RecordingBackend());
+    await state.signInWithEmail(
+        SampleDataset.demoOwner.email, 'owner-pass');
 
     expect(state.isOwner, isTrue);
     expect(state.canAccess(Section.reports), isTrue);
@@ -189,10 +154,8 @@ void main() {
     // Auth screen visible
     expect(find.text('Welcome back'), findsOneWidget);
 
-    // Tap the CTA (defaults to employee role)
-    await tester.tap(find.text('Sign in as employee'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    // Sign in through the real email/password flow.
+    await _signInUi(tester, SampleDataset.demoEmployee.email, 'employee-pass');
 
     // Dashboard visible — employee gets the task-first shift view.
     expect(find.text('Operations overview'), findsWidgets); // top-bar breadcrumb
@@ -245,12 +208,8 @@ void main() {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    // Switch the role selector to Owner, then tap the CTA.
-    await tester.tap(find.text('Owner'));
-    await tester.pump();
-    await tester.tap(find.text('Sign in as owner'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    // Sign in as the owner account through the real flow.
+    await _signInUi(tester, SampleDataset.demoOwner.email, 'owner-pass');
 
     // Owner sees the financial pulse + earnings chart, not the shift view.
     expect(find.text('Month to date'), findsOneWidget);
@@ -284,10 +243,7 @@ void main() {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    // Sign in through the UI (signIn() uses a real timer internally).
-    await tester.tap(find.text('Sign in as employee'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoEmployee.email, 'employee-pass');
 
     // Bottom nav tabs exist and the workspace is visible.
     expect(find.text('Home'), findsOneWidget);
@@ -332,9 +288,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sign in as employee'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoEmployee.email, 'employee-pass');
 
     // Ctrl+K opens the global search dialog.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -414,9 +368,7 @@ void main() {
     // available to every role (title bar is window chrome, not owner-only).
     await tester.tap(inBar(Icons.light_mode_rounded));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sign in as employee'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoEmployee.email, 'employee-pass');
     expect(find.byType(WindowTitleBar), findsOneWidget);
     expect(
         find.descendant(
@@ -456,11 +408,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Owner'));
-    await tester.pump();
-    await tester.tap(find.text('Sign in as owner'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoOwner.email, 'owner-pass');
 
     await tester.tap(find.descendant(
       of: find.byType(SideNav),
@@ -507,11 +455,7 @@ void main() {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Owner'));
-    await tester.pump();
-    await tester.tap(find.text('Sign in as owner'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoOwner.email, 'owner-pass');
 
     // Compact owner hero replaces the plain header + banner: gradient
     // panel with greeting, glass avatar and live status pills.
@@ -533,9 +477,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sign in as employee'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoEmployee.email, 'employee-pass');
 
     await tester.tap(find.descendant(
       of: find.byType(SideNav),
@@ -570,11 +512,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Owner'));
-    await tester.pump();
-    await tester.tap(find.text('Sign in as owner'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoOwner.email, 'owner-pass');
 
     await tester.tap(find.descendant(
       of: find.byType(SideNav),
@@ -599,9 +537,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sign in as employee'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoEmployee.email, 'employee-pass');
 
     await tester.tap(find.descendant(
       of: find.byType(SideNav),
@@ -623,9 +559,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sign in as employee'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoEmployee.email, 'employee-pass');
 
     // The first task ("Stage & pack" for RW-2051) opens the order detail.
     await tester.tap(find.text('Stage & pack'));
@@ -635,22 +569,23 @@ void main() {
   });
 
   test('workspaces can be added and switched', () async {
-    final state = WorkspaceState();
-    await state.signIn(UserRole.owner);
+    final state = WorkspaceState(backend: RecordingBackend());
+    await state.signInWithEmail(
+        SampleDataset.demoOwner.email, 'owner-pass');
 
-    expect(state.workspace, 'Riverside Events');
+    expect(state.workspace, SampleDataset.workspaceName);
     expect(state.workspaces.length, 1);
 
     expect(state.addWorkspace('Cedar Loft Co.'), isTrue);
     expect(state.workspace, 'Cedar Loft Co.');
-    expect(state.workspaces, contains('Riverside Events'));
+    expect(state.workspaces, contains(SampleDataset.workspaceName));
 
     // Duplicate / empty names are refused.
     expect(state.addWorkspace('Cedar Loft Co.'), isFalse);
     expect(state.addWorkspace('  '), isFalse);
 
-    state.switchWorkspace('Riverside Events');
-    expect(state.workspace, 'Riverside Events');
+    state.switchWorkspace(SampleDataset.workspaceName);
+    expect(state.workspace, SampleDataset.workspaceName);
   });
 
   testWidgets('orders KPI cards apply their matching status filter',
@@ -661,11 +596,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Owner'));
-    await tester.pump();
-    await tester.tap(find.text('Sign in as owner'));
-    await tester.pump(const Duration(milliseconds: 900));
-    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoOwner.email, 'owner-pass');
 
     await tester.tap(find.descendant(
       of: find.byType(SideNav),

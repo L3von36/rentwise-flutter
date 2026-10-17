@@ -18,20 +18,20 @@ All 11 screens from the design pack, pixel-faithful:
 | **Orders** | KPIs, All/Upcoming/Completed tabs, order table + cards, status actions from the overflow menu |
 | **Customers** | KPIs, directory with search, add customer, purple "Relationship Pulse" insight panel |
 | **Activity Log** | Stat strip, timeline with type badges, filter menu + chips |
-| **Access & roles** | Protected banner, role switcher (swaps demo persona), permission matrix, current session + sign out |
+| **Access & roles** | Protected banner, owner role-preview switch, permission matrix, current session + sign out |
 | **Reports** (Owner only) | Gross revenue / utilization KPIs, fl_chart revenue trend bars, top-category breakdown |
 | **New rental booking** | Dialog on desktop, bottom sheet on mobile — customer, event, date picker, item lines with qty steppers, live total |
 
-The app is a **living demo**: creating a booking decrements inventory availability, appends a `#RW-20xx` order, writes an activity entry, and bumps the sidebar badge — all through a single `ChangeNotifier` store.
+Everything runs against **Appwrite Cloud** — the single source of truth. Creating a booking decrements inventory availability, appends an order, writes an activity entry and bumps the sidebar badge locally, and every mutation is **written through to the cloud immediately** (orders, inventory, customers, activities, pickups, workspaces, profiles, metrics). Sign-in failures surface honestly — there is **no offline/demo fallback**: until a sign-in succeeds the workspace is simply empty.
 
 ## Tech stack
 
 - **Flutter 3.24+ / Dart 3.5+**, Material 3
+- **Appwrite Cloud** — auth (email/password sessions) + database (`rentwise-db`: profiles, workspaces, inventory_items, customers, orders, activities, pickups, metrics)
 - **provider** for state management (one `WorkspaceState` store)
 - **fl_chart** for the owner revenue trend
 - **intl** for money/date formatting
 - **Inter** font bundled locally (`assets/fonts/`) — no network fetch at runtime
-- Zero backend — rich seed data mirrors the design pack exactly
 
 ## Getting started
 
@@ -48,13 +48,21 @@ flutter run -d macos|windows|linux
 flutter run -d <device-id>  # Android / iOS device or emulator
 ```
 
-Try the app: sign in with either role (credentials are pre-filled), create a booking from **New rental booking** or any **+ Rent** button, then watch the dashboard, orders, inventory, and activity log react.
+Sign in with an **Appwrite account registered in your project** (the role — owner or employee — is resolved server-side from the `profiles` collection), create a booking from **New rental booking** or any **+ Rent** button, then watch the dashboard, orders, inventory, and activity log react. Data is written through to Appwrite Cloud as you act.
 
 ### Tests & analysis
 
 ```bash
 flutter analyze             # zero issues
-flutter test                # 3 tests: sign-in flow, booking side effects, role gating
+flutter test                # 44 tests: role journeys (owner/employee/customer),
+                            # write-through assertions, no-demo guarantees, mappers
+```
+
+One-shot backend tooling (CI-safe, skipped without env vars):
+
+```bash
+AW_KEY=<key> AW_SEED=1 flutter test test/seed_appwrite_test.dart   # provision collections + workspace data
+AW_E2E=1 flutter test test/live_login_test.dart                    # live auth + load probe against Cloud
 ```
 
 ## Prebuilt binaries (GitHub Releases)
@@ -95,7 +103,13 @@ lib/
 ├── app.dart                # MaterialApp + auth gate
 ├── core/                   # design tokens: colors, theme, breakpoints, formatters
 ├── models/                 # account, inventory item, order, customer, activity, pickup
-├── data/seed_data.dart     # demo dataset matching the design pack
+├── data/
+│   ├── appwrite_mappers.dart   # cloud documents ⇄ models (icon/status/color codecs)
+│   └── catalog.dart            # static UI options only (category chips, hours copy)
+├── services/
+│   ├── appwrite_config.dart    # endpoint/project/collection ids
+│   ├── appwrite_backend.dart   # auth + load + write-through persistence
+│   └── system_proxy.dart       # route HTTP through the OS proxy when present
 ├── state/workspace_state.dart  # single ChangeNotifier store (auth, nav, data, actions)
 ├── widgets/                # brand, chips, cards, KPI cards, sidebar, top bar, tables…
 └── screens/
