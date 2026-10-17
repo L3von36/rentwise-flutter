@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:appwrite/appwrite.dart' as aw;
 import 'package:appwrite/models.dart' as models;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../data/seed_data.dart';
 import 'appwrite_config.dart';
@@ -61,6 +64,12 @@ class AppwriteBackend {
         .setProject(AppwriteConfig.projectId);
   }
 
+  /// Per-request budget. If the network black-holes the connection (VPN,
+  /// firewall, dropped Wi-Fi) we fail fast with a clear TimeoutException
+  /// instead of leaving the sign-in button spinning forever.
+  static const Duration _callTimeout = Duration(seconds: 20);
+  static const Duration _bulkTimeout = Duration(seconds: 30);
+
   late final aw.Client _client;
   late final aw.Account _account = aw.Account(_client);
   late final aw.Databases _db = aw.Databases(_client);
@@ -73,16 +82,17 @@ class AppwriteBackend {
   /// Returns the account; throws [AppwriteException] on failure.
   Future<Account> authenticate(String email, String password) async {
     try {
-      await _account.createEmailPasswordSession(
-          email: email, password: password);
+      await _account
+          .createEmailPasswordSession(email: email, password: password)
+          .timeout(_callTimeout);
     } on aw.AppwriteException catch (e) {
       if (e.code != 401 || e.type != 'user_session_already_exists') rethrow;
       // An active session is fine — continue with it.
     }
-    final user = await _account.get();
+    final user = await _account.get().timeout(_callTimeout);
     _userId = user.$id;
 
-    final profile = await _findProfile(user.$id);
+    final profile = await _findProfile(user.$id).timeout(_callTimeout);
     if (profile != null) {
       final d = profile.data;
       return Account(
@@ -178,7 +188,7 @@ class AppwriteBackend {
       act,
       pks,
       wrk,
-    ]);
+    ]).timeout(_bulkTimeout);
 
     final metRes = await met;
     final m = metRes?.data ?? const {};
@@ -473,7 +483,9 @@ class AppwriteBackend {
     }
   }
 
-  /// Human-friendly message for sign-in failures.
+  /// Human-friendly message for sign-in failures. The first line is for
+  /// the user; a short diagnostic tail tells us (and support) what really
+  /// happened instead of hiding every failure behind one generic string.
   static String authErrorText(Object error) {
     if (error is aw.AppwriteException) {
       switch (error.type) {
@@ -484,12 +496,53 @@ class AppwriteBackend {
           return 'This account has been suspended.';
         case 'general_rate_limit_exceeded':
           return 'Too many attempts — wait a moment and try again.';
+        case 'general_unknown_origin':
+          return 'This website\'s domain is not registered in the Appwrite '
+              'project — add it under Platforms → Web in the Appwrite '
+              'console, then try again.';
       }
       if (error.code == 429) {
         return 'Too many attempts — wait a moment and try again.';
       }
+      // Real API response (e.g. 401 general_unauthorized_scope, 403
+      // project rate/platform issues): surface it instead of masking.
+      final msg = (error.message ?? '').toString();
+      final short = msg.length > 90 ? '${msg.substring(0, 90)}…' : msg;
+      final type = error.type ?? '';
+      return 'Appwrite error ${error.code ?? '??'}${type.isEmpty ? '' : ' ($type)'} — $short';
     }
-    return 'Cannot reach Appwrite Cloud — check your connection and try again.';
+    if (error is SocketException) {
+      final addr = error.address?.address ?? 'cloud.appwrite.io';
+      final osErr = error.osError?.errorCode;
+      final why = switch (osErr) {
+        7 /* EAI_AGAIN DNS */ || -2 => 'DNS lookup failed for $addr',
+        111 || 10061 => 'connection refused by $addr (VPN/proxy/firewall?)',
+        101 || 10060 => 'network unreachable (offline or VPN required)',
+        104 || 10054 => 'connection reset by $addr (firewall or antivirus?)',
+        null => 'cannot connect to $addr',
+        _ => 'cannot connect to $addr (errno $osErr)',
+      };
+      return 'Cannot reach Appwrite Cloud — $why.';
+    }
+    if (error is HandshakeException) {
+      return 'Secure connection to Appwrite Cloud failed — a proxy, VPN or '
+          'antivirus may be intercepting TLS certificates.';
+    }
+    if (error is http.ClientException) {
+      final why = error.uri == null
+          ? error.message
+          : '${error.message} (${error.uri!.host})';
+      return 'Cannot reach Appwrite Cloud — $why. If this happens in a '
+          'browser, the site domain may not be registered in the '
+          'Appwrite console.';
+    }
+    if (error is TimeoutException) {
+      return 'Appwrite Cloud did not respond in time — check your '
+          'connection or try a different network.';
+    }
+    final s = error.toString();
+    final short = s.length > 110 ? '${s.substring(0, 110)}…' : s;
+    return 'Sign-in failed — $short';
   }
 }
 

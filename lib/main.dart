@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/appwrite_backend.dart';
+import 'services/system_proxy.dart';
 import 'state/shell_state.dart';
 import 'state/workspace_state.dart';
 import 'app.dart';
@@ -11,6 +12,10 @@ import 'widgets/desktop.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Route HTTP through the OS system proxy when one is configured —
+  // without this, machines behind VPN/proxy "system proxy" toggles can
+  // never reach Appwrite Cloud from the desktop builds.
+  await applySystemProxy();
   final prefs = await SharedPreferences.getInstance();
 
   if (isDesktop) {
