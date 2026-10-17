@@ -206,19 +206,30 @@ class WorkspaceState extends ChangeNotifier {
   // ----------------------------------------------------------------- orders
   late List<RentalOrder> _orders;
   String _orderTab = 'All orders';
+  OrderStatus? _orderStatusFilter; // null = every status in the active tab
 
   List<RentalOrder> get orders => List.unmodifiable(_orders);
   String get orderTab => _orderTab;
 
-  List<RentalOrder> get filteredOrders {
+  /// Orders in the active tab, before the status-chip filter — used for
+  /// the chips' live counts so narrowing never hides the other buckets.
+  List<RentalOrder> get tabOrders {
     switch (_orderTab) {
       case 'Upcoming':
         return _orders.where((o) => o.status.isUpcoming).toList();
       case 'Completed':
         return _orders.where((o) => !o.status.isUpcoming).toList();
       default:
-        return _orders;
+        return List.of(_orders);
     }
+  }
+
+  OrderStatus? get orderStatusFilter => _orderStatusFilter;
+
+  List<RentalOrder> get filteredOrders {
+    final f = _orderStatusFilter;
+    if (f == null) return tabOrders;
+    return tabOrders.where((o) => o.status == f).toList();
   }
 
   int get openOrdersCount =>
@@ -237,6 +248,12 @@ class WorkspaceState extends ChangeNotifier {
 
   void setOrderTab(String tab) {
     _orderTab = tab;
+    notifyListeners();
+  }
+
+  /// Tapping the active chip again clears the filter ([status] == null).
+  void setOrderStatusFilter(OrderStatus? status) {
+    _orderStatusFilter = status;
     notifyListeners();
   }
 

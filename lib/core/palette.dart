@@ -113,6 +113,15 @@ class AppPalette {
       ? DarkTokens.primaryGradient
       : const [AppColors.primary, AppColors.primaryDeep];
 
+  /// Full-bleed gradient for hero panels (employee shift hero, owner phone
+  /// hero). Dark keeps the Noir indigo→violet; light gets its own designed
+  /// variant — a deeper, saturated indigo→violet that reads as a deliberate
+  /// "morning" hero on the pale canvas while white type stays legible.
+  /// (Buttons and chart bars keep the near-flat [primaryGradient].)
+  static List<Color> get heroGradient => dark
+      ? DarkTokens.primaryGradient
+      : const [Color(0xFF4F46E5), Color(0xFF7C3AED)];
+
   // Status
   static Color get green => dark ? DarkTokens.green : AppColors.green;
   static Color get greenBg => dark ? DarkTokens.greenBg : AppColors.greenBg;

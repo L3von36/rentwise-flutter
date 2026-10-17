@@ -168,6 +168,9 @@ class OrdersScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
+                // status filters — tab-scoped, live counts
+                _StatusFilterRow(state: state),
+                const SizedBox(height: 12),
                 if (compactList)
                   for (final order in state.filteredOrders)
                     _OrderCard(order: order, onAction: (s) => state.updateOrderStatus(order, s))
@@ -192,6 +195,112 @@ class OrdersScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Status filter chips under the tabs: one per order status plus an All
+/// bucket, each with a live count scoped to the active tab (so narrowing
+/// never hides the other buckets' counts). Horizontally scrollable so the
+/// full vocabulary fits a phone.
+class _StatusFilterRow extends StatelessWidget {
+  final WorkspaceState state;
+  const _StatusFilterRow({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final tabOrders = state.tabOrders;
+    final selected = state.orderStatusFilter;
+
+    Widget chipFor(OrderStatus status) {
+      final active = selected == status;
+      return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: _StatusChip(
+          label: status.label,
+          count: tabOrders.where((o) => o.status == status).length,
+          fg: status.fg,
+          bg: status.bg,
+          selected: active,
+          onTap: () => state.setOrderStatusFilter(active ? null : status),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity, // left-align within the centered SectionCard
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _StatusChip(
+                label: 'All',
+                count: tabOrders.length,
+                fg: AppPalette.primary,
+                bg: AppPalette.primarySoft,
+                selected: selected == null,
+                onTap: () => state.setOrderStatusFilter(null),
+              ),
+            ),
+            for (final status in OrderStatus.values) chipFor(status),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One selectable status chip: status dot + `label · count`. Selected chips
+/// fill with the status wash and read in the status color; idle ones sit on
+/// the neutral fill — both modes resolve through [AppPalette].
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color fg;
+  final Color bg;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _StatusChip({
+    required this.label,
+    required this.count,
+    required this.fg,
+    required this.bg,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? bg : AppPalette.fill,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
+            color: selected ? fg.withOpacity(0.4) : AppPalette.stroke,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Dot(color: selected ? fg : AppPalette.faint, size: 6),
+            const SizedBox(width: 5),
+            Text('$label · $count',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 11.5,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    color: selected ? fg : AppPalette.muted)),
+          ],
+        ),
       ),
     );
   }

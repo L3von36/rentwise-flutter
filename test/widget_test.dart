@@ -381,4 +381,81 @@ void main() {
     second.toggleTheme();
     expect(ShellState(prefs: prefs).themeSetting, AppThemeSetting.light);
   });
+
+  testWidgets('orders status filters narrow the live list', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Owner'));
+    await tester.pump();
+    await tester.tap(find.text('Sign in as owner'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(
+      of: find.byType(SideNav),
+      matching: find.text('Orders'),
+    ));
+    await tester.pumpAndSettle();
+
+    // Status chips render with live, tab-scoped counts (5 seeded orders,
+    // one per status).
+    expect(find.text('All · 5'), findsOneWidget);
+    expect(find.text('Preparing · 1'), findsOneWidget);
+    expect(find.text('Out for delivery · 1'), findsOneWidget);
+    expect(find.text('Needs payment · 1'), findsOneWidget);
+    expect(find.text('Returned · 1'), findsOneWidget);
+
+    // Narrow to needs payment: only the Monroe order remains.
+    await tester.tap(find.text('Needs payment · 1'));
+    await tester.pumpAndSettle();
+    expect(find.text('Monroe Family Reunion'), findsOneWidget);
+    expect(find.text('Northstar Product Launch'), findsNothing);
+    expect(find.text('The Harper Wedding'), findsNothing);
+
+    // Filters compose with tabs: Completed + needsPayment = empty.
+    await tester.tap(find.text('Completed'));
+    await tester.pumpAndSettle();
+    expect(find.text('No orders in this view.'), findsOneWidget);
+
+    // Back to All orders keeps the status chip; clearing via All restores.
+    await tester.tap(find.text('All orders'));
+    await tester.pumpAndSettle();
+    expect(find.text('Monroe Family Reunion'), findsOneWidget);
+    await tester.tap(find.text('All · 5'));
+    await tester.pumpAndSettle();
+    expect(find.text('Northstar Product Launch'), findsOneWidget);
+    expect(find.text('Brighton Arts Gala'), findsOneWidget);
+  });
+
+  testWidgets('owner phone home opens on the business-pulse hero',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Owner'));
+    await tester.pump();
+    await tester.tap(find.text('Sign in as owner'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    // Compact owner hero replaces the plain header + banner: gradient
+    // panel with greeting, glass avatar and live status pills.
+    expect(find.textContaining('Welcome back, '), findsOneWidget);
+    expect(find.textContaining('Open · closes'), findsOneWidget);
+    expect(find.textContaining('active rentals'), findsOneWidget);
+    // The wide-only "Business Open" banner stays off the phone layout.
+    expect(find.text('Business Open'), findsNothing);
+
+    // Glance strip still anchors the screen below the hero.
+    expect(find.text("Today's revenue"), findsOneWidget);
+    expect(find.text('Details'), findsOneWidget);
+  });
 }

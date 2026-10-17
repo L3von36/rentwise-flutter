@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
+import '../../core/app_colors.dart'; // AppRadius / AppShadow
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
@@ -318,8 +318,8 @@ class _EmployeeDashboard extends StatelessWidget {
 // ------------------------------------------------------------ shift hero
 /// The employee's morning anchor: a full-width brand-gradient panel with
 /// greeting, live shift progress, the next task up, and the two primary
-/// actions. Dark mode adds the indigo→violet gradient + glow; light keeps
-/// the flat brand indigo.
+/// actions. Both modes get a designed gradient: Noir indigo→violet + glow
+/// on dark, a deeper indigo→violet "morning" variant on light.
 class _ShiftHero extends StatelessWidget {
   final WorkspaceState state;
   final DateTime now;
@@ -351,7 +351,7 @@ class _ShiftHero extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: AppPalette.primaryGradient,
+          colors: AppPalette.heroGradient,
         ),
         borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: AppShadow.glow(blur: 26),
@@ -1706,6 +1706,146 @@ class _BusinessOpenBanner extends StatelessWidget {
   }
 }
 
+// --------------------------------------------------------- owner phone hero
+/// The owner's compact (phone) hero — same gradient-panel language as the
+/// employee shift hero, tuned for the business pulse: greeting, a glass
+/// owner avatar, and the live open/closed status + headline number as
+/// frosted pills. Dark mode: Noir indigo→violet + glow; light: the deeper
+/// "morning" variant of [AppPalette.heroGradient].
+class _OwnerHero extends StatelessWidget {
+  final WorkspaceState state;
+  final DateTime now;
+
+  const _OwnerHero({required this.state, required this.now});
+
+  @override
+  Widget build(BuildContext context) {
+    final first = _firstName(state);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppPalette.heroGradient,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: AppShadow.glow(blur: 26),
+      ),
+      child: Stack(
+        children: [
+          // decorative depth: soft highlight orbs (mirrored vs. shift hero)
+          Positioned(
+            right: -30,
+            top: -44,
+            child: Container(
+              width: 124,
+              height: 124,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.07),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -36,
+            bottom: -52,
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+              ),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('EEEE, MMMM d').format(now).toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: Colors.white.withOpacity(0.72),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text('Welcome back, $first',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 20,
+                            height: 1.15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
+                            color: Colors.white)),
+                    const SizedBox(height: 6),
+                    Text(
+                        "Here's the pulse of ${Seed.workspaceName} today.",
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 12.5,
+                            color: Colors.white.withOpacity(0.85))),
+                    const SizedBox(height: 12),
+                    // live status + headline number, frosted (wraps on
+                    // narrow phones instead of overflowing)
+                    const Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _HeroPill(
+                          icon: Icons.storefront_outlined,
+                          text: 'Open · closes ${Seed.businessCloseTime}',
+                        ),
+                        _HeroPill(
+                          icon: Icons.bolt_rounded,
+                          text: '${Seed.activeRentals} active rentals',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // glass avatar — owner initial
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.16),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                ),
+                child: Text(
+                  first.isEmpty ? 'O' : first[0].toUpperCase(),
+                  style: const TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ========================================================== owner compact
 class _OwnerCompactDashboard extends StatelessWidget {
   final WorkspaceState state;
@@ -1721,39 +1861,8 @@ class _OwnerCompactDashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // header
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Eyebrow(DateFormat('EEEE, MMMM d').format(now)),
-                    const SizedBox(height: 5),
-                    Text('Welcome back, ${_firstName(state)}',
-                        style: Theme.of(context).textTheme.headlineLarge),
-                    const SizedBox(height: 4),
-                    Text("Here's the pulse of Riverside Events.",
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 12.5,
-                            color: AppPalette.muted)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              const InitialsAvatar(
-                  initials: 'OW',
-                  color: AppColors.avatarIndigo,
-                  size: 36,
-                  fontSize: 12.5),
-            ],
-          ),
-          const SizedBox(height: 18),
-
-          // business open banner
-          const _BusinessOpenBanner(),
+          // hero (greeting + live business status on the brand gradient)
+          _OwnerHero(state: state, now: now),
           const SizedBox(height: 14),
 
           // Today at a glance
@@ -1922,34 +2031,42 @@ class _OwnerCompactDashboard extends StatelessWidget {
                 const SizedBox(height: 11),
                 const Divider(),
                 const SizedBox(height: 10),
-                Row(
+                // meta facts wrap to a second line on narrow phones
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(Icons.event_outlined,
-                        size: 15, color: AppPalette.muted),
-                    const SizedBox(width: 6),
-                    Text('Sat, Oct 18',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 12,
-                            color: AppPalette.muted)),
-                    const SizedBox(width: 14),
-                    Icon(Icons.inventory_2_outlined,
-                        size: 15, color: AppPalette.muted),
-                    const SizedBox(width: 6),
-                    Text('12 items',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 12,
-                            color: AppPalette.muted)),
-                    const SizedBox(width: 14),
-                    Icon(Icons.person_outline,
-                        size: 15, color: AppPalette.muted),
-                    const SizedBox(width: 6),
-                    Text('Mia Chen',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 12,
-                            color: AppPalette.muted)),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.event_outlined,
+                          size: 15, color: AppPalette.muted),
+                      const SizedBox(width: 6),
+                      Text('Sat, Oct 18',
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 12,
+                              color: AppPalette.muted)),
+                    ]),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.inventory_2_outlined,
+                          size: 15, color: AppPalette.muted),
+                      const SizedBox(width: 6),
+                      Text('12 items',
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 12,
+                              color: AppPalette.muted)),
+                    ]),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.person_outline,
+                          size: 15, color: AppPalette.muted),
+                      const SizedBox(width: 6),
+                      Text('Mia Chen',
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 12,
+                              color: AppPalette.muted)),
+                    ]),
                   ],
                 ),
               ],
