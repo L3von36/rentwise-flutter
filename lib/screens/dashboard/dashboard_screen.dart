@@ -6,6 +6,7 @@ import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../data/seed_data.dart';
 import '../../models/inventory_item.dart';
+import '../../models/activity_entry.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -147,59 +148,14 @@ class _EmployeeDashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ---- header
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Eyebrow(wide
-                        ? '${DateFormat('EEEE, MMMM d, yyyy').format(now)} · Shift 9:00 AM – 6:00 PM'
-                        : DateFormat('EEEE, MMMM d').format(now)),
-                    const SizedBox(height: 5),
-                    Text('${_greeting(now)}, ${_firstName(state)}',
-                        style: Theme.of(context).textTheme.headlineLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      tasks.isEmpty
-                          ? 'You are all caught up — nothing pending today.'
-                          : 'You have ${tasks.length} tasks on deck today, '
-                              'including ${Seed.returnsDueToday} returns due back.',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
-                          color: AppPalette.muted),
-                    ),
-                  ],
-                ),
-              ),
-              if (wide) ...[
-                const SizedBox(width: 16),
-                OutlineButton(
-                  label: 'Check-in return',
-                  icon: Icons.assignment_turned_in_outlined,
-                  onTap: () => state.navigate(Section.orders),
-                ),
-                const SizedBox(width: 10),
-                PrimaryButton(
-                  label: 'New rental booking',
-                  icon: Icons.add_rounded,
-                  onTap: () => showNewBookingSheet(context),
-                ),
-              ],
-            ],
+          // ---- shift hero (greeting + live progress + actions)
+          _ShiftHero(
+            state: state,
+            now: now,
+            tasks: tasks,
+            compact: compact,
           ),
           const SizedBox(height: 16),
-
-          // ---- shift banner (compact only)
-          if (compact) ...[
-            _ShiftBanner(taskCount: tasks.length),
-            const SizedBox(height: 14),
-          ],
 
           // ---- KPIs
           if (wide)
@@ -359,46 +315,352 @@ class _EmployeeDashboard extends StatelessWidget {
   }
 }
 
-// -------------------------------------------------------- shift banner (m)
-class _ShiftBanner extends StatelessWidget {
-  final int taskCount;
-  const _ShiftBanner({required this.taskCount});
+// ------------------------------------------------------------ shift hero
+/// The employee's morning anchor: a full-width brand-gradient panel with
+/// greeting, live shift progress, the next task up, and the two primary
+/// actions. Dark mode adds the indigo→violet gradient + glow; light keeps
+/// the flat brand indigo.
+class _ShiftHero extends StatelessWidget {
+  final WorkspaceState state;
+  final DateTime now;
+  final List<_ShiftTask> tasks;
+  final bool compact;
+
+  const _ShiftHero({
+    required this.state,
+    required this.now,
+    required this.tasks,
+    required this.compact,
+  });
+
+  // Honest progress: every returned order is a completed touchpoint,
+  // every open task is one still to do.
+  int get _done =>
+      state.orders.where((o) => o.status == OrderStatus.returned).length;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = _done + tasks.length;
+    final fraction = total == 0 ? 1.0 : (_done / total).clamp(0.0, 1.0);
+    final nextTask = tasks.isEmpty ? null : tasks.first;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(compact ? 14 : 18, compact ? 14 : 16,
+          compact ? 14 : 18, compact ? 14 : 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppPalette.primaryGradient,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: AppShadow.glow(blur: 26),
+      ),
+      child: Stack(
+        children: [
+          // decorative depth: two soft highlight orbs
+          Positioned(
+            right: -34,
+            top: -42,
+            child: Container(
+              width: 132,
+              height: 132,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.07),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 66,
+            bottom: -58,
+            child: Container(
+              width: 104,
+              height: 104,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+              ),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // ---- greeting block
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      compact
+                          ? DateFormat('EEEE, MMMM d').format(now).toUpperCase()
+                          : '${DateFormat('EEEE, MMMM d, yyyy').format(now)} · SHIFT 9:00 AM – 6:00 PM'
+                              .toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: Colors.white.withOpacity(0.72),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text('${_greeting(now)}, ${_firstName(state)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: compact ? 19 : 23,
+                            height: 1.15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
+                            color: Colors.white)),
+                    const SizedBox(height: 6),
+                    Text(
+                      tasks.isEmpty
+                          ? 'You are all caught up — nothing pending today.'
+                          : 'You have ${tasks.length} tasks on deck today, '
+                              'including ${Seed.returnsDueToday} returns due back.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12.5,
+                          color: Colors.white.withOpacity(0.85)),
+                    ),
+                    const SizedBox(height: 12),
+                    // ---- progress rail
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(99),
+                            child: LinearProgressIndicator(
+                              value: fraction,
+                              minHeight: 6,
+                              backgroundColor: Colors.white.withOpacity(0.25),
+                              valueColor:
+                                  const AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          total == 0 ? 'All clear' : '$_done of $total done',
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white.withOpacity(0.9)),
+                        ),
+                      ],
+                    ),
+                    if (compact) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _HeroPill(
+                            icon: Icons.bolt_rounded,
+                            text: '${tasks.length} on deck',
+                          ),
+                          const SizedBox(width: 8),
+                          const _HeroPill(
+                            icon: Icons.timelapse_rounded,
+                            text: 'Until 6:00 PM',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // ---- right rail (wide): up-next + actions
+              if (!compact) ...[
+                const SizedBox(width: 22),
+                Container(
+                  width: 232,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: Colors.white.withOpacity(0.22)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('UP NEXT',
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.3,
+                              color: Colors.white.withOpacity(0.72))),
+                      const SizedBox(height: 5),
+                      Text(
+                        nextTask == null
+                            ? 'Enjoy the calm shift'
+                            : 'Next: ${nextTask.title}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        nextTask?.meta ?? 'Every active rental is on track.',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.8)),
+                      ),
+                      const SizedBox(height: 11),
+                      _HeroButton(
+                        label: 'Check-in return',
+                        icon: Icons.assignment_turned_in_outlined,
+                        solid: false,
+                        expanded: true,
+                        onTap: () => state.navigate(Section.orders),
+                      ),
+                      const SizedBox(height: 7),
+                      _HeroButton(
+                        label: 'New rental booking',
+                        icon: Icons.add_rounded,
+                        solid: true,
+                        expanded: true,
+                        onTap: () => showNewBookingSheet(context),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Frosted pill used inside the compact hero.
+class _HeroPill extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _HeroPill({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: AppPalette.primarySoft.withOpacity(0.55),
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: AppPalette.primaryBorder),
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: Colors.white.withOpacity(0.22)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.timelapse_rounded,
-              size: 16, color: AppPalette.primary),
-          const SizedBox(width: 9),
-          Text('$taskCount tasks on deck',
+          Icon(icon, size: 12, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(text,
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 12.5,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w700,
-                  color: AppPalette.primaryDeep)),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 14, color: AppPalette.primaryBorder),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text('Shift runs 9:00 AM – 6:00 PM',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12,
-                    color: AppPalette.body)),
-          ),
-          Icon(Icons.chevron_right_rounded,
-              size: 16, color: AppPalette.primary),
+                  color: Colors.white.withOpacity(0.95))),
         ],
       ),
     );
+  }
+}
+
+/// Hero action button — frosted or solid-white variant.
+class _HeroButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool solid;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  const _HeroButton({
+    required this.label,
+    required this.icon,
+    required this.solid,
+    required this.onTap,
+    this.expanded = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final button = Material(
+      color: solid ? Colors.white : Colors.white.withOpacity(0.13),
+      borderRadius: BorderRadius.circular(9),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            border: solid
+                ? null
+                : Border.all(color: Colors.white.withOpacity(0.28)),
+          ),
+          child: Row(
+            mainAxisAlignment: expanded
+                ? MainAxisAlignment.spaceBetween
+                : MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon,
+                        size: 14,
+                        color:
+                            solid ? AppPalette.primaryDeep : Colors.white),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: solid
+                                ? AppPalette.primaryDeep
+                                : Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (expanded)
+                Icon(Icons.chevron_right_rounded,
+                    size: 15,
+                    color: solid
+                        ? AppPalette.primaryDeep
+                        : Colors.white.withOpacity(0.8)),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (expanded) {
+      return SizedBox(width: double.infinity, child: button);
+    }
+    return button;
   }
 }
 
@@ -490,6 +752,7 @@ class _TaskListCardState extends State<_TaskListCard> {
                 for (var i = 0; i < shown.length; i++)
                   _TaskRow(
                     task: shown[i],
+                    index: i,
                     showDivider: i < shown.length - 1,
                   ),
               ],
@@ -547,63 +810,102 @@ class _FilterPill extends StatelessWidget {
 
 class _TaskRow extends StatelessWidget {
   final _ShiftTask task;
+  final int index;
   final bool showDivider;
 
-  const _TaskRow({required this.task, required this.showDivider});
+  const _TaskRow({
+    required this.task,
+    required this.index,
+    required this.showDivider,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Column(
+    final isFirst = index == 0;
+    final row = Padding(
+      padding: EdgeInsets.symmetric(
+          vertical: isFirst ? 8 : 9, horizontal: isFirst ? 10 : 0),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: AppPalette.faint.withOpacity(0.6), width: 1.5),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(task.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppPalette.ink)),
-                    const SizedBox(height: 2),
-                    Text(task.meta,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 11.5,
-                            color: AppPalette.muted)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              StatusBadge.custom(
-                  label: task.chip, fg: task.chipFg, bg: task.chipBg),
-            ],
-          ),
-          if (showDivider)
-            const Padding(
-              padding: EdgeInsets.only(left: 28),
-              child: Divider(height: 18),
+          // priority number — 01, 02, …
+          SizedBox(
+            width: 20,
+            child: Text(
+              (index + 1).toString().padLeft(2, '0'),
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: isFirst ? AppPalette.primary : AppPalette.faint),
             ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                  color: isFirst
+                      ? AppPalette.primary.withOpacity(0.8)
+                      : AppPalette.faint.withOpacity(0.6),
+                  width: 1.5),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.ink)),
+                const SizedBox(height: 2),
+                Text(task.meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11.5,
+                        color: AppPalette.muted)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          StatusBadge.custom(
+              label: task.chip, fg: task.chipFg, bg: task.chipBg),
         ],
       ),
+    );
+
+    // The top of the list gets a gentle "work me first" treatment.
+    final highlighted = isFirst
+        ? Container(
+            decoration: BoxDecoration(
+              color: AppPalette.primarySoft.withOpacity(0.42),
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                  color: AppPalette.primaryBorder.withOpacity(0.55)),
+            ),
+            child: row,
+          )
+        : row;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        highlighted,
+        if (showDivider)
+          const Padding(
+            padding: EdgeInsets.only(left: 46),
+            child: Divider(height: 18),
+          ),
+      ],
     );
   }
 }
@@ -619,6 +921,37 @@ class _DispatchCard extends StatelessWidget {
         .where((o) => o.status == OrderStatus.preparing)
         .toList();
     final df = DateFormat('EEE, MMM d');
+    final runs = [
+      (
+        time: Seed.nextDispatchTime,
+        title: Seed.nextDispatchVenue,
+        meta:
+            '${Seed.nextDispatchItems} items · ${prep.isNotEmpty ? prep.first.customerName : 'Team pickup'}',
+        chip: 'In progress',
+        chipFg: AppPalette.blue,
+        chipBg: AppPalette.blueBg,
+      ),
+      if (prep.isNotEmpty)
+        (
+          time: '5:15 PM',
+          title: prep.first.eventName,
+          meta:
+              '${prep.first.itemCount} items · ${df.format(prep.first.eventDate)}',
+          chip: 'Staging',
+          chipFg: AppPalette.amber,
+          chipBg: AppPalette.amberBg,
+        ),
+      if (state.pickups.isNotEmpty)
+        (
+          time: DateFormat('EEE h:mm a').format(state.pickups.first.date),
+          title: state.pickups.first.title,
+          meta:
+              '${state.pickups.first.itemCount} items · ${state.pickups.first.venue}',
+          chip: 'Scheduled',
+          chipFg: AppPalette.green,
+          chipBg: AppPalette.greenBg,
+        ),
+    ];
     return SectionCard(
       icon: Icons.local_shipping_outlined,
       title: "Today's dispatch",
@@ -629,40 +962,70 @@ class _DispatchCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _RunRow(
-            time: Seed.nextDispatchTime,
-            title: Seed.nextDispatchVenue,
-            meta:
-                '${Seed.nextDispatchItems} items · ${prep.isNotEmpty ? prep.first.customerName : 'Team pickup'}',
-            chip: 'In progress',
-            chipFg: AppPalette.blue,
-            chipBg: AppPalette.blueBg,
+          for (var i = 0; i < runs.length; i++)
+            _TimelineTile(
+              isLast: i == runs.length - 1,
+              dotColor: runs[i].chipFg,
+              child: _RunRow(
+                time: runs[i].time,
+                title: runs[i].title,
+                meta: runs[i].meta,
+                chip: runs[i].chip,
+                chipFg: runs[i].chipFg,
+                chipBg: runs[i].chipBg,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Timeline rail + content row — shared by dispatch runs and activity.
+class _TimelineTile extends StatelessWidget {
+  final bool isLast;
+  final Color dotColor;
+  final Widget child;
+
+  const _TimelineTile({
+    required this.isLast,
+    required this.dotColor,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 18,
+            child: Column(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(top: 14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.raise,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: dotColor, width: 3),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.only(top: 4),
+                      color: AppPalette.stroke,
+                    ),
+                  ),
+              ],
+            ),
           ),
-          if (prep.isNotEmpty) ...[
-            const Divider(height: 18),
-            _RunRow(
-              time: '5:15 PM',
-              title: prep.first.eventName,
-              meta:
-                  '${prep.first.itemCount} items · ${df.format(prep.first.eventDate)}',
-              chip: 'Staging',
-              chipFg: AppPalette.amber,
-              chipBg: AppPalette.amberBg,
-            ),
-          ],
-          if (state.pickups.isNotEmpty) ...[
-            const Divider(height: 18),
-            _RunRow(
-              time: DateFormat('EEE h:mm a')
-                  .format(state.pickups.first.date),
-              title: state.pickups.first.title,
-              meta:
-                  '${state.pickups.first.itemCount} items · ${state.pickups.first.venue}',
-              chip: 'Scheduled',
-              chipFg: AppPalette.green,
-              chipBg: AppPalette.greenBg,
-            ),
-          ],
+          const SizedBox(width: 10),
+          Expanded(child: child),
         ],
       ),
     );
@@ -688,23 +1051,25 @@ class _RunRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppPalette.primarySoft,
-            borderRadius: BorderRadius.circular(8),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppPalette.primarySoft,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(time,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppPalette.primaryDeep)),
           ),
-          child: Text(time,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppPalette.primaryDeep)),
-        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -732,11 +1097,10 @@ class _RunRow extends StatelessWidget {
         const SizedBox(width: 10),
         StatusBadge.custom(label: chip, fg: chipFg, bg: chipBg),
       ],
+      ),
     );
   }
 }
-
-// --------------------------------------------------------- quick actions
 /// One-tap shortcuts, tuned per role:
 ///  - employee: booking flow + counter work (payments, returns, customers)
 ///  - owner: business levers (reports, access & roles) + shared flow entry
@@ -848,26 +1212,33 @@ class _QuickActionTile extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: SizedBox(
-          height: 84,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconChipLite(icon: icon, color: color, bg: bg, size: 30),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppPalette.body)),
-              ),
-            ],
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: AppPalette.stroke.withOpacity(AppPalette.dark ? 0.9 : 0.6)),
+          ),
+          child: SizedBox(
+            height: 84,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconChipLite(icon: icon, color: color, bg: bg, size: 30),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppPalette.body)),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -905,11 +1276,13 @@ class _MyActivityCard extends StatelessWidget {
           : Column(
               children: [
                 for (var i = 0; i < mine.length; i++)
-                  Padding(
-                    padding: EdgeInsets.only(
-                        bottom: i < mine.length - 1 ? 12 : 0),
-                    child:
-                        ActivityRow(entry: mine[i], showDivider: false),
+                  _TimelineTile(
+                    isLast: i == mine.length - 1,
+                    dotColor: mine[i].type.fg,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: ActivityRow(entry: mine[i], showDivider: false),
+                    ),
                   ),
               ],
             ),
@@ -1122,13 +1495,24 @@ class _EarningsCard extends StatelessWidget {
                       heightFactor:
                           (points[i].value / maxV).clamp(0.15, 1.0),
                       alignment: Alignment.bottomCenter,
-                      child: Container(
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
+                          gradient: i == points.length - 1
+                              ? LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: AppPalette.primaryGradient,
+                                )
+                              : null,
                           color: i == points.length - 1
-                              ? AppPalette.primary
-                              : AppPalette.primaryTint,
+                              ? null
+                              : AppPalette.primary
+                                  .withOpacity(AppPalette.dark ? 0.30 : 0.16),
                           borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(5)),
+                          boxShadow: i == points.length - 1
+                              ? AppShadow.glow(blur: 14)
+                              : null,
                         ),
                       ),
                     ),
@@ -1289,9 +1673,10 @@ class _BusinessOpenBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppPalette.greenBg.withOpacity(0.55),
+        color: AppPalette.greenBg.withOpacity(AppPalette.dark ? 0.8 : 0.55),
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: AppPalette.greenBg),
+        border: Border.all(
+            color: AppPalette.green.withOpacity(AppPalette.dark ? 0.28 : 0.0)),
       ),
       child: Row(
         children: [

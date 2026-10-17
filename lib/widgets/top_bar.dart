@@ -6,6 +6,7 @@ import '../core/breakpoints.dart';
 import '../models/account.dart';
 import '../models/activity_entry.dart';
 import '../state/workspace_state.dart';
+import '../state/shell_state.dart';
 import 'brand_logo.dart';
 import 'chips.dart';
 import 'cards.dart';
@@ -63,8 +64,14 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(width: 8),
           ] else if (phoneApp) ...[
             const SizedBox(width: 14),
-            const BrandLockup(markSize: 22, fontSize: 15.5),
-            const Spacer(),
+            // Flexible brand: the fixed-width right cluster (search +
+            // bell + theme toggle) always fits; the lockup shrinks first.
+            const Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: BrandLockup(markSize: 22, fontSize: 15.5),
+              ),
+            ),
           ] else ...[
             const SizedBox(width: 16),
             _Breadcrumb(state: state),
@@ -81,6 +88,12 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             const Spacer(),
 
           _BellButton(unread: state.unreadActivity),
+
+          // Theme toggle — available to every role on every platform
+          // (Settings > Appearance is owner-only, the title-bar toggle is
+          // desktop-only; this is the always-reachable switch).
+          const SizedBox(width: 8),
+          const _ThemeToggleButton(),
 
           if (!compact) ...[
             const SizedBox(width: 10),
@@ -392,6 +405,42 @@ class _SearchDialogState extends State<_SearchDialog> {
 }
 
 // ------------------------------------------------------------------ bell + user
+/// Compact sun/moon switch shown in the top bar for every role.
+class _ThemeToggleButton extends StatelessWidget {
+  const _ThemeToggleButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final shell = context.watch<ShellState>();
+    return Material(
+      color: AppPalette.fill,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: shell.toggleTheme,
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppPalette.stroke),
+          ),
+          child: Tooltip(
+            message: shell.isDark ? 'Switch to light mode' : 'Switch to dark mode',
+            child: Icon(
+              shell.isDark
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
+              size: 17,
+              color: AppPalette.body,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _BellButton extends StatelessWidget {
   final int unread;
   const _BellButton({required this.unread});
@@ -430,7 +479,7 @@ class _BellButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppPalette.primary,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: AppPalette.surface, width: 2),
               ),
               child: Text('$unread',
                   style: const TextStyle(
@@ -453,7 +502,11 @@ class _BellButton extends StatelessWidget {
       barrierColor: Colors.black.withOpacity(0.28),
       builder: (dialogCtx) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppPalette.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppPalette.stroke),
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360, maxHeight: 440),
             child: Column(

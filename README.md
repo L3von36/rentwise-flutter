@@ -12,7 +12,7 @@ All 11 screens from the design pack, pixel-faithful:
 | --- | --- |
 | **Sign-in** | Employee/Owner role toggle, email + password, remember me, Google button, split hero layout |
 | **Password recovery** | Account recovery card with success state |
-| **Dashboard (Operations overview)** | 4 KPI cards, inventory snapshot with availability bars, recent activity feed, upcoming pickups, workspace health |
+| **Dashboard (Operations overview)** | Owner: financial KPIs, earnings chart with gradient "today" bar, top categories, inventory snapshot. Employee: gradient **shift hero** (greeting, live shift-progress rail, UP NEXT panel), numbered priority task list with filters, dispatch timeline, quick actions, personal activity timeline |
 | **Owner dashboard (mobile/tablet)** | Business-open banner, today-at-a-glance tiles, live activity, next dispatch card |
 | **Inventory** | KPIs, search + category filter, table/list switch, add-item dialog, stock adjust + maintenance toggle, +Rent shortcut |
 | **Orders** | KPIs, All/Upcoming/Completed tabs, order table + cards, status actions from the overflow menu |
@@ -75,7 +75,7 @@ Each release also includes `SHA256SUMS.txt`. Android builds additionally run `fl
 The Windows build behaves like a native desktop app, not a web page in a window:
 
 - **Custom frameless title bar** — the native caption is replaced by in-window chrome (`TitleBarStyle.hidden` + runner patch): draggable brand region, double-click to maximize, right-click native window menu, and Windows-style minimize / maximize / restore / close buttons (close hovers red). The close button parks the app in the tray instead of quitting.
-- **Dark mode** — full dark theme (deep-slate surfaces, lifted indigo accent, dark status washes) with a **System / Light / Dark** selector in *Access & roles → Appearance*, a one-tap toggle in the title bar, and a tray quick action. The choice persists via `SharedPreferences`; `ThemeMode.system` follows the OS.
+- **Dark mode (Noir v2)** — a dark theme designed as a dark theme, not a mirror: readable surface elevation ramp (canvas → panel → card → raise), strokes that actually read, luminous status washes over deep tints, indigo→violet gradients with a soft glow on primary actions, lifted dialogs/menus/tooltips. **System / Light / Dark** selector in *Access & roles → Appearance*, a sun/moon toggle in the **top bar for every role on every platform**, one in the title bar, and a tray quick action. Persists via `SharedPreferences`; `ThemeMode.system` follows the OS.
 - **Tray quick actions** — branded tray icon with left-click to restore the window and a right-click menu: Show RentWise, Dashboard · live task count, Orders, Inventory, theme switch, and Quit. The "tasks on deck" line and theme label rebuild live from the workspace store (`system_tray`).
 - **State management** — UI-shell state lives in a dedicated `ShellState` ChangeNotifier (theme mode + persistence + the native window/tray bridge), cleanly split from the domain store `WorkspaceState`; both flow through `provider`.
 - **Window management** — opens at 1280×800, centered, with a 960×640 minimum size (the responsive layout never breaks) and a proper `RentWise — <section>` window title that follows navigation (via `window_manager`).

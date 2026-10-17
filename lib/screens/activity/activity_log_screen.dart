@@ -114,7 +114,7 @@ class ActivityLogScreen extends StatelessWidget {
                 'Every update is time-stamped and attached to the employee who made it.',
             action: PopupMenuButton<String>(
               tooltip: 'Filter activity',
-              color: Colors.white,
+              color: AppPalette.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(11),
                 side: BorderSide(color: AppPalette.stroke),
@@ -323,7 +323,7 @@ class _TimelineEntry extends StatelessWidget {
                   height: 10,
                   margin: const EdgeInsets.only(top: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppPalette.raise,
                     shape: BoxShape.circle,
                     border:
                         Border.all(color: AppPalette.primaryTint, width: 3),

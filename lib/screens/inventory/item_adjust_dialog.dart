@@ -53,7 +53,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppPalette.surface,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(

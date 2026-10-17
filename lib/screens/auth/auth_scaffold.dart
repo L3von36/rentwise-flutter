@@ -50,7 +50,7 @@ class AuthScaffold extends StatelessWidget {
     final wide = size.width >= 1000;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppPalette.dark ? AppPalette.canvas : Colors.white,
       body: Stack(
         children: [
           // gradient blobs
@@ -248,7 +248,9 @@ class _HeroAvatar extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2.5),
+          border: Border.all(
+              color: AppPalette.dark ? AppPalette.raise : Colors.white,
+              width: 2.5),
         ),
         child: InitialsAvatar(
             initials: initials, color: color, size: 32, fontSize: 11),

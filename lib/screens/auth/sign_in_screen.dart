@@ -37,7 +37,7 @@ class _SignInViewState extends State<SignInView> {
             constraints: const BoxConstraints(maxWidth: 420),
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppPalette.raise,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppPalette.stroke),
               boxShadow: [
@@ -271,7 +271,7 @@ class _SignInViewState extends State<SignInView> {
                 SizedBox(
                   height: 46,
                   child: Material(
-                    color: Colors.white,
+                    color: AppPalette.raise,
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
@@ -343,7 +343,7 @@ class _RoleTab extends StatelessWidget {
     return Expanded(
       child: Material(
         color:
-            selected ? Colors.white : Colors.transparent,
+            selected ? AppPalette.raise : Colors.transparent,
         borderRadius: BorderRadius.circular(9),
         child: InkWell(
           onTap: onTap,

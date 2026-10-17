@@ -341,7 +341,7 @@ void main() {
       find.descendant(
           of: find.byType(WindowTitleBar), matching: find.byType(Material)),
     );
-    expect(material.color, const Color(0xFF10141C)); // DarkTokens.sidebar
+    expect(material.color, const Color(0xFF0E121C)); // DarkTokens.sidebar
 
     // Sign in — dark mode survives the route change and the toggle is
     // available to every role (title bar is window chrome, not owner-only).

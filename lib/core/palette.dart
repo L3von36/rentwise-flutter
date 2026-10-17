@@ -2,49 +2,64 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Dark-surface design tokens. Same visual language as the light pack:
-/// cool slate surfaces, one indigo accent, soft status washes.
+/// Dark-surface design tokens — "Midnight Indigo" pack.
+///
+/// Designed as a real dark theme, not a mirrored one:
+///  * a readable elevation ramp (canvas → panel → card → raise) so layers
+///    separate instead of melting into one gray;
+///  * strokes that actually read against cards;
+///  * brighter ink ramp for crisp text;
+///  * lifted, slightly violet brand indigo + deep tinted status washes so
+///    chips and charts keep their light-mode vibrancy.
 class DarkTokens {
   DarkTokens._();
 
-  // Surfaces
-  static const Color background = Color(0xFF0C0F16);
-  static const Color card = Color(0xFF151A24);
-  static const Color sidebar = Color(0xFF10141C);
-  static const Color cardBorder = Color(0xFF272F3D);
-  static const Color subtleFill = Color(0xFF1B212C);
+  // Surfaces — elevation ramp (each step clearly lighter than the last).
+  static const Color background = Color(0xFF0A0D14); // canvas (deepest)
+  static const Color sidebar = Color(0xFF0E121C); // panel / nav chrome
+  static const Color card = Color(0xFF141A28); // cards / sheets
+  static const Color raise = Color(0xFF1C2434); // selected / elevated fills
+  static const Color subtleFill = Color(0xFF1A2130); // subtle inputs/fills
+  static const Color cardBorder = Color(0xFF263048); // stroke that reads
 
-  // Ink
-  static const Color textDark = Color(0xFFE8ECF4);
-  static const Color textBody = Color(0xFFA7B2C4);
-  static const Color textMuted = Color(0xFF79849A);
-  static const Color textFaint = Color(0xFF545F74);
+  // Ink — crisp, high-contrast ramp.
+  static const Color textDark = Color(0xFFF3F6FC);
+  static const Color textBody = Color(0xFFBAC3D9);
+  static const Color textMuted = Color(0xFF8B95B0);
+  static const Color textFaint = Color(0xFF5E6982);
 
-  // Brand — indigo lifts slightly on dark for contrast.
-  static const Color primary = Color(0xFF6366F1);
-  static const Color primaryDeep = Color(0xFF4F46E5);
-  static const Color primarySoft = Color(0xFF20244A);
-  static const Color primaryTint = Color(0xFF272C58);
-  static const Color primaryBorder = Color(0xFF3B4070);
+  // Brand — indigo lifts + gains a violet edge on dark for gradients.
+  static const Color primary = Color(0xFF6E7BF2);
+  static const Color primaryDeep = Color(0xFF5A50EA);
+  static const Color primarySoft = Color(0xFF1D2447);
+  static const Color primaryTint = Color(0xFF2C3468);
+  static const Color primaryBorder = Color(0xFF434C8F);
 
-  // Status washes — deeper fills, lighter foregrounds.
+  /// Vertical gradient for hero/primary surfaces on dark.
+  static const List<Color> primaryGradient = [Color(0xFF6E7BF2), Color(0xFF8B5CF6)];
+
+  // Status — luminous foregrounds over deep tinted washes.
   static const Color green = Color(0xFF34D399);
-  static const Color greenBg = Color(0xFF10291D);
-  static const Color greenBar = Color(0xFF2FBE77);
+  static const Color greenBg = Color(0xFF12332A);
+  static const Color greenBar = Color(0xFF2DD48F);
   static const Color amber = Color(0xFFFBBF24);
-  static const Color amberBg = Color(0xFF2E2510);
-  static const Color amberSoft = Color(0xFF271F0E);
+  static const Color amberBg = Color(0xFF393014);
+  static const Color amberSoft = Color(0xFF2C2512);
   static const Color blue = Color(0xFF60A5FA);
-  static const Color blueBg = Color(0xFF142542);
+  static const Color blueBg = Color(0xFF1A2D52);
   static const Color purple = Color(0xFFA78BFA);
-  static const Color purpleBg = Color(0xFF241B3D);
+  static const Color purpleBg = Color(0xFF2B2150);
   static const Color red = Color(0xFFF87171);
-  static const Color redBg = Color(0xFF341B1E);
+  static const Color redBg = Color(0xFF3B1E26);
 
-  // Auth gradients
-  static const Color blobA = Color(0xFF191D38);
-  static const Color blobB = Color(0xFF141827);
-  static const Color blobC = Color(0xFF11241B);
+  // Elevated chrome (dialogs / menus / tooltips) — sits above cards.
+  static const Color dialog = Color(0xFF19202F);
+  static const Color tooltip = Color(0xFF232C40);
+
+  // Auth gradients — nebula glows.
+  static const Color blobA = Color(0xFF1C2247);
+  static const Color blobB = Color(0xFF12151F);
+  static const Color blobC = Color(0xFF11271F);
 }
 
 /// Theme-aware access to the design tokens used by custom-painted chrome.
@@ -71,6 +86,9 @@ class AppPalette {
   static Color get stroke => dark ? DarkTokens.cardBorder : AppColors.cardBorder;
   static Color get fill => dark ? DarkTokens.subtleFill : AppColors.subtleFill;
 
+  /// Elevated/selectable surface — white in light, lifted slate in dark.
+  static Color get raise => dark ? DarkTokens.raise : Colors.white;
+
   // Ink
   static Color get ink => dark ? DarkTokens.textDark : AppColors.textDark;
   static Color get body => dark ? DarkTokens.textBody : AppColors.textBody;
@@ -87,6 +105,13 @@ class AppPalette {
       dark ? DarkTokens.primaryTint : AppColors.primaryTint;
   static Color get primaryBorder =>
       dark ? DarkTokens.primaryBorder : AppColors.primaryBorder;
+
+  /// Vertical indigo→violet gradient used by hero/primary surfaces on dark;
+  /// light mode gets a subtle same-hue deepen so gradients stay legal (≥2
+  /// colors) and visually near-flat.
+  static List<Color> get primaryGradient => dark
+      ? DarkTokens.primaryGradient
+      : const [AppColors.primary, AppColors.primaryDeep];
 
   // Status
   static Color get green => dark ? DarkTokens.green : AppColors.green;

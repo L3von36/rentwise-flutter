@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'palette.dart';
+
 /// RentWise design tokens — extracted from the screen design pack.
 class AppColors {
   AppColors._();
@@ -70,21 +72,35 @@ class AppRadius {
   static const double input = 10;
 }
 
-/// App-wide shadows (very soft, per design pack).
+/// App-wide shadows — soft in light; deep, real depth in dark.
 class AppShadow {
   AppShadow._();
-  static List<BoxShadow> card({double opacity = 0.05}) => [
+  static List<BoxShadow> card({double? opacity}) => [
         BoxShadow(
-          color: const Color(0xFF1B2B4B).withOpacity(opacity),
-          blurRadius: 18,
+          color: AppPalette.dark
+              ? Colors.black.withOpacity(0.36)
+              : const Color(0xFF1B2B4B).withOpacity(opacity ?? 0.05),
+          blurRadius: AppPalette.dark ? 20 : 18,
           offset: const Offset(0, 6),
         ),
       ];
-  static List<BoxShadow> pop({double opacity = 0.12}) => [
+  static List<BoxShadow> pop({double? opacity}) => [
         BoxShadow(
-          color: const Color(0xFF1B2B4B).withOpacity(opacity),
-          blurRadius: 30,
+          color: AppPalette.dark
+              ? Colors.black.withOpacity(0.55)
+              : const Color(0xFF1B2B4B).withOpacity(opacity ?? 0.12),
+          blurRadius: AppPalette.dark ? 34 : 30,
           offset: const Offset(0, 12),
         ),
       ];
+  /// Soft indigo glow under primary actions (dark mode only; empty in light).
+  static List<BoxShadow> glow({Color? color, double blur = 18}) => AppPalette.dark
+      ? [
+          BoxShadow(
+            color: (color ?? AppPalette.primary).withOpacity(0.32),
+            blurRadius: blur,
+            offset: const Offset(0, 4),
+          ),
+        ]
+      : const [];
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/palette.dart';
+
 /// Lifecycle state of an inventory piece.
 enum ItemStatus { inStock, rentedOut, maintenance }
 
@@ -11,15 +13,15 @@ extension ItemStatusX on ItemStatus {
       };
 
   Color get fg => switch (this) {
-        ItemStatus.inStock => const Color(0xFF079455),
-        ItemStatus.rentedOut => const Color(0xFF4F46E5),
-        ItemStatus.maintenance => const Color(0xFFD97706),
+        ItemStatus.inStock => AppPalette.green,
+        ItemStatus.rentedOut => AppPalette.primary,
+        ItemStatus.maintenance => AppPalette.amber,
       };
 
   Color get bg => switch (this) {
-        ItemStatus.inStock => const Color(0xFFE7F6EF),
-        ItemStatus.rentedOut => const Color(0xFFEEF2FF),
-        ItemStatus.maintenance => const Color(0xFFFDF1DF),
+        ItemStatus.inStock => AppPalette.greenBg,
+        ItemStatus.rentedOut => AppPalette.primarySoft,
+        ItemStatus.maintenance => AppPalette.amberBg,
       };
 }
 

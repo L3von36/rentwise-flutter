@@ -91,7 +91,7 @@ class _QtyStepper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.raise,
         borderRadius: BorderRadius.circular(9),
         border: Border.all(color: AppPalette.stroke),
       ),
@@ -362,7 +362,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                     height: 42,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppPalette.raise,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppPalette.stroke),
                     ),
@@ -559,16 +559,16 @@ class _BookingDialogState extends State<_BookingDialog> {
         constraints: BoxConstraints(
             maxHeight: MediaQuery.sizeOf(context).height * 0.88),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        decoration: BoxDecoration(
+          color: AppPalette.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         ),
         child: content,
       );
     }
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppPalette.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),

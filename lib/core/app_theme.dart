@@ -143,7 +143,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: card,
+        fillColor: dark ? DarkTokens.subtleFill : card,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         hintStyle: TextStyle(
@@ -162,7 +162,7 @@ class AppTheme {
             color: ink),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: card,
+          fillColor: dark ? DarkTokens.subtleFill : card,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           border: _inputBorder(stroke),
@@ -175,7 +175,7 @@ class AppTheme {
           surfaceTintColor: WidgetStateProperty.all(card),
           elevation: const WidgetStatePropertyAll(16),
           shadowColor: WidgetStateProperty.all(
-              textScaleShadow.withOpacity(dark ? 0.55 : 0.18)),
+              dark ? Colors.black.withOpacity(0.6) : AppColors.cardBorder.withOpacity(0.35)),
           shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -187,17 +187,17 @@ class AppTheme {
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: card,
-        surfaceTintColor: card,
+        color: dark ? DarkTokens.dialog : card,
+        surfaceTintColor: dark ? DarkTokens.dialog : card,
         elevation: 16,
-        shadowColor: textScaleShadow.withOpacity(dark ? 0.55 : 0.18),
+        shadowColor: dark ? Colors.black.withOpacity(0.6) : AppColors.cardBorder.withOpacity(0.35),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: stroke),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: dark ? DarkTokens.subtleFill : textScaleShadow,
+        backgroundColor: dark ? DarkTokens.tooltip : textScaleShadow,
         contentTextStyle: TextStyle(
             fontFamily: fontFamily,
             color: dark ? DarkTokens.textDark : Colors.white,
@@ -208,14 +208,18 @@ class AppTheme {
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       dialogTheme: DialogTheme(
-        backgroundColor: card,
-        surfaceTintColor: card,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: dark ? DarkTokens.dialog : card,
+        surfaceTintColor: dark ? DarkTokens.dialog : card,
+        elevation: dark ? 24 : 0,
+        shadowColor: dark ? Colors.black.withOpacity(0.5) : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: dark ? BorderSide(color: stroke) : BorderSide.none,
+        ),
       ),
       datePickerTheme: DatePickerThemeData(
-        backgroundColor: card,
-        surfaceTintColor: card,
+        backgroundColor: dark ? DarkTokens.dialog : card,
+        surfaceTintColor: dark ? DarkTokens.dialog : card,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -232,7 +236,7 @@ class AppTheme {
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: dark ? DarkTokens.subtleFill : textScaleShadow,
+          color: dark ? DarkTokens.tooltip : textScaleShadow,
           borderRadius: BorderRadius.circular(8),
         ),
         textStyle: TextStyle(

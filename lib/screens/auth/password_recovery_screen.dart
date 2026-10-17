@@ -39,7 +39,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
         constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppPalette.raise,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppPalette.stroke),
           boxShadow: [
@@ -219,7 +219,7 @@ class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
         SizedBox(
           height: 46,
           child: Material(
-            color: Colors.white,
+            color: AppPalette.raise,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),

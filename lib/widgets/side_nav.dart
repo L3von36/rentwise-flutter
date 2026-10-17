@@ -117,7 +117,7 @@ class SideNav extends StatelessWidget {
                       IconChipLite(
                           icon: Icons.auto_awesome,
                           color: AppPalette.primary,
-                          bg: Colors.white,
+                          bg: AppPalette.raise,
                           size: 28),
                       const SizedBox(height: 8),
                       Text('All caught up',

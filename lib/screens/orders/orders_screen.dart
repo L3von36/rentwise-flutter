@@ -226,7 +226,7 @@ class _OrderTabs extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: tab == selected ? Colors.white : Colors.transparent,
+                  color: tab == selected ? AppPalette.raise : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: tab == selected
                       ? [
@@ -481,7 +481,7 @@ class _OrderMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       tooltip: 'Order actions',
-      color: Colors.white,
+      color: AppPalette.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(11),
         side: BorderSide(color: AppPalette.stroke),

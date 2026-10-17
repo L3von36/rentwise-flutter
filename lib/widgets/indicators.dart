@@ -132,7 +132,9 @@ class HealthBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
                     AppPalette.greenBar,
-                    const Color(0xFF0E9F6E),
+                    AppPalette.dark
+                        ? const Color(0xFF17B579)
+                        : const Color(0xFF0E9F6E),
                   ]),
                   borderRadius: BorderRadius.circular(99),
                 ),

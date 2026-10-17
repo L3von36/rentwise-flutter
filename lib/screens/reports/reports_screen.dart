@@ -132,9 +132,11 @@ class ReportsScreen extends StatelessWidget {
                         final p = trend[group.x.toInt()];
                         return BarTooltipItem(
                           '\$${p.value.toStringAsFixed(1)}k',
-                          const TextStyle(
+                          TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              color: Colors.white,
+                              color: AppPalette.dark
+                                  ? AppPalette.canvas
+                                  : Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w700),
                         );
@@ -155,7 +157,9 @@ class ReportsScreen extends StatelessWidget {
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
                               colors: [
-                                const Color(0xFFB9B5F5),
+                                AppPalette.dark
+                                    ? const Color(0xFF3D3A8C)
+                                    : const Color(0xFFB9B5F5),
                                 AppPalette.primary,
                               ],
                             ),

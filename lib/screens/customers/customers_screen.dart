@@ -529,8 +529,7 @@ class _PulsePanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Eyebrow('Relationship pulse',
-              color: Color(0xFF8B5CF6)),
+          Eyebrow('Relationship pulse', color: AppPalette.purple),
           const SizedBox(height: 10),
           Text('Customers are booking earlier.',
               style: TextStyle(
@@ -560,7 +559,7 @@ class _PulsePanel extends StatelessWidget {
                       fontSize: Density.compact(context) ? 18 : 22,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.8,
-                      color: const Color(0xFF7C3AED))),
+                      color: AppPalette.purple)),
               const SizedBox(width: 9),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
@@ -588,8 +587,12 @@ class _PulsePanel extends StatelessWidget {
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                           colors: [
-                            const Color(0xFFB7ADF4),
-                            const Color(0xFF8B78EC).withOpacity(0.85),
+                            AppPalette.dark
+                                ? const Color(0xFF4A4394)
+                                : const Color(0xFFB7ADF4),
+                            AppPalette.dark
+                                ? const Color(0xFF8B78EC)
+                                : const Color(0xFF8B78EC).withOpacity(0.85),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(4),
@@ -600,17 +603,17 @@ class _PulsePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
               Text('View customer insights',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF7C3AED))),
-              SizedBox(width: 5),
+                      color: AppPalette.purple)),
+              const SizedBox(width: 5),
               Icon(Icons.north_east_rounded,
-                  size: 14, color: Color(0xFF7C3AED)),
+                  size: 14, color: AppPalette.purple),
             ],
           ),
         ],
