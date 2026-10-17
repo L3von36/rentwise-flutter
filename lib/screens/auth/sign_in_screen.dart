@@ -8,6 +8,10 @@ import '../../widgets/cards.dart';
 import '../../core/palette.dart';
 
 /// Sign-in screen — role toggle, email/password, Google button.
+///
+/// The toggle pre-fills the matching Appwrite account. Sign-in runs
+/// against Appwrite Cloud; if the backend can't be reached, a demo-mode
+/// escape hatch keeps the app usable offline.
 class SignInView extends StatefulWidget {
   final VoidCallback onForgotPassword;
   const SignInView({super.key, required this.onForgotPassword});
@@ -22,7 +26,34 @@ class _SignInViewState extends State<SignInView> {
   bool _obscure = true;
   final _emailCtrl =
       TextEditingController(text: 'jordan@riverside.events');
-  final _passwordCtrl = TextEditingController(text: 'rentwise-demo');
+  final _passwordCtrl = TextEditingController(text: 'jordan@336');
+
+  static const _demoCreds = {
+    UserRole.employee: ('jordan@riverside.events', 'jordan@336'),
+    UserRole.owner: ('selamvenda8@gmail.com', 'selam@336'),
+  };
+
+  void _applyDemoPersona(UserRole role) {
+    final (email, password) = _demoCreds[role]!;
+    _emailCtrl.text = email;
+    _passwordCtrl.text = password;
+  }
+
+  Future<void> _submit() async {
+    final state = context.read<WorkspaceState>();
+    final error = await state.signInWithEmail(
+      _emailCtrl.text.trim(),
+      _passwordCtrl.text,
+    );
+    if (!mounted || error == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(error),
+      action: SnackBarAction(
+        label: 'Demo mode',
+        onPressed: () => state.signIn(_role),
+      ),
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,13 +119,19 @@ class _SignInViewState extends State<SignInView> {
                         icon: Icons.person_outline,
                         label: 'Employee',
                         selected: _role == UserRole.employee,
-                        onTap: () => setState(() => _role = UserRole.employee),
+                        onTap: () {
+                          setState(() => _role = UserRole.employee);
+                          _applyDemoPersona(UserRole.employee);
+                        },
                       ),
                       _RoleTab(
                         icon: Icons.shield_outlined,
                         label: 'Owner',
                         selected: _role == UserRole.owner,
-                        onTap: () => setState(() => _role = UserRole.owner),
+                        onTap: () {
+                          setState(() => _role = UserRole.owner);
+                          _applyDemoPersona(UserRole.owner);
+                        },
                       ),
                     ],
                   ),
@@ -200,6 +237,36 @@ class _SignInViewState extends State<SignInView> {
                 ),
                 const SizedBox(height: 18),
 
+                if (state.authError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppPalette.redBg,
+                      borderRadius: BorderRadius.circular(9),
+                      border:
+                          Border.all(color: AppPalette.red.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline_rounded,
+                            size: 15, color: AppPalette.red),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(state.authError!,
+                              style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppPalette.red,
+                              )),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // CTA
                 SizedBox(
                   height: 48,
@@ -208,11 +275,7 @@ class _SignInViewState extends State<SignInView> {
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: state.loadingAuth
-                          ? null
-                          : () => context
-                              .read<WorkspaceState>()
-                              .signIn(_role),
+                      onTap: state.loadingAuth ? null : _submit,
                       child: Center(
                         child: state.loadingAuth
                             ? const SizedBox(
@@ -275,8 +338,10 @@ class _SignInViewState extends State<SignInView> {
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () =>
-                          context.read<WorkspaceState>().signIn(_role),
+                      onTap: state.loadingAuth
+                          ? null
+                          : () =>
+                              context.read<WorkspaceState>().signIn(_role),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),

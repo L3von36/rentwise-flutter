@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
-import '../../data/seed_data.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/kpi_card.dart';
 import '../../widgets/indicators.dart';
@@ -30,7 +29,7 @@ class ReportsScreen extends StatelessWidget {
     }
 
     final now = DateTime.now();
-    final trend = Seed.revenueTrend(now);
+    final trend = state.trendSeries(now);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
@@ -179,7 +178,7 @@ class ReportsScreen extends StatelessWidget {
             subtitle: 'Seating drives the most revenue.',
             child: Column(
               children: [
-                for (final cat in Seed.categoryRevenue)
+                for (final cat in state.categorySeries)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Column(
@@ -214,7 +213,7 @@ class ReportsScreen extends StatelessWidget {
                                     color: AppPalette.primarySoft),
                                 FractionallySizedBox(
                                   widthFactor: cat.amount /
-                                      Seed.categoryRevenue.first.amount,
+                                      state.categorySeries.first.amount,
                                   child: Container(
                                       color: AppPalette.primary),
                                 ),

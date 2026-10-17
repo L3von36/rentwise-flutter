@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'services/appwrite_backend.dart';
 import 'state/shell_state.dart';
 import 'state/workspace_state.dart';
 import 'app.dart';
@@ -26,7 +27,7 @@ Future<void> main() async {
         AppSystemChrome.lightSurfaces); // dark icons on light backgrounds
   }
 
-  final workspace = WorkspaceState();
+  final workspace = WorkspaceState(backend: AppwriteBackend());
   final shell = ShellState(prefs: prefs);
 
   runApp(

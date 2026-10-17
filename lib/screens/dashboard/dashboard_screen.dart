@@ -1413,7 +1413,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
                     label: 'Fleet utilization',
-                    value: '${Seed.utilizationPct}%',
+                    value: '${state.utilization.toStringAsFixed(1)}%',
                     subtitle: '${state.totalUnits} units on hand',
                     trailing: const TrendChip(
                         text: '${Seed.utilizationTrend}%',
@@ -1494,9 +1494,10 @@ class _EarningsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final points = Seed.earningsDaily(now);
+    final state = context.watch<WorkspaceState>();
+    final points = state.earningsSeries(now);
     final maxV = points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
-    const categories = Seed.categoryRevenue;
+    final categories = state.categorySeries;
     final maxCat =
         categories.map((c) => c.amount).reduce((a, b) => a > b ? a : b);
     final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
