@@ -497,9 +497,15 @@ class AppwriteBackend {
         case 'general_rate_limit_exceeded':
           return 'Too many attempts — wait a moment and try again.';
         case 'general_unknown_origin':
-          return 'This website\'s domain is not registered in the Appwrite '
-              'project — add it under Platforms → Web in the Appwrite '
-              'console, then try again.';
+          // Appwrite's message names the exact client to register, e.g.
+          // "Register your new client (com.rentwise.rentwise) as a new
+          // Windows platform ..." — surface that identifier.
+          final id = RegExp(r'\(([^)]+)\)')
+              .firstMatch(error.message ?? '')
+              ?.group(1);
+          return 'Appwrite does not recognize this app origin'
+              '${id == null ? '' : ' ($id)'} — register it under Platforms '
+              'in the Appwrite console (project rentwise), then try again.';
       }
       if (error.code == 429) {
         return 'Too many attempts — wait a moment and try again.';
