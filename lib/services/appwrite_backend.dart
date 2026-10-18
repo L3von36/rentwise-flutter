@@ -79,7 +79,34 @@ class AppwriteBackend {
 
   /// Signs the user in and resolves their workspace profile (role, title).
   /// Returns the account; throws [AppwriteException] on failure.
+  ///
+  /// NO auto-provisioning: an auth account without a `profiles` document
+  /// is refused with [NoProfileException]. Employee accounts are created
+  /// exclusively by the owner from the Owner Dashboard (Access & roles) —
+  /// see [createEmployee]; the one exception is [registerAccount], the
+  /// one-time owner bootstrap on a fresh cloud.
   Future<Account> authenticate(String email, String password) async {
+    await _createSession(email, password);
+    final user = await _account.get().timeout(_callTimeout);
+    _userId = user.$id;
+
+    final profile = await _findProfile(user.$id).timeout(_callTimeout);
+    if (profile == null) throw NoProfileException();
+    final d = profile.data;
+    return Account(
+      name: (d['name'] ?? user.name) as String? ?? user.name,
+      email: (d['email'] ?? user.email) as String? ?? user.email,
+      role: (d['role'] ?? 'employee') == 'owner'
+          ? UserRole.owner
+          : UserRole.employee,
+      initials:
+          initialsFor((d['name'] ?? user.name) as String? ?? user.name),
+      title: (d['title'] ?? '') as String? ?? '',
+    );
+  }
+
+  /// Opens an email/password session and remembers the user id.
+  Future<void> _createSession(String email, String password) async {
     try {
       await _account
           .createEmailPasswordSession(email: email, password: password)
@@ -90,55 +117,23 @@ class AppwriteBackend {
     }
     final user = await _account.get().timeout(_callTimeout);
     _userId = user.$id;
-
-    final profile = await _findProfile(user.$id).timeout(_callTimeout);
-    if (profile != null) {
-      final d = profile.data;
-      return Account(
-        name: (d['name'] ?? user.name) as String? ?? user.name,
-        email: (d['email'] ?? user.email) as String? ?? user.email,
-        role: (d['role'] ?? 'employee') == 'owner'
-            ? UserRole.owner
-            : UserRole.employee,
-        initials: initialsFor(
-            (d['name'] ?? user.name) as String? ?? user.name),
-        title: (d['title'] ?? '') as String? ?? '',
-      );
-    }
-
-    // First-ever sign-in of an unprovisioned user. Bootstrap rule: if
-    // NO owner profile exists yet, this account becomes the owner —
-    // otherwise it joins as a safe employee and is promoted by the
-    // owner in Access & roles. Owner access is never granted when an
-    // owner already exists.
-    final bootstrapOwner = !(await _hasOwner());
-    final provisioned = Account(
-      name: user.name.isEmpty ? email : user.name,
-      email: user.email,
-      role: bootstrapOwner ? UserRole.owner : UserRole.employee,
-      initials: initialsFor(user.name.isEmpty ? email : user.name),
-      title: bootstrapOwner ? 'Workspace owner' : 'Team member',
-    );
-    await _db.createDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.colProfiles,
-      documentId: user.$id,
-      data: {
-        'userId': user.$id,
-        'name': provisioned.name,
-        'email': provisioned.email,
-        'role': bootstrapOwner ? 'owner' : 'employee',
-        'title': provisioned.title,
-      },
-    );
-    return provisioned;
   }
 
-  /// Creates a new Appwrite account (sign-up), then signs it in and
-  /// provisions the profile through [authenticate]. Throws
-  /// [AppwriteException] on failure (existing email, weak password…).
+  /// One-time owner bootstrap (the "Register" screen).
+  ///
+  /// Creates the Appwrite auth account, signs it in and writes the owner
+  /// profile. Registration is open ONLY while the cloud has no owner —
+  /// afterwards it throws [RegistrationClosedException]: employee
+  /// accounts are created by the owner via [createEmployee], never by
+  /// self-service sign-up.
   Future<Account> registerAccount(
       String name, String email, String password) async {
+    // Refuse BEFORE creating any auth account, so a closed registration
+    // leaves no orphan credentials behind. (Two simultaneous first-time
+    // sign-ups could in theory both pass this check — a single-tenant
+    // rental shop does not hit that race in practice.)
+    if (await _hasOwner()) throw RegistrationClosedException();
+
     await _account
         .create(
           userId: aw.ID.unique(),
@@ -147,7 +142,105 @@ class AppwriteBackend {
           name: name,
         )
         .timeout(_callTimeout);
-    return authenticate(email, password);
+    await _createSession(email, password);
+    final user = await _account.get().timeout(_callTimeout);
+
+    final owner = Account(
+      name: name.trim().isEmpty ? email : name.trim(),
+      email: user.email,
+      role: UserRole.owner,
+      initials: initialsFor(name.trim().isEmpty ? email : name.trim()),
+      title: 'Workspace owner',
+    );
+    await _db.createDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.colProfiles,
+      documentId: user.$id,
+      data: {
+        'userId': user.$id,
+        'name': owner.name,
+        'email': owner.email,
+        'role': 'owner',
+        'title': owner.title,
+      },
+    ).timeout(_callTimeout);
+    return owner;
+  }
+
+  /// OWNER ACTION — creates an employee account end-to-end:
+  /// the Appwrite auth account (email + password) AND the `profiles`
+  /// document with the fixed `employee` role.
+  ///
+  /// `account.create` is a public sign-up endpoint that does not touch
+  /// the caller's session, so the owner stays signed in. The profiles
+  /// document is written by the owner's own session (profiles allow
+  /// `create` for `users`). Roles are never taken from user input here.
+  Future<Account> createEmployee({
+    required String name,
+    required String email,
+    required String password,
+    String title = 'Team member',
+  }) async {
+    final trimmedName = name.trim();
+    final user = await _account
+        .create(
+          userId: aw.ID.unique(),
+          email: email.trim(),
+          password: password,
+          name: trimmedName,
+        )
+        .timeout(_callTimeout);
+    final member = Account(
+      name: trimmedName.isEmpty ? email.trim() : trimmedName,
+      email: email.trim(),
+      role: UserRole.employee,
+      initials: initialsFor(trimmedName.isEmpty ? email.trim() : trimmedName),
+      title: title.trim().isEmpty ? 'Team member' : title.trim(),
+    );
+    await _db.createDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.colProfiles,
+      documentId: user.$id,
+      data: {
+        'userId': user.$id,
+        'name': member.name,
+        'email': member.email,
+        'role': 'employee',
+        'title': member.title,
+      },
+    ).timeout(_callTimeout);
+    return member;
+  }
+
+  /// OWNER ACTION — the full team (every `profiles` document), owner
+  /// first, then alphabetical. Team sizes are small; a single page is
+  /// plenty (cursor pagination would be overkill here).
+  Future<List<Account>> listTeam() async {
+    final res = await _db.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.colProfiles,
+      queries: [aw.Query.limit(100)],
+    ).timeout(_callTimeout);
+    final members = <Account>[];
+    for (final doc in res.documents) {
+      final d = doc.data;
+      final name = (d['name'] ?? '') as String? ?? '';
+      final email = (d['email'] ?? '') as String? ?? '';
+      members.add(Account(
+        name: name.isEmpty ? email : name,
+        email: email,
+        role: (d['role'] ?? 'employee') == 'owner'
+            ? UserRole.owner
+            : UserRole.employee,
+        initials: initialsFor(name.isEmpty ? email : name),
+        title: (d['title'] ?? '') as String? ?? '',
+      ));
+    }
+    members.sort((a, b) {
+      if (a.role != b.role) return a.role == UserRole.owner ? -1 : 1;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return members;
   }
 
   /// True when at least one profile with role `owner` exists.
@@ -656,11 +749,16 @@ class AppwriteBackend {
   /// happened instead of hiding every failure behind one generic string.
   static String authErrorText(Object error) {
     if (error is NoProfileException) return error.message;
+    if (error is RegistrationClosedException) return error.message;
     if (error is aw.AppwriteException) {
       switch (error.type) {
         case 'user_invalid_credentials':
         case 'user_email_not_found':
           return 'Email or password is incorrect.';
+        case 'user_already_exists':
+          return 'An account with this email already exists.\n'
+              'Use a different email, or ask the owner to check the team '
+              'list in Access & roles.';
         case 'user_blocked':
           return 'This account has been suspended.';
         case 'general_rate_limit_exceeded':
@@ -721,14 +819,30 @@ class AppwriteBackend {
   }
 }
 
-/// Thrown when a signed-in Appwrite user cannot get a workspace profile
-/// (the profiles lookup fails or bootstrap is impossible). The client
-/// never grants roles silently — the user gets an actionable message.
+/// Thrown when a signed-in Appwrite user has no `profiles` document.
+/// The client never invents roles — employee accounts are created by
+/// the owner from the Owner Dashboard (Access & roles).
 class NoProfileException implements Exception {
   final String message;
   NoProfileException()
-      : message = 'This account is not assigned to a RentWise workspace yet.\n'
-            'Ask the workspace owner to provision your employee profile.';
+      : message = 'This account is not added to a RentWise workspace yet.\n'
+            'Employee accounts are created by the workspace owner '
+            '(Owner Dashboard → Access & roles) — self-registration is '
+            'not available.';
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when someone tries to self-register after the workspace
+/// already has an owner. Registration exists ONLY to bootstrap the
+/// first owner; every other account is created by that owner.
+class RegistrationClosedException implements Exception {
+  final String message;
+  RegistrationClosedException()
+      : message = 'Registration is closed — this workspace already has '
+            'an owner.\nEmployee accounts are created by the owner from '
+            'the Owner Dashboard → Access & roles.';
 
   @override
   String toString() => message;

@@ -181,11 +181,13 @@ class WorkspaceState extends ChangeNotifier {
   UserRole get role => _account?.role ?? UserRole.employee;
   bool get isOwner => role == UserRole.owner;
 
-  /// Real sign-up against Appwrite: creates the account, signs it in
-  /// and provisions the profile. Role rule: the FIRST account on a
-  /// cloud with no owner profile becomes the owner; every later
-  /// registration joins as an employee (promoted by the owner in
-  /// Access & roles). Returns null on success.
+  /// Real sign-up against Appwrite — the ONE-TIME owner bootstrap.
+  /// Creates the account, signs it in and writes the owner profile.
+  /// Registration is refused once the workspace has an owner
+  /// ([RegistrationClosedException] surfaces through the auth error):
+  /// employee accounts are created by the owner afterwards via
+  /// [addEmployee], never by self-service sign-up. Returns null on
+  /// success.
   Future<String?> signUpWithEmail(
       String name, String email, String password) async {
     final b = _backend;
@@ -205,6 +207,7 @@ class WorkspaceState extends ChangeNotifier {
       final snap = await b.loadWorkspace();
       _adoptSnapshot(snap);
       _ensureOwnerWorkspace();
+      await loadTeam();
       _loadingAuth = false;
       _section = Section.dashboard;
       notifyListeners();
@@ -284,6 +287,7 @@ class WorkspaceState extends ChangeNotifier {
       // collection shows an empty workspace. Nothing is invented locally.
       _adoptSnapshot(snap);
       _ensureOwnerWorkspace();
+      await loadTeam();
       _loadingAuth = false;
       _section = Section.dashboard;
       notifyListeners();
@@ -320,7 +324,93 @@ class WorkspaceState extends ChangeNotifier {
     _backend?.signOutAccount();
     _account = null;
     _section = Section.dashboard;
+    _team = const [];
     notifyListeners();
+  }
+
+  // ---------------------------------------------------------------- team
+  /// Every workspace member (owner first). Loaded from the cloud
+  /// `profiles` collection for the OWNER only — employees never see the
+  /// team console and accounts are created exclusively by the owner.
+  List<Account> _team = const [];
+  bool _loadingTeam = false;
+
+  List<Account> get team => List.unmodifiable(_team);
+  bool get loadingTeam => _loadingTeam;
+
+  /// Loads the team directory (owner-only). Failures surface as an
+  /// error notice but never block the sign-in flow.
+  Future<void> loadTeam() async {
+    final b = _backend;
+    if (b == null || !isOwner) return;
+    _loadingTeam = true;
+    notifyListeners();
+    try {
+      _team = await b.listTeam();
+    } catch (e) {
+      debugPrint('Appwrite[profiles.list] $e');
+      _emit('Could not load the team list — check your connection.',
+          error: true);
+    }
+    _loadingTeam = false;
+    notifyListeners();
+  }
+
+  /// OWNER ACTION — creates an employee account end-to-end (Appwrite
+  /// auth account + employee profile). This is the ONLY way employee
+  /// accounts come into existence: self-registration is closed once
+  /// the workspace has an owner.
+  ///
+  /// Returns null on success, or a human-friendly error message.
+  Future<String?> addEmployee({
+    required String name,
+    required String email,
+    required String password,
+    String title = 'Team member',
+  }) async {
+    if (!isSignedIn) return 'Sign in first.';
+    if (!role.canManageTeam) {
+      _deny('create employee accounts');
+      notifyListeners();
+      return 'Owner access required — employee accounts are managed by '
+          'the workspace owner.';
+    }
+    final b = _backend;
+    if (b == null) {
+      return 'Appwrite backend is not configured in this build.';
+    }
+    final trimmedName = name.trim();
+    final trimmedEmail = email.trim();
+    if (trimmedName.isEmpty) return 'Enter the employee\u2019s full name.';
+    if (!trimmedEmail.contains('@') || !trimmedEmail.contains('.')) {
+      return 'Enter a valid email address.';
+    }
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters (Appwrite requirement).';
+    }
+    try {
+      final member = await b.createEmployee(
+        name: trimmedName,
+        email: trimmedEmail,
+        password: password,
+        title: title,
+      );
+      _team = [..._team, member];
+      _log(
+        type: ActivityType.note,
+        body: '**${_account?.name ?? 'The owner'}** created an employee '
+            'account for **${member.name}** (${member.email})',
+      );
+      _emit('Employee account created for ${member.email} — share the '
+          'credentials securely. They sign in on the Sign in screen.');
+      notifyListeners();
+      return null;
+    } catch (e) {
+      final msg = AppwriteBackend.authErrorText(e);
+      _emit(msg, error: true);
+      notifyListeners();
+      return msg;
+    }
   }
 
   // ------------------------------------------------------------------ access

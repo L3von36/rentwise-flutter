@@ -6,13 +6,13 @@ import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
 import '../../core/palette.dart';
 
-/// Sign-up screen — creates the Appwrite account, signs it in and
-/// provisions the profile.
+/// Sign-up screen — the ONE-TIME owner bootstrap.
 ///
-/// Role rule (enforced server-side by the backend, mirrored in the UI
-/// copy): the FIRST account on a cloud that has no owner yet becomes
-/// the owner; every later registration joins as an employee and is
-/// promoted by the owner under Access & roles.
+/// Creates the Appwrite account, signs it in and writes the owner
+/// profile. Registration is refused once the workspace has an owner
+/// (RegistrationClosedException → inline error): employee accounts are
+/// created by the owner from the Owner Dashboard → Access & roles, so
+/// credentials are always issued by the owner, never self-service.
 class SignUpView extends StatefulWidget {
   final VoidCallback onBackToSignIn;
   const SignUpView({super.key, required this.onBackToSignIn});
@@ -101,7 +101,7 @@ class _SignUpViewState extends State<SignUpView> {
                 bg: AppPalette.primarySoft,
                 size: 42),
             const SizedBox(height: 16),
-            Text('CREATE YOUR ACCOUNT',
+            Text('CREATE THE OWNER ACCOUNT',
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 10.5,
@@ -110,12 +110,13 @@ class _SignUpViewState extends State<SignUpView> {
                   color: AppPalette.muted,
                 )),
             const SizedBox(height: 8),
-            Text('Register to get started',
+            Text('Register your workspace',
                 style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 6),
             Text(
-                'The first account on a fresh workspace becomes the owner. '
-                'Team members register after and are promoted by the owner.',
+                'This one-time registration creates your OWNER account. '
+                'Employee accounts are added later by you, from the '
+                'Owner Dashboard → Access & roles.',
                 style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 20),
 
@@ -260,7 +261,7 @@ class _SignUpViewState extends State<SignUpView> {
                                   size: 18, color: Colors.white),
                               SizedBox(width: 9),
                               Text(
-                                'Create account',
+                                'Create owner account',
                                 style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13.5,

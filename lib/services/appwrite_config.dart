@@ -14,9 +14,12 @@ class AppwriteConfig {
   static const String databaseId = 'rentwise-db';
 
   /// Workspace member profiles (role, title). Clients may READ profiles
-  /// and create their own on first-ever sign-up (bootstrap: owner only
-  /// when no owner exists), but can NEVER update or delete them — a
-  /// role is fixed at creation and only changeable with the API key.
+  /// and CREATE them in exactly two cases: the one-time owner bootstrap
+  /// (registerAccount, refused once an owner exists) and the owner's
+  /// Add-employee action (createEmployee). Profiles are never updated or
+  /// deleted by clients — a role is fixed at creation and only changeable
+  /// with the API key. Employee accounts therefore always come from the
+  /// owner (Owner Dashboard → Access & roles).
   static const String colProfiles = 'profiles';
 
   /// Per-user preferences (one document per user id, document-level

@@ -10,7 +10,7 @@ All 11 screens from the design pack, pixel-faithful:
 
 | Screen | Highlights |
 | --- | --- |
-| **Sign-in / Sign-up** | Email + password sign-in with remember-me, plus full **registration** (create account → first account on a fresh cloud becomes owner, later accounts join as employees), forgot-password flow, split hero layout |
+| **Sign-in / Sign-up** | Email + password sign-in with remember-me, plus one-time **owner registration** (bootstraps the workspace; closed once an owner exists), forgot-password flow, split hero layout |
 | **Password recovery** | Account recovery card with success state |
 | **Dashboard (Operations overview)** | Owner: financial KPIs, earnings chart with gradient "today" bar, top categories, inventory snapshot. Employee: gradient **shift hero** (greeting, live shift-progress rail, UP NEXT panel), numbered priority task list with filters, dispatch timeline, quick actions, personal activity timeline |
 | **Owner dashboard (mobile/tablet)** | Business-open banner, today-at-a-glance tiles, live activity, next dispatch card |
@@ -50,9 +50,9 @@ flutter run -d <device-id>  # Android / iOS device or emulator
 
 Sign in with an **Appwrite account registered in your project** (the role — owner or employee — is resolved server-side from the `profiles` collection), create a booking from **New rental booking** or any **+ Rent** button, then watch the dashboard, orders, inventory, and activity log react. Data is written through to Appwrite Cloud as you act.
 
-## Roles & permissions (v1.15)
+## Roles & permissions (v1.16)
 
-Two roles exist: **owner** and **employee**. The role is fixed at profile creation (server-side `profiles` collection; clients can never update it) and resolved at sign-in.
+Two roles exist: **owner** and **employee**. The role is fixed at profile creation (server-side `profiles` collection; clients can never update it) and resolved at sign-in. Employee accounts are created **only by the owner** from the Owner Dashboard → Access & roles — self-registration closes as soon as the owner exists.
 
 ### Permission matrix
 
@@ -68,7 +68,7 @@ Two roles exist: **owner** and **employee**. The role is fixed at profile creati
 | Add inventory catalog items | Yes | No |
 | Delete inventory items / change pricing | Yes | No |
 | Reports & CSV exports | Yes | No |
-| Manage employees (Access & roles) | Yes | No |
+| Create employee accounts (Owner dashboard) | Yes | No |
 | Reset workspace data (danger zone) | Yes | No |
 | Create / switch workspaces | Yes | No |
 | View financial metrics | Yes | No |
@@ -91,16 +91,18 @@ Re-run the idempotent provisioner to tighten the live project:
 AW_KEY=<api key with databases/users/teams scopes> bash scripts/appwrite_provision.sh
 ```
 
-- `profiles` — clients get **read + create only**: a role is fixed at creation and can never be changed from the app (no self-promotion, no role edits). Bootstrap keeps working: the first account on a cloud with no owner becomes owner; everyone after joins as employee.
+- `profiles` — clients get **read + create only**: a role is fixed at creation and can never be changed from the app (no self-promotion, no role edits). Create happens in exactly two flows: the one-time owner bootstrap and the owner's Add-employee action.
 - `user_prefs` (new) — per-user document-level-security prefs holding the active-workspace pointer, replacing profile updates.
 - `metrics` — readable **only by the `owners` team**; the script syncs every owner profile (including in-app bootstrapped owners) into that team, so employees cannot pull financial metrics even with a session.
 - Operational collections stay member-writable so the shift can run; owner-only mutations are enforced in-app and activity-logged.
 - If the owner dashboard shows 0 revenue after hardening, confirm the owner is a confirmed member of the owners team (Appwrite console → Auth → Teams → Owners).
 
-### Registration — how accounts are created
+### Registration — how accounts are created (v1.16)
 
-- **From the app**: tap **Create an account** on the sign-in card. The FIRST account on a cloud that has no owner yet becomes the **owner** and gets a starter workspace; every later registration joins as an **employee**. Signing in with an account that cannot get a profile shows: *"This account is not assigned to a RentWise workspace yet. Ask the workspace owner to provision your employee profile."*
-- **From the Appwrite console**: Auth → Add user. Their profile (and role) is provisioned on first sign-in — a console user becomes owner only when no owner exists yet. To set a role explicitly, create the `profiles` document with the API key.
+- **Owner (you)**: tap **Create an account** on the sign-in card ONCE — this registers the workspace's **owner** and creates the starter workspace. As soon as an owner exists, self-registration is permanently closed: later sign-up attempts are refused with *"Registration is closed — this workspace already has an owner."*
+- **Employees**: created **only by the owner** from **Owner Dashboard → Access & roles → Team members → Add employee**. The dialog creates the Appwrite auth account (email + temporary password, min 8 chars) and the employee profile in one step — the team list updates instantly and the action is activity-logged. Share the credentials with the employee; they sign in on the normal **Sign in** screen (employees cannot sign up).
+- **Signing in with an unknown/unassigned account** (e.g. a console-created user with no profile) is refused: *"This account is not added to a RentWise workspace yet. Employee accounts are created by the workspace owner (Owner Dashboard → Access & roles)."* — no role is ever granted silently.
+- **From the Appwrite console**: Auth → Add user alone is NOT enough anymore — without a `profiles` document the account cannot sign in. Create the `profiles` document with the API key, or better: add the employee from the Owner Dashboard.
 - Customers are NOT app accounts — they are records in the `customers` collection, managed by owner/staff from the Customers screen.
 
 ### Item status & maintenance

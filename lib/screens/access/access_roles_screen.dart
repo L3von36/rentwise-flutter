@@ -21,6 +21,7 @@ class AccessRolesScreen extends StatelessWidget {
     _Capability('Adjust stock on hand', employee: true, owner: true),
     _Capability('Add inventory items', employee: false, owner: true),
     _Capability('View financial reports', employee: false, owner: true),
+    _Capability('Create employee accounts', employee: false, owner: true),
     _Capability('Manage team access', employee: false, owner: true),
     _Capability('Change workspace settings', employee: false, owner: true),
   ];
@@ -129,6 +130,11 @@ class AccessRolesScreen extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 18),
+
+          // team directory + the ONLY place employee accounts are
+          // created (owner action; self-registration is closed).
+          const _TeamCard(),
           const SizedBox(height: 18),
 
           // role cards
@@ -351,6 +357,338 @@ class AccessRolesScreen extends StatelessWidget {
   }
 }
 
+/// Team directory — every workspace member plus the Add-employee
+/// action. This is the ONLY place employee accounts are created:
+/// self-registration on the auth screen closes as soon as an owner
+/// exists, so credentials are always issued by the owner.
+class _TeamCard extends StatelessWidget {
+  const _TeamCard();
+
+  Future<void> _openAddDialog(BuildContext context) async {
+    final created = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (_) => const _AddEmployeeDialog(),
+    );
+    if (created == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'Employee account created — share the credentials securely.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<WorkspaceState>();
+    final team = state.team;
+
+    return SectionCard(
+      icon: Icons.groups_rounded,
+      title: 'Team members',
+      subtitle: 'Employee accounts are created here by you — '
+          'self-registration is disabled.',
+      action: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          OutlineButton(
+            label: 'Refresh',
+            icon: Icons.refresh_rounded,
+            onTap: state.loadingTeam ? null : () => state.loadTeam(),
+          ),
+          const SizedBox(width: 8),
+          OutlineButton(
+            label: 'Add employee',
+            icon: Icons.person_add_alt_rounded,
+            fg: AppPalette.primary,
+            onTap: () => _openAddDialog(context),
+          ),
+        ],
+      ),
+      child: state.loadingTeam && team.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: AppPalette.primary)),
+              ),
+            )
+          : Column(
+              children: [
+                for (var i = 0; i < team.length; i++)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 4),
+                    decoration: BoxDecoration(
+                      border: Border(
+                          top: BorderSide(
+                              color: AppPalette.stroke
+                                  .withOpacity(i == 0 ? 0 : 1))),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 17,
+                          backgroundColor: team[i].role == UserRole.owner
+                              ? AppPalette.primarySoft
+                              : AppPalette.greenBg,
+                          child: Text(
+                            team[i].initials,
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: team[i].role == UserRole.owner
+                                    ? AppPalette.primary
+                                    : AppPalette.green),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(team[i].name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            fontFamily: AppTheme.fontFamily,
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppPalette.ink)),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  StatusBadge.custom(
+                                    label: team[i].role.label,
+                                    fg: team[i].role == UserRole.owner
+                                        ? AppPalette.primary
+                                        : AppPalette.green,
+                                    bg: team[i].role == UserRole.owner
+                                        ? AppPalette.primarySoft
+                                        : AppPalette.greenBg,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                team[i].title.isEmpty
+                                    ? team[i].email
+                                    : '${team[i].title} · ${team[i].email}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontSize: 11.5,
+                                    color: AppPalette.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (team.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      'No team profiles loaded yet — tap Refresh. '
+                      'Create employee accounts with “Add employee”.',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12.5,
+                          color: AppPalette.muted),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+/// Dialog that creates an employee account (auth account + profile).
+/// Kept open on failure with the error shown inline, closed with
+/// `true` on success so the caller can raise a confirmation snackbar.
+class _AddEmployeeDialog extends StatefulWidget {
+  const _AddEmployeeDialog();
+
+  @override
+  State<_AddEmployeeDialog> createState() => _AddEmployeeDialogState();
+}
+
+class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _titleCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _obscure = true;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _titleCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _error = null);
+    final state = context.read<WorkspaceState>();
+    setState(() => _submitting = true);
+    final err = await state.addEmployee(
+      name: _nameCtrl.text,
+      email: _emailCtrl.text,
+      password: _passwordCtrl.text,
+      title: _titleCtrl.text.trim().isEmpty
+          ? 'Team member'
+          : _titleCtrl.text.trim(),
+    );
+    if (!mounted) return;
+    if (err == null) {
+      Navigator.pop(context, true);
+      return;
+    }
+    setState(() => _submitting = false);
+    // Validation errors come back as messages too — show them inline.
+    setState(() => _error = err);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add employee',
+          style: TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w800)),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Creates the sign-in account and the employee profile. '
+              'Share the email + password with the employee — they sign '
+              'in on the Sign in screen. Employees cannot sign up.',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 12,
+                  height: 1.5,
+                  color: AppPalette.body),
+            ),
+            const SizedBox(height: 14),
+            const _FieldLabel('Full name'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _nameCtrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(hintText: 'Sam Staff'),
+            ),
+            const SizedBox(height: 12),
+            const _FieldLabel('Work email'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration:
+                  const InputDecoration(hintText: 'sam@company.com'),
+            ),
+            const SizedBox(height: 12),
+            const _FieldLabel('Job title (optional)'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _titleCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration:
+                  const InputDecoration(hintText: 'Warehouse lead'),
+            ),
+            const SizedBox(height: 12),
+            const _FieldLabel('Temporary password'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _passwordCtrl,
+              obscureText: _obscure,
+              onSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
+                hintText: 'At least 8 characters',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 18,
+                    color: AppPalette.muted,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: AppPalette.redBg,
+                  borderRadius: BorderRadius.circular(9),
+                  border:
+                      Border.all(color: AppPalette.red.withOpacity(0.4)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline_rounded,
+                        size: 15, color: AppPalette.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(_error!,
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppPalette.red)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed:
+              _submitting ? null : () => Navigator.pop(context, false),
+          child: Text('Cancel',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  color: AppPalette.body)),
+        ),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2.2))
+              : const Text('Create account',
+                  style: TextStyle(fontFamily: AppTheme.fontFamily)),
+        ),
+      ],
+    );
+  }
+}
+
 /// Owner-only danger zone: permanently deletes every business document
 /// from Appwrite (inventory, orders, customers, activity, pickups) and
 /// zeroes the metrics. Use it to clear the preloaded sample dataset and
@@ -532,6 +870,21 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
         ),
       ),
     );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text,
+        style: TextStyle(
+            fontFamily: AppTheme.fontFamily,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: AppPalette.ink));
   }
 }
 

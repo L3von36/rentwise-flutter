@@ -591,11 +591,113 @@ void main() {
           SampleDataset.demoEmployee.email, 'employee-pass');
 
       expect(err, isNotNull);
-      expect(err, contains('not assigned to a RentWise workspace yet'));
-      expect(err, contains('Ask the workspace owner'));
+      expect(err, contains('not added to a RentWise workspace yet'));
+      expect(err, contains('Employee accounts are created by the workspace owner'));
       expect(state.isSignedIn, isFalse,
           reason: 'no profile → no workspace, no demo fallback');
       expect(state.inventory, isEmpty);
+    });
+
+    test('owner creates employee accounts from the dashboard — and '
+        'self-registration stays closed', () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      // Team directory loaded at sign-in (owner first).
+      expect(state.team, isNotEmpty);
+      expect(state.team.first.role, UserRole.owner);
+      final teamBefore = state.team.length;
+
+      final err = await state.addEmployee(
+        name: 'Sam Staff',
+        email: 'sam@rentwise.app',
+        password: 'strong-pass-9',
+        title: 'Warehouse lead',
+      );
+      expect(err, isNull, reason: 'owner may create employee accounts');
+      expect(state.team.length, teamBefore + 1);
+      final sam = state.team.last;
+      expect(sam.role, UserRole.employee);
+      expect(sam.title, 'Warehouse lead');
+
+      // The profile document was written to the cloud with role employee.
+      final profileWrite = backend.writes.firstWhere(
+        (w) => w.collection == 'profiles' && w.id == 'sam@rentwise.app',
+      );
+      expect(profileWrite.isNew, isTrue);
+      expect(profileWrite.data['role'], 'employee');
+
+      // The action is logged like every other business action.
+      expect(
+        state.activity.any((a) =>
+            a.body.contains('employee account') &&
+            a.body.contains('Sam Staff')),
+        isTrue,
+      );
+
+      // The new employee can now SIGN IN (no self-service sign-up needed).
+      final freshState = WorkspaceState(backend: backend);
+      final signInErr = await freshState.signInWithEmail(
+          'sam@rentwise.app', 'strong-pass-9');
+      expect(signInErr, isNull);
+      expect(freshState.isOwner, isFalse);
+      expect(freshState.canAccess(Section.access), isFalse);
+
+      // …while SELF-registration remains closed for anyone else.
+      final signUpErr = await freshState.signUpWithEmail(
+          'Mallory', 'mallory@example.com', 'strong-pass-8');
+      expect(signUpErr, isNotNull);
+      expect(signUpErr, contains('Registration is closed'));
+    });
+
+    test('employees can NEVER create employee accounts (capability guard)',
+        () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoEmployee.email, 'employee-pass');
+
+      final err = await state.addEmployee(
+        name: 'Backdoor Bob',
+        email: 'bob@example.com',
+        password: 'strong-pass-7',
+      );
+      expect(err, isNotNull);
+      expect(err, contains('Owner access required'));
+      // The denial is a visible, honest notice — never silent.
+      expect(state.lastNotice, isNotNull);
+      expect(state.lastNotice!.isError, isTrue);
+      // Nothing was written and the team is not even loaded for staff.
+      expect(
+        backend.writes.where(
+            (w) => w.collection == 'profiles' && w.id == 'bob@example.com'),
+        isEmpty,
+      );
+    });
+
+    test('weak employee password is rejected before any profile write',
+        () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      final err = await state.addEmployee(
+        name: 'Shorty Staff',
+        email: 'shorty@example.com',
+        password: 'short',
+      );
+      expect(err, isNotNull);
+      expect(err, contains('at least 8 characters'));
+      expect(
+        backend.writes.where(
+            (w) =>
+                w.collection == 'profiles' &&
+                w.id == 'shorty@example.com'),
+        isEmpty,
+      );
     });
 
     test('stock invariants — availability clamped, negative stock impossible',

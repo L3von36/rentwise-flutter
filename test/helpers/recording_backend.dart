@@ -141,13 +141,56 @@ class RecordingBackend extends AppwriteBackend {
     return u.account;
   }
 
-  /// Mirrors the real backend's sign-up + bootstrap rule: the FIRST
-  /// account when no owner exists becomes the owner, everyone after
-  /// that joins as an employee. Duplicate emails throw like the cloud.
+  /// Mirrors the real backend: sign-up is the ONE-TIME owner bootstrap.
+  /// Registration is CLOSED once an owner profile exists — employee
+  /// accounts are created via [createEmployee] instead. Duplicate
+  /// emails and weak passwords throw like the cloud.
   @override
   Future<Account> registerAccount(
       String name, String email, String password) async {
     await Future<void>.delayed(const Duration(milliseconds: 30));
+    if (_users.values.any((u) => u.account.role == UserRole.owner)) {
+      throw RegistrationClosedException();
+    }
+    if (password.length < 8) {
+      throw aw.AppwriteException(
+          'Password must be at least 8 characters.', 400,
+          'user_password_invalid');
+    }
+    final key = email.trim().toLowerCase();
+    if (_users.containsKey(key)) {
+      throw aw.AppwriteException(
+          'A user with the same email already exists.', 409,
+          'user_already_exists');
+    }
+    final account = Account(
+      name: name.trim(),
+      email: email.trim(),
+      role: UserRole.owner,
+      initials: initialsFor(name.trim()),
+      title: 'Workspace owner',
+    );
+    _users[key] = FakeUser(
+        email: email.trim(), password: password, account: account);
+    writes.add(RecordedWrite(
+      collection: 'profiles',
+      id: key,
+      isNew: true,
+      data: {'role': 'owner'},
+    ));
+    return account;
+  }
+
+  /// Mirrors the real backend's owner action: creates the employee
+  /// auth account + employee profile in one step.
+  @override
+  Future<Account> createEmployee({
+    required String name,
+    required String email,
+    required String password,
+    String title = 'Team member',
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
     final key = email.trim().toLowerCase();
     if (_users.containsKey(key)) {
       throw aw.AppwriteException(
@@ -159,13 +202,12 @@ class RecordingBackend extends AppwriteBackend {
           'Password must be at least 8 characters.', 400,
           'user_password_invalid');
     }
-    final hasOwner = _users.values.any((u) => u.account.role == UserRole.owner);
     final account = Account(
       name: name.trim(),
       email: email.trim(),
-      role: hasOwner ? UserRole.employee : UserRole.owner,
+      role: UserRole.employee,
       initials: initialsFor(name.trim()),
-      title: hasOwner ? 'Team member' : 'Workspace owner',
+      title: title.trim().isEmpty ? 'Team member' : title.trim(),
     );
     _users[key] = FakeUser(
         email: email.trim(), password: password, account: account);
@@ -173,9 +215,20 @@ class RecordingBackend extends AppwriteBackend {
       collection: 'profiles',
       id: key,
       isNew: true,
-      data: {'role': account.role.name, 'bootstrapOwner': !hasOwner},
+      data: {'role': 'employee'},
     ));
     return account;
+  }
+
+  /// Mirrors the real backend: every profile, owner first.
+  @override
+  Future<List<Account>> listTeam() async {
+    final members = _users.values.map((u) => u.account).toList();
+    members.sort((a, b) {
+      if (a.role != b.role) return a.role == UserRole.owner ? -1 : 1;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return members;
   }
 
   @override

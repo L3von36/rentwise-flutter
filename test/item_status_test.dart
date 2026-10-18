@@ -180,24 +180,28 @@ void main() {
       );
       final reg = backend.writes.firstWhere(
           (w) => w.collection == 'profiles' && w.id == 'nova@example.com');
-      expect(reg.data['bootstrapOwner'], isTrue);
+      expect(reg.data['role'], 'owner');
     });
 
-    test('cloud WITH an owner: later registrants join as employees and '
-        'cannot see owner sections', () async {
+    test('cloud WITH an owner: self-registration is CLOSED — employees '
+        'are created by the owner instead', () async {
       final backend = RecordingBackend(); // demo owner pre-registered
       final state = WorkspaceState(backend: backend);
 
       final err = await state.signUpWithEmail(
           'Sam Staff', 'sam@example.com', 'strong-pass-2');
-      expect(err, isNull);
-      expect(state.isOwner, isFalse);
+      expect(err, isNotNull, reason: 'registration must be refused');
+      expect(err, contains('Registration is closed'));
+      expect(err, contains('owner'));
+      expect(state.isSignedIn, isFalse);
       expect(state.canAccess(Section.reports), isFalse);
       expect(state.canAccess(Section.access), isFalse);
-      // No workspace bootstrap for employees.
-      final reg = backend.writes
-          .firstWhere((w) => w.collection == 'profiles' && w.id == 'sam@example.com');
-      expect(reg.data['bootstrapOwner'], isFalse);
+      // No profile was written for the refused sign-up.
+      expect(
+        backend.writes.where(
+            (w) => w.collection == 'profiles' && w.id == 'sam@example.com'),
+        isEmpty,
+      );
     });
 
     test('duplicate email surfaces a friendly error and stays on auth',
