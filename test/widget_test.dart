@@ -493,8 +493,9 @@ void main() {
     expect(find.text('Order RW-2051'), findsOneWidget);
     expect(find.text('Folding Chairs'), findsWidgets);
 
-    // Status actions write through to the store.
-    await tester.tap(find.text('Out for delivery'));
+    // Status actions write through to the store — the button uses the
+    // action label ('Mark dispatched'), not the status label.
+    await tester.tap(find.text('Mark dispatched'));
     await tester.pumpAndSettle();
     final state = tester.state(find.byType(Navigator)).context
         .read<WorkspaceState>();

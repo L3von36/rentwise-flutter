@@ -12,7 +12,18 @@ class AppwriteConfig {
 
   /// Appwrite database + collection ids used by the workspace.
   static const String databaseId = 'rentwise-db';
+
+  /// Workspace member profiles (role, title). Clients may READ profiles
+  /// and create their own on first-ever sign-up (bootstrap: owner only
+  /// when no owner exists), but can NEVER update or delete them — a
+  /// role is fixed at creation and only changeable with the API key.
   static const String colProfiles = 'profiles';
+
+  /// Per-user preferences (one document per user id, document-level
+  /// security). The only profile-adjacent thing a client may write
+  /// after sign-up (e.g. the active-workspace pointer).
+  static const String colUserPrefs = 'user_prefs';
+
   static const String colInventory = 'inventory_items';
   static const String colCustomers = 'customers';
   static const String colOrders = 'orders';

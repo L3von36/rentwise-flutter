@@ -50,15 +50,62 @@ flutter run -d <device-id>  # Android / iOS device or emulator
 
 Sign in with an **Appwrite account registered in your project** (the role — owner or employee — is resolved server-side from the `profiles` collection), create a booking from **New rental booking** or any **+ Rent** button, then watch the dashboard, orders, inventory, and activity log react. Data is written through to Appwrite Cloud as you act.
 
+## Roles & permissions (v1.15)
+
+Two roles exist: **owner** and **employee**. The role is fixed at profile creation (server-side `profiles` collection; clients can never update it) and resolved at sign-in.
+
+### Permission matrix
+
+| Feature | Owner | Employee |
+| --- | :---: | :---: |
+| Employee operations dashboard | Yes | Yes |
+| Owner financial dashboard | Yes | No |
+| Create bookings | Yes | Yes |
+| Accept payments | Yes | Yes |
+| Process returns / mark dispatched | Yes | Yes |
+| Adjust stock quantities | Yes | Yes |
+| View & manage customers | Yes | Yes |
+| Add inventory catalog items | Yes | No |
+| Delete inventory items / change pricing | Yes | No |
+| Reports & CSV exports | Yes | No |
+| Manage employees (Access & roles) | Yes | No |
+| Reset workspace data (danger zone) | Yes | No |
+| Create / switch workspaces | Yes | No |
+| View financial metrics | Yes | No |
+
+The single source of truth is the `UserRoleX` capability extension in `lib/models/account.dart` (`canOperateRentals`, `canAdjustStock`, `canCreateInventory`, `canViewReports`, `canManageTeam`, `canManageWorkspaces`, …). Screens hide what a role cannot do **and** every state mutation in `WorkspaceState` re-checks the capability before touching the store or the cloud — hiding a button is never the only guard. If a restricted action is somehow triggered, the user sees:
+
+> Owner access required — "…" is managed by the workspace owner.
+
+Owner-only screens (`Reports`, `Access & roles`) additionally render a `RestrictedPanel` as a second line of defence, and employees see a locked (not tappable) workspace switcher.
+
+### Order lifecycle enforcement
+
+Status changes follow one transition map (`kOrderTransitions` in `lib/models/rental_order.dart`): `confirmed → preparing/outForDelivery/needsPayment`, `preparing → …`, `needsPayment → confirmed (payment accepted) / returned`, `returned` is terminal. The order screen only offers legal, action-labelled transitions (**Accept payment**, **Mark dispatched**, **Mark returned**…) and the state layer rejects illegal jumps with an error notice — a crafted call cannot resurrect a returned order. Returning an order never auto-restocks: employees restock from Inventory after inspection, and every action lands in the activity log.
+
+### Cloud-side hardening (v1.15)
+
+Re-run the idempotent provisioner to tighten the live project:
+
+```bash
+AW_KEY=<api key with databases/users/teams scopes> bash scripts/appwrite_provision.sh
+```
+
+- `profiles` — clients get **read + create only**: a role is fixed at creation and can never be changed from the app (no self-promotion, no role edits). Bootstrap keeps working: the first account on a cloud with no owner becomes owner; everyone after joins as employee.
+- `user_prefs` (new) — per-user document-level-security prefs holding the active-workspace pointer, replacing profile updates.
+- `metrics` — readable **only by the `owners` team**; the script syncs every owner profile (including in-app bootstrapped owners) into that team, so employees cannot pull financial metrics even with a session.
+- Operational collections stay member-writable so the shift can run; owner-only mutations are enforced in-app and activity-logged.
+- If the owner dashboard shows 0 revenue after hardening, confirm the owner is a confirmed member of the owners team (Appwrite console → Auth → Teams → Owners).
+
 ### Registration — how accounts are created
 
-- **From the app**: tap **Create an account** on the sign-in card. The FIRST account on a cloud that has no owner yet becomes the **owner** and gets a starter workspace; every later registration joins as an **employee** and is promoted by the owner under **Access & roles**.
-- **From the Appwrite console**: Auth → Add user. Their profile (and role) is provisioned on first sign-in — a console user becomes owner only when no owner exists yet.
+- **From the app**: tap **Create an account** on the sign-in card. The FIRST account on a cloud that has no owner yet becomes the **owner** and gets a starter workspace; every later registration joins as an **employee**. Signing in with an account that cannot get a profile shows: *"This account is not assigned to a RentWise workspace yet. Ask the workspace owner to provision your employee profile."*
+- **From the Appwrite console**: Auth → Add user. Their profile (and role) is provisioned on first sign-in — a console user becomes owner only when no owner exists yet. To set a role explicitly, create the `profiles` document with the API key.
 - Customers are NOT app accounts — they are records in the `customers` collection, managed by owner/staff from the Customers screen.
 
 ### Item status & maintenance
 
-Inventory rows show a derived lifecycle status: **In stock** (all units free) · **Partially out** (some units rented) · **Rented out** (every unit out) · **Maintenance** (explicit operator flag). Maintenance items are excluded from the Available/On-rent KPI pools — a broken chair is not "on rent" — and appear on the watch list. Toggle it from the edit dialog. Requires the `maintenance` boolean attribute on `inventory_items` (idempotent `scripts/appwrite_provision.sh` adds it; older clouds keep working — the app degrades gracefully and stock numbers still persist).
+Inventory rows show a derived lifecycle status: **In stock** (all units free) · **Partially out** (some units rented) · **Rented out** (every unit out) · **Maintenance** (explicit operator flag). Maintenance items are excluded from the Available/On-rent KPI pools — a broken chair is not "on rent" — and appear on the watch list. Toggle it from the edit dialog. The inventory KPI cards each open their OWN filtered view (Total → category breakdown, Available / On rent / Needs attention → status-filtered list), and status chips with live counts filter the table. Requires the `maintenance` boolean attribute on `inventory_items` (idempotent `scripts/appwrite_provision.sh` adds it; older clouds keep working — the app degrades gracefully and stock numbers still persist).
 
 ### Starting fresh — clearing the sample dataset
 
@@ -68,9 +115,12 @@ The one-shot seeding harness can preload the "Riverside Events" sample workspace
 
 ```bash
 flutter analyze             # zero issues
-flutter test                # 60 tests: role journeys (owner/employee/customer),
-                            # item-status rules, sign-up/bootstrap, danger-zone
-                            # reset, write-through assertions, no-demo guarantees
+flutter test                # 67 tests: role journeys (owner/employee/customer),
+                            # RBAC guarantees (capability matrix, denial notices,
+                            # illegal transitions, surfaced sync failures, stock
+                            # invariants), item-status rules, sign-up/bootstrap,
+                            # danger-zone reset, write-through assertions,
+                            # no-demo guarantees
 ```
 
 One-shot backend tooling (CI-safe, skipped without env vars):

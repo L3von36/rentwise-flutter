@@ -1,16 +1,39 @@
 #!/usr/bin/env bash
 # Provisions the RentWise Appwrite Cloud project:
 #   database + collections + attributes + indexes + permissions + platforms
-# Requires: AW_KEY (API key with databases/users scopes), already-created
-# project "rentwise" (region fra) on https://cloud.appwrite.io/v1.
+#   + owners team + collection-permission hardening.
+#
+# Required env:
+#   AW_KEY   — API key with databases/users/teams scopes
+# Optional env:
+#   AW_ENDPOINT (default https://cloud.appwrite.io/v1)
+#   AW_PROJECT  (default rentwise)
+#
+# SECURITY MODEL (v1.15):
+#   • Profiles: users may READ and CREATE their own profile (bootstrap:
+#     the first account on a fresh cloud becomes owner), but can NEVER
+#     update or delete — a role is fixed at creation and can only be
+#     changed with the API key (or the Appwrite console).
+#   • `metrics` is readable only by the `owners` team — employees cannot
+#     pull financial metrics through the API even with a session. The
+#     script syncs every owner profile into the owners team, including
+#     in-app bootstrapped owners.
+#   • `user_prefs` holds each user's active-workspace pointer with
+#     document-level security — the only profile-adjacent doc a client
+#     may write after sign-up.
+#   • Operational collections (workspaces, inventory, customers, orders,
+#     activities, pickups) stay member-writable so bootstrap sign-up can
+#     create the starter workspace and the shift can run; owner-only
+#     actions are enforced in the app and activity-logged.
 #
 # Idempotent: 409 "already exists" responses are treated as success.
+# Re-run after upgrading to apply attribute additions and permission
+# hardening to an existing project.
 set -euo pipefail
 
 ENDPOINT="${AW_ENDPOINT:-https://cloud.appwrite.io/v1}"
 PROJECT="${AW_PROJECT:-rentwise}"
 KEY="${AW_KEY:?set AW_KEY}"
-KEY_ID="${AW_KEY_ID:-rentwise-prov-key}"
 
 api() { # method path body -> body on stdout, code on stderr
   local method="$1" path="$2" body="${3:-}"
@@ -40,10 +63,10 @@ jqget() { python3 -c "import sys,json;d=json.load(sys.stdin);print(d$1)" 2>/dev/
 echo '== database =='
 api POST /databases '{"databaseId":"rentwise-db","name":"RentWise"}' >/dev/null || true
 
-# mkcoll id name perms
+# mkcoll id name perms docsec
 mkcoll() {
   api POST /databases/rentwise-db/collections \
-    "{\"collectionId\":\"$1\",\"name\":\"$2\",\"permissions\":[\"read(\\\"users\\\")\",\"create(\\\"users\\\")\",\"update(\\\"users\\\")\",\"delete(\\\"users\\\")\"],\"documentSecurity\":false}" >/dev/null || true
+    "{\"collectionId\":\"$1\",\"name\":\"$2\",\"permissions\":$3,\"documentSecurity\":$4}" >/dev/null || true
 }
 mkattr() { # coll body type
   local key
@@ -58,9 +81,15 @@ mkattr() { # coll body type
   api POST "/databases/rentwise-db/collections/$1/attributes/$3" "$2" >/dev/null || true
 }
 
+# Permission constants (JSON arrays).
+PERM_USERS_CRUD='["read(\"users\")","create(\"users\")","update(\"users\")","delete(\"users\")"]'
+PERM_USERS_READ_CREATE='["read(\"users\")","create(\"users\")"]'  # profiles: role fixed at creation
+PERM_PREFS_CREATE='["create(\"users\")"]'                        # reads gated per-document
+PERM_OWNERS_READ='["read(\"team:owners\")"]'
+
 echo '== collections + attributes =='
-# ---- profiles
-mkcoll profiles 'Profiles'
+# ---- profiles (read + create-only for clients; roles immutable)
+mkcoll profiles 'Profiles' "$PERM_USERS_READ_CREATE" false
 mkattr profiles '{"key":"userId","type":"string","size":64,"required":true}' string
 mkattr profiles '{"key":"name","type":"string","size":128,"required":true}' string
 mkattr profiles '{"key":"email","type":"string","size":256,"required":true}' string
@@ -68,20 +97,24 @@ mkattr profiles '{"key":"role","type":"enum","elements":["owner","employee"],"re
 mkattr profiles '{"key":"title","type":"string","size":64,"required":false,"default":""}' string
 mkattr profiles '{"key":"activeWorkspace","type":"string","size":128,"required":false,"default":""}' string
 
+# ---- user_prefs (per-user document security; client writes own doc only)
+mkcoll user_prefs 'User prefs' "$PERM_PREFS_CREATE" true
+mkattr user_prefs '{"key":"activeWorkspace","type":"string","size":128,"required":false,"default":""}' string
+
 # ---- inventory_items
-mkcoll inventory_items 'Inventory items'
+mkcoll inventory_items 'Inventory items' "$PERM_USERS_CRUD" false
 mkattr inventory_items '{"key":"name","type":"string","size":128,"required":true}' string
 mkattr inventory_items '{"key":"note","type":"string","size":256,"required":false,"default":""}' string
 mkattr inventory_items '{"key":"category","type":"string","size":64,"required":true}' string
 mkattr inventory_items '{"key":"totalStock","type":"integer","required":true,"min":0,"max":100000}' integer
 mkattr inventory_items '{"key":"available","type":"integer","required":true,"min":0,"max":100000}' integer
-mkattr inventory_items '{"key":"maintenance","type":"boolean","required":false,"default":false}' boolean
 mkattr inventory_items '{"key":"ratePerDay","type":"float","required":true,"min":0,"max":1000000}' float
 mkattr inventory_items '{"key":"iconKey","type":"string","size":64,"required":false,"default":"inventory_2"}' string
 mkattr inventory_items '{"key":"sortIndex","type":"integer","required":false,"default":0,"min":0,"max":100000}' integer
+mkattr inventory_items '{"key":"maintenance","type":"boolean","required":false,"default":false}' boolean
 
 # ---- customers
-mkcoll customers 'Customers'
+mkcoll customers 'Customers' "$PERM_USERS_CRUD" false
 mkattr customers '{"key":"name","type":"string","size":128,"required":true}' string
 mkattr customers '{"key":"company","type":"string","size":128,"required":false,"default":""}' string
 mkattr customers '{"key":"email","type":"string","size":256,"required":false,"default":""}' string
@@ -92,7 +125,7 @@ mkattr customers '{"key":"lastBooking","type":"datetime","required":true}' datet
 mkattr customers '{"key":"avatarColorIndex","type":"integer","required":false,"default":0,"min":0,"max":99}' integer
 
 # ---- orders
-mkcoll orders 'Rental orders'
+mkcoll orders 'Rental orders' "$PERM_USERS_CRUD" false
 mkattr orders '{"key":"eventName","type":"string","size":256,"required":true}' string
 mkattr orders '{"key":"customerName","type":"string","size":128,"required":true}' string
 mkattr orders '{"key":"contactName","type":"string","size":128,"required":false,"default":""}' string
@@ -105,7 +138,7 @@ mkattr orders '{"key":"notes","type":"string","size":4000,"required":false,"defa
 mkattr orders '{"key":"linesJson","type":"string","size":8000,"required":false,"default":"[]"}' string
 
 # ---- activities
-mkcoll activities 'Activity log'
+mkcoll activities 'Activity log' "$PERM_USERS_CRUD" false
 mkattr activities '{"key":"actor","type":"string","size":128,"required":true}' string
 mkattr activities '{"key":"actorInitials","type":"string","size":8,"required":false,"default":""}' string
 mkattr activities '{"key":"actorColorIndex","type":"integer","required":false,"default":0,"min":0,"max":99}' integer
@@ -114,7 +147,7 @@ mkattr activities '{"key":"type","type":"enum","elements":["rental","payment","o
 mkattr activities '{"key":"body","type":"string","size":2000,"required":true}' string
 
 # ---- pickups
-mkcoll pickups 'Pickups'
+mkcoll pickups 'Pickups' "$PERM_USERS_CRUD" false
 mkattr pickups '{"key":"date","type":"datetime","required":true}' datetime
 mkattr pickups '{"key":"title","type":"string","size":256,"required":true}' string
 mkattr pickups '{"key":"venue","type":"string","size":256,"required":false,"default":""}' string
@@ -122,20 +155,20 @@ mkattr pickups '{"key":"itemCount","type":"integer","required":true,"min":0,"max
 mkattr pickups '{"key":"contactName","type":"string","size":128,"required":false,"default":""}' string
 
 # ---- workspaces
-mkcoll workspaces 'Workspaces'
+mkcoll workspaces 'Workspaces' "$PERM_USERS_CRUD" false
 mkattr workspaces '{"key":"name","type":"string","size":128,"required":true}' string
 mkattr workspaces '{"key":"createdAt","type":"datetime","required":true}' datetime
 mkattr workspaces '{"key":"createdBy","type":"string","size":128,"required":false,"default":""}' string
 
-# ---- metrics
-mkcoll metrics 'Metrics'
+# ---- metrics (owners-team read ONLY — financial data)
+mkcoll metrics 'Metrics' "$PERM_OWNERS_READ" false
 mkattr metrics '{"key":"grossMonth","type":"float","required":false,"default":0,"min":0,"max":100000000}' float
 mkattr metrics '{"key":"utilization","type":"float","required":false,"default":0,"min":0,"max":100}' float
 mkattr metrics '{"key":"earningsJson","type":"string","size":8000,"required":false,"default":"[]"}' string
 mkattr metrics '{"key":"categoryJson","type":"string","size":4000,"required":false,"default":"[]"}' string
 
 echo '== wait for attributes to become available =='
-for c in profiles inventory_items customers orders activities pickups workspaces metrics; do
+for c in profiles user_prefs inventory_items customers orders activities pickups workspaces metrics; do
   for i in $(seq 1 40); do
     n=$(api GET "/databases/rentwise-db/collections/$c/attributes" | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])' 2>/dev/null || echo 0)
     avail=$(api GET "/databases/rentwise-db/collections/$c" | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("attributes",[])))' 2>/dev/null || echo -1)
@@ -144,6 +177,22 @@ for c in profiles inventory_items customers orders activities pickups workspaces
   done
   echo "  $c: $n attributes ready"
 done
+
+echo '== harden permissions on EXISTING collections (re-run safe) =='
+setperm() { # coll perms docsec
+  api PUT "/databases/rentwise-db/collections/$1" \
+    "{\"permissions\":$2,\"documentSecurity\":$3}" >/dev/null \
+    && echo "  locked: $1" >&2
+}
+setperm profiles        "$PERM_USERS_READ_CREATE" false
+setperm user_prefs      "$PERM_PREFS_CREATE" true
+setperm metrics         "$PERM_OWNERS_READ" false
+setperm inventory_items "$PERM_USERS_CRUD" false
+setperm customers       "$PERM_USERS_CRUD" false
+setperm orders          "$PERM_USERS_CRUD" false
+setperm activities      "$PERM_USERS_CRUD" false
+setperm pickups         "$PERM_USERS_CRUD" false
+setperm workspaces      "$PERM_USERS_CRUD" false
 
 echo '== indexes =='
 mkidx() { api POST "/databases/rentwise-db/collections/$1/indexes" "{\"key\":\"$2\",\"type\":\"$3\",\"attributes\":$4}" >/dev/null; }
@@ -163,22 +212,20 @@ mkplat '{"type":"macos","name":"RentWise macOS","bundle":"com.rentwise.rentwise"
 mkplat '{"type":"windows","name":"RentWise Windows","package":"com.rentwise.rentwise"}'
 mkplat '{"type":"linux","name":"RentWise Linux","package":"com.rentwise.rentwise"}'
 
-echo '== users (optional, env-driven) =='
-# NEVER commit real passwords. Create the first owner HERE (console) or
-# simply register from the app — the first account on a fresh cloud
-# becomes the owner. To seed users from CI, export:
-#   AW_OWNER_EMAIL / AW_OWNER_PASSWORD / AW_OWNER_NAME
-#   AW_EMPLOYEE_EMAIL / AW_EMPLOYEE_PASSWORD / AW_EMPLOYEE_NAME
-mkuser() { api POST /users "$1" >/dev/null; }
-if [ -n "${AW_OWNER_EMAIL:-}" ] && [ -n "${AW_OWNER_PASSWORD:-}" ]; then
-  mkuser "{\"userId\":\"owner-$(date +%s)\",\"email\":\"$AW_OWNER_EMAIL\",\"password\":\"$AW_OWNER_PASSWORD\",\"name\":\"${AW_OWNER_NAME:-Workspace Owner}\"}"
-else
-  echo '  skip owner (set AW_OWNER_EMAIL/AW_OWNER_PASSWORD to create)'
-fi
-if [ -n "${AW_EMPLOYEE_EMAIL:-}" ] && [ -n "${AW_EMPLOYEE_PASSWORD:-}" ]; then
-  mkuser "{\"userId\":\"employee-$(date +%s)\",\"email\":\"$AW_EMPLOYEE_EMAIL\",\"password\":\"$AW_EMPLOYEE_PASSWORD\",\"name\":\"${AW_EMPLOYEE_NAME:-Team Member}\"}"
-else
-  echo '  skip employee (set AW_EMPLOYEE_EMAIL/AW_EMPLOYEE_PASSWORD to create)'
-fi
+echo '== owners team + membership sync =='
+api POST /teams '{"teamId":"owners","name":"Owners"}' >/dev/null || true
+# Sync EVERY owner profile into the owners team — covers owners created
+# in-app via sign-up bootstrap as well as script/console-provisioned ones.
+OWNERS=$(api GET "/databases/rentwise-db/collections/profiles/documents?queries%5B%5D=equal%28%22role%22%2C%22owner%22%29&limit=100" | python3 -c 'import sys,json;print(" ".join(d["userId"] for d in json.load(sys.stdin).get("documents",[])))' 2>/dev/null || echo '')
+for uid in $OWNERS; do
+  api POST /teams/owners/memberships \
+    "{\"userId\":\"$uid\",\"roles\":[\"owner\"],\"confirm\":true}" >/dev/null \
+    && echo "  owner $uid joined owners team" >&2 \
+    || echo "  WARN: could not auto-add $uid — Auth → Teams → Owners → Members in the console (metrics stay hidden until then)." >&2
+done
+[ -z "$OWNERS" ] && echo '  (no owner profiles yet — the first sign-up becomes the owner; re-run to team them)' >&2
 
 echo 'ALL DONE'
+echo 'Next steps:'
+echo '  • Seed a demo dataset (optional): AW_KEY=<key> AW_SEED=1 flutter test test/seed_appwrite_test.dart'
+echo '  • Promote/demote a profile role: Appwrite console → Databases → profiles, or the API key (role is fixed at creation for clients).'

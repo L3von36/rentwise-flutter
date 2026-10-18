@@ -43,6 +43,15 @@ class BookingLine {
   BookingLine({required this.item, this.qty = 1});
 }
 
+/// A one-shot UI notice (snackbar). Permission denials and cloud write
+/// failures are EMITTED, never swallowed silently.
+class StateNotice {
+  final int id;
+  final String message;
+  final bool isError;
+  const StateNotice(this.id, this.message, {this.isError = false});
+}
+
 /// Single source of truth for the whole workspace.
 ///
 /// One store keeps cross-screen reactions trivial:
@@ -67,11 +76,37 @@ class WorkspaceState extends ChangeNotifier {
 
   final AppwriteBackend? _backend;
 
+  // ----------------------------------------------------------- notices
+  int _noticeSeq = 0;
+
+  /// Latest snackbar-worthy event (permission denial, cloud write
+  /// failure). UI consumers compare [StateNotice.id] to avoid re-showing
+  /// the same notice on rebuild.
+  StateNotice? lastNotice;
+
+  void _emit(String message, {bool error = false}) {
+    lastNotice = StateNotice(++_noticeSeq, message, isError: error);
+  }
+
+  /// Emits the standard owner-only denial — restrictions are never
+  /// silent (user-facing restrictions rule).
+  void _deny(String action) {
+    _emit(
+      'Owner access required — "$action" is managed by the workspace owner.',
+      error: true,
+    );
+  }
+
   /// Fire-and-forget persistence — the local store stays the UI truth;
-  /// Appwrite failures are logged and never block the interaction.
+  /// Appwrite failures are surfaced as an error notice instead of being
+  /// silently dropped (never pretend a failed write succeeded).
   void _push(Future<void> work, String label) {
     work.catchError((Object e) {
       debugPrint('Appwrite[$label] $e');
+      _emit('Cloud sync failed ($label) — change is local only. '
+          'Check your connection; it will not be re-sent automatically.',
+          error: true);
+      notifyListeners();
     });
   }
 
@@ -87,7 +122,14 @@ class WorkspaceState extends ChangeNotifier {
   /// True when this workspace is the one being viewed.
   bool get isSingleWorkspace => _workspaces.length == 1;
 
+  /// Switches the active workspace (owner-only — employees work in the
+  /// single workspace the owner assigned them to).
   void switchWorkspace(String name) {
+    if (!role.canManageWorkspaces) {
+      _deny('switch workspace');
+      notifyListeners();
+      return;
+    }
     if (!_workspaces.contains(name) || name == _workspace) return;
     _workspace = name;
     _backend?.setActiveWorkspace(name);
@@ -98,9 +140,14 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Creates and switches to a new workspace. Returns false when the
-  /// name is empty or already taken.
+  /// Creates and switches to a new workspace (owner-only). Returns
+  /// false when the name is empty, taken, or the role lacks permission.
   bool addWorkspace(String name) {
+    if (!role.canManageWorkspaces) {
+      _deny('create workspace');
+      notifyListeners();
+      return false;
+    }
     final trimmed = name.trim();
     if (trimmed.isEmpty || _workspaces.contains(trimmed)) return false;
     _workspaces.add(trimmed);
@@ -456,12 +503,19 @@ class WorkspaceState extends ChangeNotifier {
   int get attentionItems =>
       _inventory.where((i) => i.needsAttention).length;
 
+  /// Adds a catalog item (owner-only). Employees operate stock levels
+  /// but never extend the catalog.
   void addInventoryItem({
     required String name,
     required String category,
     required int totalStock,
     required double ratePerDay,
   }) {
+    if (!role.canCreateInventory) {
+      _deny('add inventory items');
+      notifyListeners();
+      return;
+    }
     final item = InventoryItem(
       id: _nextId('INV'),
       name: name,
@@ -484,17 +538,28 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Adjusts stock levels and/or the maintenance hold. Operational —
+  /// both roles may do it while receiving, returning or repairing.
+  /// Guards the invariants: availability never negative, never above
+  /// total stock, total stock never negative.
   void adjustStock(
     InventoryItem item, {
     int? totalStock,
     int? available,
     bool? maintenance,
   }) {
+    if (!role.canAdjustStock) {
+      _deny('adjust stock');
+      notifyListeners();
+      return;
+    }
     final idx = _inventory.indexWhere((i) => i.id == item.id);
     if (idx == -1) return;
+    final ts = (totalStock ?? item.totalStock).clamp(0, 100000);
+    final av = (available ?? item.available).clamp(0, ts);
     final updated = item.copyWith(
-        totalStock: totalStock,
-        available: available,
+        totalStock: ts,
+        available: av,
         maintenance: maintenance);
     _inventory[idx] = updated;
     final b = _backend;
@@ -519,7 +584,11 @@ class WorkspaceState extends ChangeNotifier {
   /// are kept. Throws upward so the UI can surface an honest error.
   Future<void> resetWorkspaceData() async {
     final b = _backend;
-    if (b == null || !isOwner) return;
+    if (b == null || !role.canChangeSettings) {
+      _deny('reset workspace data');
+      notifyListeners();
+      return;
+    }
     await b.resetWorkspaceData();
     _inventory = const [];
     _orders = const [];
@@ -636,9 +705,27 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateOrderStatus(RentalOrder order, OrderStatus status) {
+  /// Moves an order to [status] (both roles operate the rental
+  /// pipeline). Rejects illegal lifecycle transitions and emits an
+  /// error notice — a crafted call cannot push an order backwards or
+  /// into an undefined state. Returns true when the change was applied.
+  bool updateOrderStatus(RentalOrder order, OrderStatus status) {
+    if (!role.canOperateRentals) {
+      _deny('update orders');
+      notifyListeners();
+      return false;
+    }
+    if (!kOrderTransitions[order.status]!.contains(status)) {
+      _emit(
+        'Invalid status change — ${order.status.label} orders cannot jump '
+        'straight to ${status.label}.',
+        error: true,
+      );
+      notifyListeners();
+      return false;
+    }
     final idx = _orders.indexWhere((o) => o.id == order.id);
-    if (idx == -1) return;
+    if (idx == -1) return false;
     final updated = order.copyWith(status: status);
     _orders[idx] = updated;
     final b = _backend;
@@ -646,10 +733,18 @@ class WorkspaceState extends ChangeNotifier {
       _push(b.putOrder(updated, isNew: false), 'orders.status');
     }
     _log(
-      type: ActivityType.orderUpdate,
-      body: '**${_account?.name ?? 'Someone'}** updated order **#${order.id} · ${order.eventName}**',
+      type: status == OrderStatus.returned
+          ? ActivityType.returnItem
+          : ActivityType.orderUpdate,
+      body: '**${_account?.name ?? 'Someone'}** marked **#${order.id} · ${order.eventName}** '
+          'as **${status.label}**${status == OrderStatus.confirmed ? ' (payment accepted)' : ''}',
     );
+    if (status == OrderStatus.returned) {
+      _emit('Order #${order.id} returned — restock items in Inventory '
+          'after count/inspection.');
+    }
     notifyListeners();
+    return true;
   }
 
   // -------------------------------------------------------------- customers
@@ -674,12 +769,19 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Adds a customer to the directory (both roles — the front desk
+  /// signs customers up as they walk in).
   void addCustomer({
     required String name,
     required String company,
     required String email,
     required String phone,
   }) {
+    if (!role.canManageCustomers) {
+      _deny('manage customers');
+      notifyListeners();
+      return;
+    }
     final customer = Customer(
       id: _nextId('CUS'),
       name: name,
@@ -774,8 +876,9 @@ class WorkspaceState extends ChangeNotifier {
   List<Pickup> get pickups => List.unmodifiable(_pickups);
 
   // --------------------------------------------------------------- bookings
-  /// Creates a booking: decrements availability, appends an order,
-  /// writes activity. Returns the generated order id.
+  /// Creates a booking (both roles — core front-desk operation):
+  /// decrements availability, appends an order, writes activity and
+  /// updates the customer's stats. Returns the generated order id.
   String createBooking({
     required String customerName,
     required String eventName,
@@ -783,6 +886,11 @@ class WorkspaceState extends ChangeNotifier {
     required List<BookingLine> lines,
     String? notes,
   }) {
+    if (!role.canOperateRentals) {
+      _deny('create bookings');
+      notifyListeners();
+      return '';
+    }
     final id = _nextId('RW');
     final total = lines.fold<double>(
         0, (sum, l) => sum + l.qty * l.item.ratePerDay);

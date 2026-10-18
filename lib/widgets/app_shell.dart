@@ -18,6 +18,39 @@ import 'bottom_nav.dart';
 import 'desktop.dart';
 import 'motion.dart';
 
+/// Shows one-shot state notices (permission denials, cloud write
+/// failures) as floating snackbars. Keyed on [StateNotice.id] so a
+/// notice is shown exactly once, no matter how many rebuilds fire.
+class _NoticeListener extends StatefulWidget {
+  final Widget child;
+  const _NoticeListener({required this.child});
+
+  @override
+  State<_NoticeListener> createState() => _NoticeListenerState();
+}
+
+class _NoticeListenerState extends State<_NoticeListener> {
+  int _lastShownId = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final notice = context.watch<WorkspaceState>().lastNotice;
+    if (notice != null && notice.id != _lastShownId) {
+      _lastShownId = notice.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+          content: Text(notice.message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: notice.isError ? AppPalette.red : null,
+          duration: const Duration(seconds: 4),
+        ));
+      });
+    }
+    return widget.child;
+  }
+}
+
 /// Responsive workspace scaffold:
 /// ≥950px → permanent sidebar; 768–950 → hamburger + drawer;
 /// <768 (phones) → native-app layout with bottom navigation bar.
@@ -100,7 +133,8 @@ class AppShell extends StatelessWidget {
         bindings: shortcuts,
         child: Focus(
           autofocus: true,
-          child: Scaffold(
+          child: _NoticeListener(
+            child: Scaffold(
             key: scaffoldKey,
             drawer: useDrawer ? const AppDrawer() : null,
             bottomNavigationBar:
@@ -136,6 +170,7 @@ class AppShell extends StatelessWidget {
                       ),
                     ],
                   ),
+            ),
           ),
         ),
       ),

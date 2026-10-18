@@ -100,6 +100,11 @@ class RecordingBackend extends AppwriteBackend {
   /// demo fallback on the load path.
   bool failLoad = false;
 
+  /// When true, every write-through call throws (simulates Appwrite
+  /// rejecting a mutation) — used to prove the state layer SURFACES
+  /// the failure instead of pretending success.
+  bool failWrites = false;
+
   WorkspaceSnapshot get snapshot => _snapshot;
 
   static WorkspaceSnapshot _sampleSnapshot() {
@@ -228,10 +233,16 @@ class RecordingBackend extends AppwriteBackend {
 
   @override
   Future<void> setActiveWorkspace(String name) =>
-      _record('profiles', 'activeWorkspace', false, extra: {'name': name});
+      // v1.15: the active-workspace pointer lives in the user's own
+      // user_prefs document (profiles are create-once, never updated).
+      _record('user_prefs', 'activeWorkspace', false, extra: {'name': name});
 
   Future<void> _record(String collection, String id, bool isNew,
       {Map<String, Object?>? extra}) async {
+    if (failWrites) {
+      throw aw.AppwriteException('cloud rejected mutation', 400,
+          'general_rate_limit_exceeded');
+    }
     writes.add(RecordedWrite(
       collection: collection,
       id: id,

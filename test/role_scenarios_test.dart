@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rentwise/models/account.dart';
-import 'package:rentwise/models/rental_order.dart' show OrderStatus;
+import 'package:rentwise/models/rental_order.dart'
+    show OrderStatus, OrderStatusX, kOrderTransitions;
 import 'package:rentwise/services/appwrite_backend.dart';
 import 'package:rentwise/state/workspace_state.dart';
 
@@ -170,16 +171,20 @@ void main() {
       expect(state.workspace, 'Cedar Loft Co.');
       expect(state.isSingleWorkspace, isFalse);
 
-      // Both writes reached the cloud: the workspace doc + the
-      // profile's activeWorkspace pointer.
+      // The workspace document reached the cloud, and the active-
+      // workspace pointer went to the user's own user_prefs document —
+      // profiles are create-once and never updated by the client.
       expect(
           backend.writes
               .where((w) => w.collection == 'workspaces')
               .map((w) => w.id),
           contains('cedar-loft-co'));
       expect(
-          backend.writes.where((w) => w.collection == 'profiles').last.data['name'],
-          'Cedar Loft Co.');
+          backend.writes
+              .where((w) => w.collection == 'user_prefs')
+              .isNotEmpty,
+          isTrue,
+          reason: 'active workspace must persist to user_prefs');
 
       state.switchWorkspace('Riverside Events');
       expect(state.workspace, 'Riverside Events');
@@ -525,4 +530,204 @@ void main() {
       expect(state.monthGrossRevenueK, 0);
     });
   });
+
+  // ================================================== RBAC GUARANTEES
+  group('RBAC guarantees — permission matrix, denials, honest sync', () {
+    test('owner holds every capability in the matrix', () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      expect(state.role.canOperateRentals, isTrue);
+      expect(state.role.canAdjustStock, isTrue);
+      expect(state.role.canManageCustomers, isTrue);
+      expect(state.role.canCreateInventory, isTrue);
+      expect(state.role.canDeleteInventory, isTrue);
+      expect(state.role.canEditPricing, isTrue);
+      expect(state.role.canViewReports, isTrue);
+      expect(state.role.canViewFinancials, isTrue);
+      expect(state.role.canExportReports, isTrue);
+      expect(state.role.canExportCustomersCsv, isTrue);
+      expect(state.role.canManageTeam, isTrue);
+      expect(state.role.canChangeSettings, isTrue);
+      expect(state.role.canManageWorkspaces, isTrue);
+    });
+
+    test('a failed cloud write is SURFACED, never pretended successful',
+        () async {
+      final backend = RecordingBackend()..failWrites = true;
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      state.addInventoryItem(
+        name: 'Ghost Chair',
+        category: 'Seating',
+        totalStock: 2,
+        ratePerDay: 7,
+      );
+
+      // The mutation is applied locally but the sync failure raises a
+      // user-facing error notice.
+      expect(state.inventory.first.name, 'Ghost Chair');
+      // give the fire-and-forget push a tick to land
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(state.lastNotice, isNotNull,
+          reason: 'write failure must be emitted');
+      expect(state.lastNotice!.isError, isTrue);
+      expect(state.lastNotice!.message, contains('Cloud sync failed'));
+    });
+
+    test('an unprovisioned account is refused with the provisioning hint',
+        () async {
+      // Credentials are fine but the PROFILE is missing — exactly what
+      // the real backend returns when profiles lookup fails and the
+      // bootstrap rule cannot run (e.g. profiles collection unreadable).
+      final backend = _NoProfileBackend();
+      final state = WorkspaceState(backend: backend);
+      final err = await state.signInWithEmail(
+          SampleDataset.demoEmployee.email, 'employee-pass');
+
+      expect(err, isNotNull);
+      expect(err, contains('not assigned to a RentWise workspace yet'));
+      expect(err, contains('Ask the workspace owner'));
+      expect(state.isSignedIn, isFalse,
+          reason: 'no profile → no workspace, no demo fallback');
+      expect(state.inventory, isEmpty);
+    });
+
+    test('stock invariants — availability clamped, negative stock impossible',
+        () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      final item = state.inventory.first;
+      state.adjustStock(item, available: -5);
+      expect(state.inventory.firstWhere((i) => i.id == item.id).available, 0,
+          reason: 'negative availability must clamp to 0');
+
+      state.adjustStock(item, available: item.totalStock + 999);
+      expect(state.inventory.firstWhere((i) => i.id == item.id).available,
+          item.totalStock,
+          reason: 'availability can never exceed total stock');
+
+      state.adjustStock(item, totalStock: -3);
+      expect(state.inventory.firstWhere((i) => i.id == item.id).totalStock, 0,
+          reason: 'negative total stock must clamp to 0');
+    });
+
+    test('payment flow: needsPayment → confirmed reads as payment accepted',
+        () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoEmployee.email, 'employee-pass');
+
+      final pending =
+          state.orders.firstWhere((o) => o.status == OrderStatus.needsPayment);
+      // The offered action for a pending order is the CONFIRMED
+      // transition, labelled 'Accept payment'.
+      expect(OrderStatus.confirmed.actionLabel, 'Accept payment');
+      expect(
+          kOrderTransitions[pending.status], contains(OrderStatus.confirmed));
+
+      final ok = state.updateOrderStatus(pending, OrderStatus.confirmed);
+      expect(ok, isTrue);
+      expect(state.orderById(pending.id)!.status, OrderStatus.confirmed);
+
+      // The write hit the orders collection with the accepted status…
+      final write = backend.writes
+          .where((w) => w.collection == 'orders')
+          .lastWhere((w) => w.id == pending.id);
+      expect(write.data['status'], 'confirmed');
+      // …and an activity entry was logged.
+      expect(
+          backend.writes
+              .where((w) => w.collection == 'activities')
+              .map((w) => w.data['body']),
+          contains(contains('payment accepted')));
+    });
+
+    test('illegal lifecycle jumps are rejected with an error notice',
+        () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoEmployee.email, 'employee-pass');
+
+      final returned =
+          state.orders.firstWhere((o) => o.status == OrderStatus.returned);
+      final ok = state.updateOrderStatus(returned, OrderStatus.confirmed);
+      expect(ok, isFalse, reason: 'returned is terminal — no resurrection');
+      expect(state.orderById(returned.id)!.status, OrderStatus.returned);
+      expect(state.lastNotice?.isError, isTrue);
+
+      final confirmed =
+          state.orders.firstWhere((o) => o.status == OrderStatus.confirmed);
+      expect(state.updateOrderStatus(confirmed, OrderStatus.returned), isFalse,
+          reason: 'confirmed → returned skips the lifecycle');
+    });
+
+    test('employee can operate but can NEVER extend the catalog or manage workspaces',
+        () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoEmployee.email, 'employee-pass');
+
+      // Capability matrix — operational yes, business no.
+      expect(state.role.canOperateRentals, isTrue);
+      expect(state.role.canAdjustStock, isTrue);
+      expect(state.role.canManageCustomers, isTrue);
+      expect(state.role.canCreateInventory, isFalse);
+      expect(state.role.canDeleteInventory, isFalse);
+      expect(state.role.canEditPricing, isFalse);
+      expect(state.role.canViewReports, isFalse);
+      expect(state.role.canViewFinancials, isFalse);
+      expect(state.role.canManageTeam, isFalse);
+      expect(state.role.canChangeSettings, isFalse);
+      expect(state.role.canManageWorkspaces, isFalse);
+
+      // Stock adjustment is allowed and written through.
+      final chairs = state.inventory.first;
+      state.adjustStock(chairs, available: chairs.available - 1);
+      expect(
+          state.inventory.firstWhere((i) => i.id == chairs.id).available,
+          chairs.available - 1);
+      expect(
+          backend.writes
+              .where((w) => w.collection == 'inventory')
+              .map((w) => w.id),
+          contains(chairs.id));
+
+      // Catalog growth is refused at the STATE level — no new item,
+      // no cloud write, and a clear denial notice is emitted.
+      final itemsBefore = state.inventory.length;
+      state.addInventoryItem(
+          name: 'Ghost Item', category: 'Seating', totalStock: 5, ratePerDay: 9);
+      expect(state.inventory.length, itemsBefore,
+          reason: 'employee addInventoryItem must be a no-op');
+      expect(state.lastNotice?.isError, isTrue);
+      expect(state.lastNotice?.message, contains('Owner access required'));
+
+      // Workspace management is refused the same way.
+      expect(state.addWorkspace('Shadow Ops'), isFalse);
+      expect(state.workspaces, isNot(contains('Shadow Ops')));
+      state.switchWorkspace('Another Place');
+      expect(state.workspace, 'Riverside Events');
+    });
+  });
+}
+
+/// Stand-in that mimics an unprovisioned account: credentials are fine
+/// but the profile lookup finds nothing.
+class _NoProfileBackend extends RecordingBackend {
+  @override
+  Future<Account> authenticate(String email, String password) async {
+    throw NoProfileException();
+  }
 }

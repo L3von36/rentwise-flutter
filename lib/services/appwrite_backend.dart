@@ -336,9 +336,25 @@ class AppwriteBackend {
     }
   }
 
-  /// Returns '' when the profile has no saved workspace — the caller
-  /// then falls back to the first workspace the account can see.
+  /// Returns '' when the user has no saved workspace preference — the
+  /// caller then falls back to the first workspace the account can see.
+  ///
+  /// Reads the per-user `user_prefs` document (the only profile-
+  /// adjacent document a client may write); falls back to the legacy
+  /// `profiles.activeWorkspace` attribute for older accounts.
   Future<String> _activeWorkspaceFor(String userId) async {
+    try {
+      final prefs = await _db.getDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.colUserPrefs,
+        documentId: userId,
+      );
+      final saved = (prefs.data['activeWorkspace'] ?? '') as String? ?? '';
+      if (saved.isNotEmpty) return saved;
+    } catch (_) {
+      // No prefs doc (or prefs collection not provisioned yet) — fall
+      // through to the legacy profile attribute.
+    }
     try {
       final p = await _findProfile(userId);
       return (p?.data['activeWorkspace'] ?? '') as String? ?? '';
@@ -441,18 +457,44 @@ class AppwriteBackend {
     );
   }
 
+  /// Saves the user's active workspace into their own `user_prefs`
+  /// document (document-level security: only this user may read/write
+  /// it). Profiles are read- + create-only for clients — a profile's
+  /// role is fixed at creation and can never be changed from the app.
   Future<void> setActiveWorkspace(String name) async {
     final uid = _userId;
     if (uid == null) return;
+    final data = {'activeWorkspace': name};
     try {
       await _db.updateDocument(
         databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colProfiles,
+        collectionId: AppwriteConfig.colUserPrefs,
         documentId: uid,
-        data: {'activeWorkspace': name},
+        data: data,
       );
+    } on aw.AppwriteException catch (e) {
+      if (e.code != 404) {
+        debugPrint('Appwrite[userPrefs.$uid] $e');
+        return;
+      }
+      // First save — create the user's prefs doc scoped to them.
+      try {
+        await _db.createDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.colUserPrefs,
+          documentId: uid,
+          data: data,
+          permissions: [
+            aw.Permission.read(aw.Role.user(uid)),
+            aw.Permission.update(aw.Role.user(uid)),
+            aw.Permission.delete(aw.Role.user(uid)),
+          ],
+        );
+      } catch (e2) {
+        debugPrint('Appwrite[userPrefs.$uid.create] $e2');
+      }
     } catch (e) {
-      debugPrint('Appwrite[activeWorkspace] $e');
+      debugPrint('Appwrite[userPrefs.$uid] $e');
     }
   }
 
@@ -492,12 +534,14 @@ class AppwriteBackend {
           return;
         } catch (e2) {
           debugPrint('Appwrite[$collection.$id] fallback write: $e2');
-          return;
+          rethrow; // surface — the state layer shows a sync notice
         }
       }
       debugPrint('Appwrite[$collection.$id] $e');
+      rethrow; // surface — the state layer shows a sync notice
     } catch (e) {
       debugPrint('Appwrite[$collection.$id] $e');
+      rethrow;
     }
   }
 
@@ -611,6 +655,7 @@ class AppwriteBackend {
   /// the user; a short diagnostic tail tells us (and support) what really
   /// happened instead of hiding every failure behind one generic string.
   static String authErrorText(Object error) {
+    if (error is NoProfileException) return error.message;
     if (error is aw.AppwriteException) {
       switch (error.type) {
         case 'user_invalid_credentials':
@@ -674,6 +719,19 @@ class AppwriteBackend {
     final short = s.length > 110 ? '${s.substring(0, 110)}…' : s;
     return 'Sign-in failed — $short';
   }
+}
+
+/// Thrown when a signed-in Appwrite user cannot get a workspace profile
+/// (the profiles lookup fails or bootstrap is impossible). The client
+/// never grants roles silently — the user gets an actionable message.
+class NoProfileException implements Exception {
+  final String message;
+  NoProfileException()
+      : message = 'This account is not assigned to a RentWise workspace yet.\n'
+            'Ask the workspace owner to provision your employee profile.';
+
+  @override
+  String toString() => message;
 }
 
 /// Shared helpers (also used by the seeding harness).

@@ -57,10 +57,14 @@ class SideNav extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Workspace switcher
+          // Workspace switcher — owners manage workspaces; employees
+          // see a locked, read-only chip for their assigned workspace.
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: _WorkspaceSwitcher(workspace: state.workspace),
+            child: _WorkspaceSwitcher(
+              workspace: state.workspace,
+              canManage: state.isOwner,
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -345,7 +349,8 @@ class _SideItem extends StatelessWidget {
 
 class _WorkspaceSwitcher extends StatelessWidget {
   final String workspace;
-  const _WorkspaceSwitcher({required this.workspace});
+  final bool canManage;
+  const _WorkspaceSwitcher({required this.workspace, this.canManage = true});
 
   @override
   Widget build(BuildContext context) {
@@ -354,7 +359,9 @@ class _WorkspaceSwitcher extends StatelessWidget {
       borderRadius: BorderRadius.circular(13),
       child: InkWell(
         borderRadius: BorderRadius.circular(13),
-        onTap: () => _showWorkspaceSheet(context),
+        // Employees see their assigned workspace; only owners may open
+        // the switcher (the state layer also refuses the call).
+        onTap: canManage ? () => _showWorkspaceSheet(context) : null,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
@@ -405,7 +412,10 @@ class _WorkspaceSwitcher extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.keyboard_arrow_down_rounded,
+              Icon(
+                  canManage
+                      ? Icons.keyboard_arrow_down_rounded
+                      : Icons.lock_outline_rounded,
                   size: 16, color: AppPalette.muted),
             ],
           ),

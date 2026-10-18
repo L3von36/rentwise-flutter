@@ -10,9 +10,46 @@ extension OrderStatusX on OrderStatus {
         OrderStatus.returned => 'Returned',
       };
 
+  /// Human action label for ADVANCING an order into this status —
+  /// the button text the operator actually wants to press.
+  String get actionLabel => switch (this) {
+        OrderStatus.preparing => 'Stage & pack',
+        OrderStatus.confirmed => 'Accept payment', // needsPayment → confirmed
+        OrderStatus.needsPayment => 'Request payment',
+        OrderStatus.outForDelivery => 'Mark dispatched',
+        OrderStatus.returned => 'Mark returned',
+      };
+
   bool get isOpen => this != OrderStatus.returned;
   bool get isUpcoming => this != OrderStatus.returned;
 }
+
+/// Valid forward transitions of the rental lifecycle.
+///
+/// Single source of truth: the order detail screen only OFFERS these,
+/// and [WorkspaceState.updateOrderStatus] enforces them — a crafted
+/// direct state call cannot push an order into an illegal status.
+const Map<OrderStatus, List<OrderStatus>> kOrderTransitions = {
+  OrderStatus.confirmed: [
+    OrderStatus.preparing,
+    OrderStatus.outForDelivery,
+    OrderStatus.needsPayment,
+  ],
+  OrderStatus.preparing: [
+    OrderStatus.outForDelivery,
+    OrderStatus.needsPayment,
+    OrderStatus.returned, // cancelled-before-dispatch
+  ],
+  OrderStatus.outForDelivery: [
+    OrderStatus.needsPayment,
+    OrderStatus.returned,
+  ],
+  OrderStatus.needsPayment: [
+    OrderStatus.confirmed, // payment accepted
+    OrderStatus.returned,
+  ],
+  OrderStatus.returned: [], // terminal
+};
 
 /// A single quoted line item on a rental order. `unitPrice` is the
 /// per-unit event price quoted to the customer (it may differ from the

@@ -473,7 +473,8 @@ class _CustomerStrip extends StatelessWidget {
 }
 
 /// Real status transitions — each button writes the change to the store
-/// and lands in the activity log.
+/// and lands in the activity log. The offered transitions come from
+/// [kOrderTransitions]; the state layer independently enforces them.
 class _StatusActionsCard extends StatelessWidget {
   final RentalOrder order;
   const _StatusActionsCard({required this.order});
@@ -481,7 +482,7 @@ class _StatusActionsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<WorkspaceState>();
-    final next = _nextStatuses(order.status);
+    final next = kOrderTransitions[order.status] ?? const <OrderStatus>[];
 
     return SectionCard(
       icon: Icons.bolt_rounded,
@@ -493,15 +494,28 @@ class _StatusActionsCard extends StatelessWidget {
         children: [
           for (final s in next)
             OutlineButton(
-              label: s.label,
+              label: s.actionLabel,
               icon: _statusIcon(s),
               fg: s.fg,
               onTap: () {
-                state.updateOrderStatus(order, s);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('${order.id} marked “${s.label}”'),
-                  behavior: SnackBarBehavior.floating,
-                ));
+                final ok = state.updateOrderStatus(order, s);
+                if (ok) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(switch (s) {
+                      OrderStatus.confirmed =>
+                        'Payment accepted — ${order.id} marked paid',
+                      OrderStatus.returned =>
+                        '${order.id} returned — restock items after inspection',
+                      OrderStatus.outForDelivery =>
+                        '${order.id} dispatched',
+                      OrderStatus.preparing =>
+                        '${order.id} staged for prep',
+                      OrderStatus.needsPayment =>
+                        '${order.id} awaiting payment',
+                    }),
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                }
               },
             ),
           if (next.isEmpty)
@@ -515,26 +529,11 @@ class _StatusActionsCard extends StatelessWidget {
     );
   }
 
-  /// Sensible forward transitions from the current status.
-  List<OrderStatus> _nextStatuses(OrderStatus s) => switch (s) {
-        OrderStatus.confirmed => [
-            OrderStatus.preparing,
-            OrderStatus.outForDelivery,
-            OrderStatus.needsPayment
-          ],
-        OrderStatus.preparing =>
-          [OrderStatus.outForDelivery, OrderStatus.needsPayment],
-        OrderStatus.outForDelivery =>
-          [OrderStatus.needsPayment, OrderStatus.returned],
-        OrderStatus.needsPayment => [OrderStatus.confirmed, OrderStatus.returned],
-        OrderStatus.returned => const [],
-      };
-
   IconData _statusIcon(OrderStatus s) => switch (s) {
-        OrderStatus.confirmed => Icons.check_rounded,
-        OrderStatus.preparing => Icons.inventory_2_outlined,
+        OrderStatus.confirmed => Icons.payments_outlined, // accept payment
+        OrderStatus.preparing => Icons.inventory_2_outlined, // stage & pack
         OrderStatus.outForDelivery => Icons.local_shipping_outlined,
-        OrderStatus.needsPayment => Icons.payments_outlined,
+        OrderStatus.needsPayment => Icons.request_quote_outlined,
         OrderStatus.returned => Icons.assignment_return_outlined,
       };
 }
