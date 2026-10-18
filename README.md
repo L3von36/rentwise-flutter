@@ -19,7 +19,7 @@ All 11 screens from the design pack, pixel-faithful:
 | **Orders** | KPIs, All/Upcoming/Completed tabs, order table + cards, status actions from the overflow menu |
 | **Customers** | KPIs, directory with search, add customer, purple "Relationship Pulse" insight panel |
 | **Activity Log** | Stat strip, timeline with type badges, filter menu + chips |
-| **Reports** (Owner only) | Gross revenue / utilization KPIs, fl_chart revenue trend bars, top-category breakdown |
+| **Reports** (Owner only) | Gradient month-performance hero (live revenue / utilization / momentum tiles), honest live KPI grid (revenue, utilization, awaiting payment, late returns), dynamic revenue trend chart with best-day / average / days-booked footer, ranked category breakdown with share %, live order-pipeline counters |
 | **New rental booking** | Dialog on desktop, bottom sheet on mobile — customer, event, date picker, item lines with qty steppers, live total |
 
 Everything runs against **Appwrite Cloud** — the single source of truth. Creating a booking decrements inventory availability, appends an order, writes an activity entry and bumps the sidebar badge locally, and every mutation is **written through to the cloud immediately** (orders, inventory, customers, activities, pickups, workspaces, profiles, metrics). Sign-in failures surface honestly — there is **no offline/demo fallback**: until a sign-in succeeds the workspace is simply empty.
