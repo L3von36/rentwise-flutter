@@ -60,6 +60,7 @@ void main() {
         'category': item.category,
         'totalStock': item.totalStock,
         'available': item.available,
+        'maintenance': item.maintenance,
         'ratePerDay': item.ratePerDay,
         'iconKey': iconKeyFor(item.icon),
         'sortIndex': i,

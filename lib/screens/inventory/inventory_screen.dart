@@ -9,6 +9,7 @@ import '../../models/inventory_item.dart';
 import '../../services/csv_export.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
+import '../../widgets/chips.dart';
 import '../../widgets/inventory_views.dart';
 import '../../widgets/kpi_card.dart';
 import '../booking/new_booking_sheet.dart';
@@ -16,6 +17,9 @@ import 'item_adjust_dialog.dart';
 import '../../widgets/filters.dart';
 import '../../widgets/indicators.dart';
 import '../../core/palette.dart';
+
+/// Which metric a KPI drill-in dialog breaks down by category.
+enum _BreakdownMode { total, available, onRent }
 
 class InventoryScreen extends StatelessWidget {
   const InventoryScreen({super.key});
@@ -81,7 +85,8 @@ class InventoryScreen extends StatelessWidget {
                   color: AppPalette.muted)),
           const SizedBox(height: 14),
 
-          // KPI grid
+          // KPI grid — each card drills into ITS OWN metric, never the
+          // same screen: totals / availability / on-rent / watch list.
           LayoutBuilder(builder: (context, c) {
             final cols = width < 1100 ? 2 : 4;
             const gap = 16.0;
@@ -98,9 +103,11 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.primarySoft,
                     label: 'Total items',
                     value: '${state.totalUnits}',
-                    subtitle: 'Tap for a category breakdown',
-                    trailing: const TrendChip(text: '+24', positive: true),
-                    onTap: () => _showCategoryBreakdown(context),
+                    subtitle: 'Every unit owned — tap for category breakdown',
+                    trailing: TrendChip.flat(
+                        text: '${state.inventory.length} lines'),
+                    onTap: () => _showCategoryBreakdown(
+                        context, _BreakdownMode.total),
                   ),
                 ),
                 SizedBox(
@@ -111,11 +118,12 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.greenBg,
                     label: 'Available now',
                     value: '${state.availableUnits}',
-                    subtitle: 'Tap for a category breakdown',
+                    subtitle: 'Bookable units — tap to see where they sit',
                     trailing: TrendChip(
                         text: '${availablePct.toStringAsFixed(0)}%',
                         positive: true),
-                    onTap: () => _showCategoryBreakdown(context),
+                    onTap: () => _showCategoryBreakdown(
+                        context, _BreakdownMode.available),
                   ),
                 ),
                 SizedBox(
@@ -126,11 +134,12 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.amberBg,
                     label: 'On rent',
                     value: '${state.onRentUnits}',
-                    subtitle: 'Across live bookings',
+                    subtitle: 'Out with customers — tap to see what',
                     trailing: TrendChip(
                         text: '${onRentPct.toStringAsFixed(1)}%',
                         positive: false),
-                    onTap: () => _showCategoryBreakdown(context),
+                    onTap: () =>
+                        _showCategoryBreakdown(context, _BreakdownMode.onRent),
                   ),
                 ),
                 SizedBox(
@@ -141,7 +150,7 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.blueBg,
                     label: 'Needs attention',
                     value: '${state.attentionItems}',
-                    subtitle: 'Tap to see the watch list',
+                    subtitle: 'Items pulled for maintenance — watch list',
                     trailing: const TrendChip.flat(text: 'Watch list'),
                     onTap: () => _showAttentionList(context),
                   ),
@@ -165,7 +174,7 @@ class InventoryScreen extends StatelessWidget {
                 filename: 'inventory.csv',
                 header: const [
                   'id', 'name', 'category', 'total_stock', 'available',
-                  'on_rent', 'rate_per_day'
+                  'on_rent', 'status', 'rate_per_day'
                 ],
                 rows: state.inventory
                     .map((i) => [
@@ -174,7 +183,8 @@ class InventoryScreen extends StatelessWidget {
                           i.category,
                           '${i.totalStock}',
                           '${i.available}',
-                          '${i.totalStock - i.available}',
+                          '${i.onRentUnits}',
+                          i.status.label,
                           i.ratePerDay.toStringAsFixed(2),
                         ])
                     .toList(),
@@ -204,6 +214,50 @@ class InventoryScreen extends StatelessWidget {
                       onChanged: state.setCategoryFilter,
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+
+                // Status chips — live counts per lifecycle state. Tap to
+                // narrow the table; tap again to clear.
+                SizedBox(
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: _StatusChip(
+                            label: 'All statuses',
+                            count: state.inventory.length,
+                            fg: AppPalette.primary,
+                            bg: AppPalette.primarySoft,
+                            selected:
+                                state.inventoryStatusFilter == null,
+                            onTap: () =>
+                                state.setInventoryStatusFilter(null),
+                          ),
+                        ),
+                        for (final status in ItemStatus.values)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _StatusChip(
+                              label: status.label,
+                              count: state.countByStatus(status),
+                              fg: status.fg,
+                              bg: status.bg,
+                              selected:
+                                  state.inventoryStatusFilter == status,
+                              onTap: () => state.setInventoryStatusFilter(
+                                  state.inventoryStatusFilter == status
+                                      ? null
+                                      : status),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Align(
@@ -245,33 +299,85 @@ class InventoryScreen extends StatelessWidget {
     );
   }
 
-  /// Live per-category availability drill-in (KPI tap target).
-  void _showCategoryBreakdown(BuildContext context) {
+  /// Live per-category drill-in for the KPI cards. Each mode surfaces a
+  /// DIFFERENT metric so the three cards never show the same screen:
+  ///  - total     : every unit owned, per category
+  ///  - available : bookable units per category (maintenance excluded)
+  ///  - onRent    : units out with customers, per category
+  /// The dialog can also push its slice straight into the table below
+  /// via the status chips.
+  void _showCategoryBreakdown(BuildContext context, _BreakdownMode mode) {
     final state = context.read<WorkspaceState>();
+
+    int metric(InventoryItem i) => switch (mode) {
+          _BreakdownMode.total => i.totalStock,
+          _BreakdownMode.available =>
+            i.maintenance ? 0 : i.available.clamp(0, i.totalStock),
+          _BreakdownMode.onRent => i.onRentUnits,
+        };
+
     final byCategory = <String, List<InventoryItem>>{};
     for (final item in state.inventory) {
       byCategory.putIfAbsent(item.category, () => []).add(item);
     }
     final categories = byCategory.keys.toList()..sort();
     final maxUnits = byCategory.values
-        .map((l) => l.fold<int>(0, (s, i) => s + i.totalStock))
+        .map((l) => l.fold<int>(0, (s, i) => s + metric(i)))
         .fold(0, math.max);
+    final grandTotal =
+        byCategory.values.fold<int>(0, (s, l) => s + l.fold(0, (s, i) => s + metric(i)));
+
+    final (title, subtitle) = switch (mode) {
+      _BreakdownMode.total => (
+        'Total items — $grandTotal units',
+        'Every unit you own, grouped by category'
+      ),
+      _BreakdownMode.available => (
+        'Available now — $grandTotal units',
+        'Bookable units per category (maintenance items are not counted)'
+      ),
+      _BreakdownMode.onRent => (
+        'On rent — $grandTotal units',
+        'Units out with customers, grouped by category'
+      ),
+    };
+
+    final barColor = switch (mode) {
+      _BreakdownMode.total => AppPalette.primary,
+      _BreakdownMode.available => AppPalette.green,
+      _BreakdownMode.onRent => AppPalette.amber,
+    };
 
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.35),
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Inventory breakdown',
-            style: TextStyle(
+        title: Text(title,
+            style: const TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 15,
                 fontWeight: FontWeight.w800)),
         content: SizedBox(
-          width: 420,
+          width: 440,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(subtitle,
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 11.5,
+                      color: AppPalette.muted)),
+              const SizedBox(height: 14),
+              if (categories.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text('No inventory yet.',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12.5,
+                          color: AppPalette.muted)),
+                ),
               for (final category in categories)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -289,7 +395,7 @@ class InventoryScreen extends StatelessWidget {
                                     color: AppPalette.ink)),
                           ),
                           Text(
-                              '${byCategory[category]!.fold<int>(0, (s, i) => s + i.available)} free of ${byCategory[category]!.fold<int>(0, (s, i) => s + i.totalStock)}',
+                              '${byCategory[category]!.fold<int>(0, (s, i) => s + metric(i))} units',
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 11.5,
@@ -304,7 +410,7 @@ class InventoryScreen extends StatelessWidget {
                                 ? 0.0
                                 : byCategory[category]!
                                         .fold<int>(
-                                            0, (s, i) => s + i.totalStock) /
+                                            0, (s, i) => s + metric(i)) /
                                     maxUnits),
                         duration: const Duration(milliseconds: 450),
                         curve: Curves.easeOutCubic,
@@ -319,7 +425,7 @@ class InventoryScreen extends StatelessWidget {
                             widthFactor: t,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: AppPalette.primary,
+                                color: barColor,
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             ),
@@ -333,6 +439,17 @@ class InventoryScreen extends StatelessWidget {
           ),
         ),
         actions: [
+          if (mode == _BreakdownMode.onRent)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                state.setInventoryStatusFilter(ItemStatus.rentedOut);
+              },
+              child: Text('Show rented items in the list',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      color: AppPalette.primary)),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
             child: Text('Close',
@@ -509,6 +626,58 @@ class InventoryScreen extends StatelessWidget {
               child: const Text('Add item',
                   style: TextStyle(fontFamily: AppTheme.fontFamily)),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One selectable lifecycle chip: status dot + `label · count`. Selected
+/// chips fill with the status wash and read in the status color; idle
+/// ones sit on the neutral fill — both resolve through [AppPalette].
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color fg;
+  final Color bg;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _StatusChip({
+    required this.label,
+    required this.count,
+    required this.fg,
+    required this.bg,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? bg : AppPalette.fill,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
+            color: selected ? fg.withOpacity(0.4) : AppPalette.stroke,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Dot(color: selected ? fg : AppPalette.faint, size: 6),
+            const SizedBox(width: 5),
+            Text('$label · $count',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 11.5,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    color: selected ? fg : AppPalette.muted)),
           ],
         ),
       ),

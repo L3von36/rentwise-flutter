@@ -136,6 +136,53 @@ class RecordingBackend extends AppwriteBackend {
     return u.account;
   }
 
+  /// Mirrors the real backend's sign-up + bootstrap rule: the FIRST
+  /// account when no owner exists becomes the owner, everyone after
+  /// that joins as an employee. Duplicate emails throw like the cloud.
+  @override
+  Future<Account> registerAccount(
+      String name, String email, String password) async {
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    final key = email.trim().toLowerCase();
+    if (_users.containsKey(key)) {
+      throw aw.AppwriteException(
+          'A user with the same email already exists.', 409,
+          'user_already_exists');
+    }
+    if (password.length < 8) {
+      throw aw.AppwriteException(
+          'Password must be at least 8 characters.', 400,
+          'user_password_invalid');
+    }
+    final hasOwner = _users.values.any((u) => u.account.role == UserRole.owner);
+    final account = Account(
+      name: name.trim(),
+      email: email.trim(),
+      role: hasOwner ? UserRole.employee : UserRole.owner,
+      initials: initialsFor(name.trim()),
+      title: hasOwner ? 'Team member' : 'Workspace owner',
+    );
+    _users[key] = FakeUser(
+        email: email.trim(), password: password, account: account);
+    writes.add(RecordedWrite(
+      collection: 'profiles',
+      id: key,
+      isNew: true,
+      data: {'role': account.role.name, 'bootstrapOwner': !hasOwner},
+    ));
+    return account;
+  }
+
+  @override
+  Future<void> resetWorkspaceData() async {
+    writes.add(const RecordedWrite(
+      collection: 'reset',
+      id: 'all-business-collections',
+      isNew: false,
+      data: {},
+    ));
+  }
+
   @override
   Future<WorkspaceSnapshot> loadWorkspace() async {
     loadCalls++;
@@ -151,7 +198,10 @@ class RecordingBackend extends AppwriteBackend {
 
   @override
   Future<void> putInventoryItem(InventoryItem item, {bool isNew = false}) =>
-      _record('inventory', item.id, isNew);
+      _record('inventory', item.id, isNew, extra: {
+        'available': item.available,
+        'maintenance': item.maintenance,
+      });
 
   @override
   Future<void> putOrder(RentalOrder order, {bool isNew = false}) =>

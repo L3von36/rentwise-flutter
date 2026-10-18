@@ -10,15 +10,15 @@ All 11 screens from the design pack, pixel-faithful:
 
 | Screen | Highlights |
 | --- | --- |
-| **Sign-in** | Employee/Owner role toggle, email + password, remember me, Google button, split hero layout |
+| **Sign-in / Sign-up** | Email + password sign-in with remember-me, plus full **registration** (create account → first account on a fresh cloud becomes owner, later accounts join as employees), forgot-password flow, split hero layout |
 | **Password recovery** | Account recovery card with success state |
 | **Dashboard (Operations overview)** | Owner: financial KPIs, earnings chart with gradient "today" bar, top categories, inventory snapshot. Employee: gradient **shift hero** (greeting, live shift-progress rail, UP NEXT panel), numbered priority task list with filters, dispatch timeline, quick actions, personal activity timeline |
 | **Owner dashboard (mobile/tablet)** | Business-open banner, today-at-a-glance tiles, live activity, next dispatch card |
-| **Inventory** | KPIs, search + category filter, table/list switch, add-item dialog, stock adjust + maintenance toggle, +Rent shortcut |
+| **Inventory** | Status-driven KPIs — **each card drills into its own metric** (totals / available / on-rent per category), lifecycle status chips (In stock · Partially out · Rented out · Maintenance) with live counts, table/list switch, add-item dialog, stock adjust + real **maintenance flag**, +Rent shortcut |
+| **Access & roles** (Owner only) | Role cards, permission matrix, owner role-preview switch, **danger zone: reset workspace data** (wipe the sample dataset or everything, type-RESET confirm) |
 | **Orders** | KPIs, All/Upcoming/Completed tabs, order table + cards, status actions from the overflow menu |
 | **Customers** | KPIs, directory with search, add customer, purple "Relationship Pulse" insight panel |
 | **Activity Log** | Stat strip, timeline with type badges, filter menu + chips |
-| **Access & roles** | Protected banner, owner role-preview switch, permission matrix, current session + sign out |
 | **Reports** (Owner only) | Gross revenue / utilization KPIs, fl_chart revenue trend bars, top-category breakdown |
 | **New rental booking** | Dialog on desktop, bottom sheet on mobile — customer, event, date picker, item lines with qty steppers, live total |
 
@@ -50,12 +50,27 @@ flutter run -d <device-id>  # Android / iOS device or emulator
 
 Sign in with an **Appwrite account registered in your project** (the role — owner or employee — is resolved server-side from the `profiles` collection), create a booking from **New rental booking** or any **+ Rent** button, then watch the dashboard, orders, inventory, and activity log react. Data is written through to Appwrite Cloud as you act.
 
+### Registration — how accounts are created
+
+- **From the app**: tap **Create an account** on the sign-in card. The FIRST account on a cloud that has no owner yet becomes the **owner** and gets a starter workspace; every later registration joins as an **employee** and is promoted by the owner under **Access & roles**.
+- **From the Appwrite console**: Auth → Add user. Their profile (and role) is provisioned on first sign-in — a console user becomes owner only when no owner exists yet.
+- Customers are NOT app accounts — they are records in the `customers` collection, managed by owner/staff from the Customers screen.
+
+### Item status & maintenance
+
+Inventory rows show a derived lifecycle status: **In stock** (all units free) · **Partially out** (some units rented) · **Rented out** (every unit out) · **Maintenance** (explicit operator flag). Maintenance items are excluded from the Available/On-rent KPI pools — a broken chair is not "on rent" — and appear on the watch list. Toggle it from the edit dialog. Requires the `maintenance` boolean attribute on `inventory_items` (idempotent `scripts/appwrite_provision.sh` adds it; older clouds keep working — the app degrades gracefully and stock numbers still persist).
+
+### Starting fresh — clearing the sample dataset
+
+The one-shot seeding harness can preload the "Riverside Events" sample workspace. To replace it with your real data: sign in as **owner** → **Access & roles → Danger zone → Reset data** (type RESET to confirm). All inventory, orders, customers, activity and pickups are deleted from Appwrite; your account, team profiles and workspaces are kept.
+
 ### Tests & analysis
 
 ```bash
 flutter analyze             # zero issues
-flutter test                # 44 tests: role journeys (owner/employee/customer),
-                            # write-through assertions, no-demo guarantees, mappers
+flutter test                # 60 tests: role journeys (owner/employee/customer),
+                            # item-status rules, sign-up/bootstrap, danger-zone
+                            # reset, write-through assertions, no-demo guarantees
 ```
 
 One-shot backend tooling (CI-safe, skipped without env vars):

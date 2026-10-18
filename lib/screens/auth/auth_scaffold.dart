@@ -3,10 +3,12 @@ import '../../widgets/brand_logo.dart';
 import '../../widgets/chips.dart';
 import '../../core/app_colors.dart';
 import 'sign_in_screen.dart';
+import 'sign_up_screen.dart';
 import 'password_recovery_screen.dart';
 import '../../core/palette.dart';
 
-/// Routes between sign-in and password recovery without a Navigator.
+/// Routes between sign-in, sign-up and password recovery without a
+/// Navigator.
 class AuthFlow extends StatefulWidget {
   const AuthFlow({super.key});
 
@@ -15,24 +17,32 @@ class AuthFlow extends StatefulWidget {
 }
 
 class _AuthFlowState extends State<AuthFlow> {
-  bool _recovery = false;
+  _AuthView _view = _AuthView.signIn;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 260),
-      child: _recovery
-          ? PasswordRecoveryView(
-              key: const ValueKey('recovery'),
-              onBack: () => setState(() => _recovery = false),
-            )
-          : SignInView(
-              key: const ValueKey('signin'),
-              onForgotPassword: () => setState(() => _recovery = true),
-            ),
+      child: switch (_view) {
+        _AuthView.recovery => PasswordRecoveryView(
+            key: const ValueKey('recovery'),
+            onBack: () => setState(() => _view = _AuthView.signIn),
+          ),
+        _AuthView.signUp => SignUpView(
+            key: const ValueKey('signup'),
+            onBackToSignIn: () => setState(() => _view = _AuthView.signIn),
+          ),
+        _AuthView.signIn => SignInView(
+            key: const ValueKey('signin'),
+            onForgotPassword: () => setState(() => _view = _AuthView.recovery),
+            onRegister: () => setState(() => _view = _AuthView.signUp),
+          ),
+      },
     );
   }
 }
+
+enum _AuthView { signIn, signUp, recovery }
 
 /// Split hero + card layout shared by both auth screens.
 class AuthScaffold extends StatelessWidget {

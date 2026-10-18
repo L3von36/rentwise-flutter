@@ -134,6 +134,84 @@ class WorkspaceState extends ChangeNotifier {
   UserRole get role => _account?.role ?? UserRole.employee;
   bool get isOwner => role == UserRole.owner;
 
+  /// Real sign-up against Appwrite: creates the account, signs it in
+  /// and provisions the profile. Role rule: the FIRST account on a
+  /// cloud with no owner profile becomes the owner; every later
+  /// registration joins as an employee (promoted by the owner in
+  /// Access & roles). Returns null on success.
+  Future<String?> signUpWithEmail(
+      String name, String email, String password) async {
+    final b = _backend;
+    _loadingAuth = true;
+    _authError = null;
+    notifyListeners();
+    try {
+      if (b == null) {
+        _loadingAuth = false;
+        _authError =
+            'Appwrite backend is not configured in this build. '
+            'Please reinstall the official release.';
+        notifyListeners();
+        return _authError;
+      }
+      _account = await b.registerAccount(name.trim(), email.trim(), password);
+      final snap = await b.loadWorkspace();
+      _adoptSnapshot(snap);
+      _ensureOwnerWorkspace();
+      _loadingAuth = false;
+      _section = Section.dashboard;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _account = null;
+      _loadingAuth = false;
+      _authError = AppwriteBackend.authErrorText(e);
+      notifyListeners();
+      return _authError;
+    }
+  }
+
+  /// Replaces the whole store with exactly what the cloud returned.
+  void _adoptSnapshot(WorkspaceSnapshot snap) {
+    _inventory = snap.inventory;
+    _orders = snap.orders;
+    _customers = snap.customers;
+    _activity = snap.activity;
+    _pickups = snap.pickups;
+    _workspaces
+      ..clear()
+      ..addAll(snap.workspaces);
+    if (snap.activeWorkspace.isNotEmpty &&
+        _workspaces.contains(snap.activeWorkspace)) {
+      _workspace = snap.activeWorkspace;
+    } else if (_workspaces.isNotEmpty) {
+      _workspace = _workspaces.first;
+    } else {
+      _workspace = '';
+    }
+    _earnings = snap.earnings;
+    _trend = snap.trend;
+    _categoryRevenue = snap.categoryRevenue;
+    _grossMonthK = snap.grossMonthK;
+    _utilizationPct = snap.utilizationPct;
+    // Fresh data, fresh filters — never inherit a stale narrowing.
+    _categoryFilter = Catalog.allCategories;
+    _inventoryQuery = '';
+    _inventoryStatusFilter = null;
+  }
+
+  /// After a bootstrap-owner sign-in/up: a brand-new cloud has no
+  /// workspace yet, so give the owner theirs immediately instead of an
+  /// empty picker.
+  void _ensureOwnerWorkspace() {
+    if (!isOwner || _workspaces.isNotEmpty) return;
+    final first = _account?.name.trim().split(' ').first ?? 'My';
+    final name = first.isEmpty ? 'My Workspace' : "$first's Workspace";
+    final ok = addWorkspace(name);
+    if (ok) return;
+    addWorkspace('My Workspace');
+  }
+
   /// Real sign-in against Appwrite. Returns null on success or a
   /// human-friendly error message the auth screen can display.
   Future<String?> signInWithEmail(String email, String password) async {
@@ -157,27 +235,8 @@ class WorkspaceState extends ChangeNotifier {
       final snap = await b.loadWorkspace();
       // Replace the store with EXACTLY what Cloud returns — an empty
       // collection shows an empty workspace. Nothing is invented locally.
-      _inventory = snap.inventory;
-      _orders = snap.orders;
-      _customers = snap.customers;
-      _activity = snap.activity;
-      _pickups = snap.pickups;
-      _workspaces
-        ..clear()
-        ..addAll(snap.workspaces);
-      if (snap.activeWorkspace.isNotEmpty &&
-          _workspaces.contains(snap.activeWorkspace)) {
-        _workspace = snap.activeWorkspace;
-      } else if (_workspaces.isNotEmpty) {
-        _workspace = _workspaces.first;
-      } else {
-        _workspace = '';
-      }
-      _earnings = snap.earnings;
-      _trend = snap.trend;
-      _categoryRevenue = snap.categoryRevenue;
-      _grossMonthK = snap.grossMonthK;
-      _utilizationPct = snap.utilizationPct;
+      _adoptSnapshot(snap);
+      _ensureOwnerWorkspace();
       _loadingAuth = false;
       _section = Section.dashboard;
       notifyListeners();
@@ -333,15 +392,21 @@ class WorkspaceState extends ChangeNotifier {
   late List<InventoryItem> _inventory;
   String _categoryFilter = Catalog.allCategories;
   String _inventoryQuery = '';
+  ItemStatus? _inventoryStatusFilter; // null = every status
 
   List<InventoryItem> get inventory => List.unmodifiable(_inventory);
   String get categoryFilter => _categoryFilter;
   String get inventoryQuery => _inventoryQuery;
+  ItemStatus? get inventoryStatusFilter => _inventoryStatusFilter;
 
   List<InventoryItem> get filteredInventory {
     Iterable<InventoryItem> items = _inventory;
     if (_categoryFilter != Catalog.allCategories) {
       items = items.where((i) => i.category == _categoryFilter);
+    }
+    final statusFilter = _inventoryStatusFilter;
+    if (statusFilter != null) {
+      items = items.where((i) => i.status == statusFilter);
     }
     if (_inventoryQuery.trim().isNotEmpty) {
       final q = _inventoryQuery.trim().toLowerCase();
@@ -351,6 +416,10 @@ class WorkspaceState extends ChangeNotifier {
     }
     return items.toList();
   }
+
+  /// Live count per status — feeds the inventory status chips.
+  int countByStatus(ItemStatus s) =>
+      _inventory.where((i) => i.status == s).length;
 
   void setCategoryFilter(String c) {
     _categoryFilter = c;
@@ -362,12 +431,28 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Tapping the active status chip again clears the filter (null).
+  void setInventoryStatusFilter(ItemStatus? status) {
+    _inventoryStatusFilter = status;
+    notifyListeners();
+  }
+
+  /// KPI: every unit the business owns, including units currently under
+  /// maintenance (they are still property — see the 4th card for how
+  /// many of them are out of service).
   int get totalUnits =>
       _inventory.fold(0, (sum, i) => sum + i.totalStock);
-  int get availableUnits =>
-      _inventory.fold(0, (sum, i) => sum + i.available);
+
+  /// KPI: units bookable right now. Maintenance items are pulled from
+  /// the pool — their units are neither available nor on rent.
+  int get availableUnits => _inventory
+      .where((i) => !i.maintenance)
+      .fold(0, (sum, i) => sum + i.available.clamp(0, i.totalStock));
+
+  /// KPI: units out with customers. Maintenance items never count —
+  /// a broken chair is not "on rent".
   int get onRentUnits =>
-      _inventory.fold(0, (sum, i) => sum + (i.totalStock - i.available));
+      _inventory.fold(0, (sum, i) => sum + i.onRentUnits);
   int get attentionItems =>
       _inventory.where((i) => i.needsAttention).length;
 
@@ -399,16 +484,59 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void adjustStock(InventoryItem item, {int? totalStock, int? available}) {
+  void adjustStock(
+    InventoryItem item, {
+    int? totalStock,
+    int? available,
+    bool? maintenance,
+  }) {
     final idx = _inventory.indexWhere((i) => i.id == item.id);
     if (idx == -1) return;
     final updated = item.copyWith(
-        totalStock: totalStock, available: available);
+        totalStock: totalStock,
+        available: available,
+        maintenance: maintenance);
     _inventory[idx] = updated;
     final b = _backend;
     if (b != null) {
       _push(b.putInventoryItem(updated, isNew: false), 'inventory.adjust');
     }
+    if (maintenance != null && maintenance != item.maintenance) {
+      _log(
+        type: ActivityType.note,
+        body: maintenance
+            ? '**${_account?.name ?? 'Someone'}** pulled **${item.name}** into maintenance'
+            : '**${_account?.name ?? 'Someone'}** returned **${item.name}** to service',
+      );
+    }
+    notifyListeners();
+  }
+
+  /// Owner-only danger action: wipes every business document from the
+  /// cloud (inventory, orders, customers, activity, pickups) and zeroes
+  /// the metrics document. Used to clear the bundled sample dataset and
+  /// start with real data. Profiles, workspaces and the auth account
+  /// are kept. Throws upward so the UI can surface an honest error.
+  Future<void> resetWorkspaceData() async {
+    final b = _backend;
+    if (b == null || !isOwner) return;
+    await b.resetWorkspaceData();
+    _inventory = const [];
+    _orders = const [];
+    _customers = const [];
+    _activity = const [];
+    _pickups = const [];
+    _earnings = const [];
+    _trend = const [];
+    _categoryRevenue = const [];
+    _grossMonthK = 0;
+    _utilizationPct = 0;
+    _unreadActivity = 0;
+    _log(
+      type: ActivityType.note,
+      body:
+          '**${_account?.name ?? 'Someone'}** reset the workspace — all business data was deleted',
+    );
     notifyListeners();
   }
 

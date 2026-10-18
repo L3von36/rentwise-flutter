@@ -341,7 +341,195 @@ class AccessRolesScreen extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 18),
+
+          // danger zone — wipe sample/business data (owner only)
+          const _DangerZoneCard(),
         ],
+      ),
+    );
+  }
+}
+
+/// Owner-only danger zone: permanently deletes every business document
+/// from Appwrite (inventory, orders, customers, activity, pickups) and
+/// zeroes the metrics. Use it to clear the preloaded sample dataset and
+/// start entering real data. Profiles, workspaces and the account are
+/// kept. Requires typing RESET to confirm.
+class _DangerZoneCard extends StatefulWidget {
+  const _DangerZoneCard();
+
+  @override
+  State<_DangerZoneCard> createState() => _DangerZoneCardState();
+}
+
+class _DangerZoneCardState extends State<_DangerZoneCard> {
+  bool _running = false;
+
+  Future<void> _confirmAndReset() async {
+    final state = context.read<WorkspaceState>();
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Reset workspace data?',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 15,
+                fontWeight: FontWeight.w800)),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This permanently deletes ALL inventory, orders, customers, '
+                'activity and pickups from Appwrite Cloud, and zeroes the '
+                'metrics. Your account, team profiles and workspaces are kept.',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    height: 1.5,
+                    color: AppPalette.body),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'There is no undo. Type RESET to confirm.',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppPalette.red),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: const InputDecoration(hintText: 'RESET'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: Text('Cancel',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    color: AppPalette.body)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppPalette.red,
+            ),
+            onPressed: () =>
+                Navigator.pop(dialogCtx, ctrl.text.trim() == 'RESET'),
+            child: const Text('Delete everything',
+                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _running = true);
+    try {
+      await state.resetWorkspaceData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Workspace data deleted — you are starting fresh.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Reset failed — $e'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<WorkspaceState>();
+    return SectionCard(
+      icon: Icons.warning_amber_rounded,
+      title: 'Danger zone',
+      subtitle:
+          'Remove the sample dataset (or everything) and start fresh.',
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppPalette.redBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppPalette.red.withOpacity(0.35)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Reset workspace data',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppPalette.ink)),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Deletes ${state.inventory.length} inventory lines, '
+                    '${state.orders.length} orders, ${state.customers.length} '
+                    'customers and the full activity log from Appwrite. '
+                    'Cannot be undone.',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11.5,
+                        height: 1.45,
+                        color: AppPalette.body),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              height: 40,
+              child: Material(
+                color: AppPalette.red,
+                borderRadius: BorderRadius.circular(10),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: _running ? null : _confirmAndReset,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16),
+                    child: Center(
+                      child: _running
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                    Colors.white),
+                              ),
+                            )
+                          : const Text('Reset data',
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -71,6 +71,7 @@ class SampleDataset {
           category: 'Linens',
           totalStock: 120,
           available: 0,
+          maintenance: true,
           ratePerDay: 2.25,
           icon: Icons.dry_cleaning_outlined,
         ),

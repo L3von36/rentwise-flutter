@@ -106,14 +106,18 @@ class AppwriteBackend {
       );
     }
 
-    // First-ever sign-in of an unprovisioned user: provision a safe
-    // employee profile (owner access is never granted implicitly).
+    // First-ever sign-in of an unprovisioned user. Bootstrap rule: if
+    // NO owner profile exists yet, this account becomes the owner —
+    // otherwise it joins as a safe employee and is promoted by the
+    // owner in Access & roles. Owner access is never granted when an
+    // owner already exists.
+    final bootstrapOwner = !(await _hasOwner());
     final provisioned = Account(
       name: user.name.isEmpty ? email : user.name,
       email: user.email,
-      role: UserRole.employee,
+      role: bootstrapOwner ? UserRole.owner : UserRole.employee,
       initials: initialsFor(user.name.isEmpty ? email : user.name),
-      title: 'Team member',
+      title: bootstrapOwner ? 'Workspace owner' : 'Team member',
     );
     await _db.createDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -123,11 +127,97 @@ class AppwriteBackend {
         'userId': user.$id,
         'name': provisioned.name,
         'email': provisioned.email,
-        'role': 'employee',
+        'role': bootstrapOwner ? 'owner' : 'employee',
         'title': provisioned.title,
       },
     );
     return provisioned;
+  }
+
+  /// Creates a new Appwrite account (sign-up), then signs it in and
+  /// provisions the profile through [authenticate]. Throws
+  /// [AppwriteException] on failure (existing email, weak password…).
+  Future<Account> registerAccount(
+      String name, String email, String password) async {
+    await _account
+        .create(
+          userId: aw.ID.unique(),
+          email: email,
+          password: password,
+          name: name,
+        )
+        .timeout(_callTimeout);
+    return authenticate(email, password);
+  }
+
+  /// True when at least one profile with role `owner` exists.
+  Future<bool> _hasOwner() async {
+    final res = await _db.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.colProfiles,
+      queries: [aw.Query.equal('role', 'owner'), aw.Query.limit(1)],
+    );
+    return res.documents.isNotEmpty;
+  }
+
+  /// Owner-only danger action: permanently deletes every document in
+  /// the business collections (inventory, orders, customers, activity,
+  /// pickups) and zeroes the metrics document. Profiles, workspaces
+  /// and the auth account itself are kept. Throws on failure so the
+  /// caller can surface an honest error.
+  Future<void> resetWorkspaceData() async {
+    const collections = [
+      AppwriteConfig.colInventory,
+      AppwriteConfig.colOrders,
+      AppwriteConfig.colCustomers,
+      AppwriteConfig.colActivities,
+      AppwriteConfig.colPickups,
+    ];
+    for (final c in collections) {
+      // Re-list after every delete batch — deletions shift the result
+      // set. Hard-capped so a partial permission failure can't loop.
+      for (var sweep = 0; sweep < 500; sweep++) {
+        final res = await _db.listDocuments(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: c,
+          queries: [aw.Query.limit(100)],
+        ).timeout(_bulkTimeout);
+        if (res.documents.isEmpty) break;
+        for (final d in res.documents) {
+          await _db.deleteDocument(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: c,
+            documentId: d.$id,
+          );
+        }
+      }
+    }
+    final resetMetrics = {
+      'grossMonth': 0,
+      'utilization': 0,
+      'earningsJson': '[]',
+      'categoryJson': '[]',
+    };
+    try {
+      await _db.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.colMetrics,
+        documentId: 'main',
+        data: resetMetrics,
+      ).timeout(_callTimeout);
+    } catch (_) {
+      // No metrics document yet — create it zeroed.
+      try {
+        await _db.createDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.colMetrics,
+          documentId: 'main',
+          data: resetMetrics,
+        ).timeout(_callTimeout);
+      } catch (e) {
+        debugPrint('Appwrite[metrics.reset] $e');
+      }
+    }
   }
 
   Future<models.Document?> _findProfile(String userId) async {
@@ -150,34 +240,50 @@ class AppwriteBackend {
 
   // ------------------------------------------------------------ data load
 
+  /// Lists EVERY document in a collection, following cursors page by
+  /// page. The old one-shot `limit(200)` load silently truncated larger
+  /// workspaces — with 200+ rows the dashboard numbers simply stopped
+  /// being true. Page size stays at 100 (safe on every Appwrite plan).
+  Future<List<models.Document>> _listAll(
+    String collectionId, {
+    List<String> extraQueries = const [],
+    int pageSize = 100,
+    int maxPages = 100,
+  }) async {
+    final docs = <models.Document>[];
+    var cursor = '';
+    for (var page = 0; page < maxPages; page++) {
+      final res = await _db
+          .listDocuments(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: collectionId,
+            queries: [
+              ...extraQueries,
+              aw.Query.limit(pageSize),
+              if (cursor.isNotEmpty) aw.Query.cursorAfter(cursor),
+            ],
+          )
+          .timeout(_bulkTimeout);
+      docs.addAll(res.documents);
+      if (res.documents.length < pageSize) break;
+      cursor = res.documents.last.$id;
+    }
+    return docs;
+  }
+
   /// Pulls every workspace collection. A hard failure (network, auth)
   /// propagates to the caller — sign-in fails with an honest error and
   /// nothing is faked locally.
   Future<WorkspaceSnapshot> loadWorkspace() async {
-    final inv = _db.listDocuments(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colInventory,
-        queries: [aw.Query.limit(200)]);
-    final ord = _db.listDocuments(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colOrders,
-        queries: [aw.Query.limit(200)]);
-    final cus = _db.listDocuments(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colCustomers,
-        queries: [aw.Query.limit(200)]);
-    final act = _db.listDocuments(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colActivities,
-        queries: [aw.Query.limit(200), aw.Query.orderDesc('at')]);
-    final pks = _db.listDocuments(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colPickups,
-        queries: [aw.Query.limit(100)]);
-    final wrk = _db.listDocuments(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colWorkspaces,
-        queries: [aw.Query.limit(100)]);
+    final inv = _listAll(AppwriteConfig.colInventory);
+    final ord = _listAll(AppwriteConfig.colOrders);
+    final cus = _listAll(AppwriteConfig.colCustomers);
+    final act =
+        _listAll(AppwriteConfig.colActivities, extraQueries: [
+          aw.Query.orderDesc('at'),
+        ]);
+    final pks = _listAll(AppwriteConfig.colPickups);
+    final wrk = _listAll(AppwriteConfig.colWorkspaces);
     final met = _getMetricsDoc();
 
     final r = await Future.wait([
@@ -197,12 +303,12 @@ class AppwriteBackend {
 
     return WorkspaceSnapshot(
       accountUserId: _userId ?? '',
-      inventory: r[0].documents.map(inventoryFromDoc).toList(),
-      orders: r[1].documents.map(orderFromDoc).toList(),
-      customers: r[2].documents.map(customerFromDoc).toList(),
-      activity: r[3].documents.map(activityFromDoc).toList(),
-      pickups: r[4].documents.map(pickupFromDoc).toList(),
-      workspaces: r[5].documents
+      inventory: r[0].map(inventoryFromDoc).toList(),
+      orders: r[1].map(orderFromDoc).toList(),
+      customers: r[2].map(customerFromDoc).toList(),
+      activity: r[3].map(activityFromDoc).toList(),
+      pickups: r[4].map(pickupFromDoc).toList(),
+      workspaces: r[5]
           .map((d) => (d.data['name'] ?? '') as String)
           .where((n) => n.isNotEmpty)
           .toList(),
@@ -253,10 +359,23 @@ class AppwriteBackend {
           'category': item.category,
           'totalStock': item.totalStock,
           'available': item.available,
+          'maintenance': item.maintenance,
           'ratePerDay': item.ratePerDay,
           'iconKey': iconKeyFor(item.icon),
         },
         isNew: isNew,
+        // Clouds provisioned before the `maintenance` attribute reject
+        // the new key with 400 — retry without it so the stock numbers
+        // still persist (see scripts/appwrite_provision.sh to upgrade).
+        fallbackData: {
+          'name': item.name,
+          'note': item.note,
+          'category': item.category,
+          'totalStock': item.totalStock,
+          'available': item.available,
+          'ratePerDay': item.ratePerDay,
+          'iconKey': iconKeyFor(item.icon),
+        },
       );
 
   Future<void> putOrder(RentalOrder order, {bool isNew = false}) => _upsert(
@@ -338,36 +457,41 @@ class AppwriteBackend {
   }
 
   Future<void> _upsert(String collection, String id, Map<String, dynamic> data,
-      {bool isNew = false}) async {
-    try {
+      {bool isNew = false, Map<String, dynamic>? fallbackData}) async {
+    Future<void> write(Map<String, dynamic> d) async {
       if (isNew) {
-        await _db.createDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: collection,
-          documentId: id,
-          data: data,
-        );
-      } else {
-        await _db.updateDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: collection,
-          documentId: id,
-          data: data,
-        );
-      }
-    } on aw.AppwriteException catch (e) {
-      if (e.code == 409 && isNew) {
-        // Document exists — fall back to an update (idempotent replay).
         try {
-          await _db.updateDocument(
+          await _db.createDocument(
             databaseId: AppwriteConfig.databaseId,
             collectionId: collection,
             documentId: id,
-            data: data,
+            data: d,
           );
           return;
+        } on aw.AppwriteException catch (e) {
+          if (e.code != 409) rethrow;
+          // Document exists — fall through to an update (idempotent replay).
+        }
+      }
+      await _db.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: collection,
+        documentId: id,
+        data: d,
+      );
+    }
+
+    try {
+      await write(data);
+    } on aw.AppwriteException catch (e) {
+      if (fallbackData != null && e.code == 400) {
+        // Schema predates a newly added attribute — write the reduced
+        // payload so the rest of the data still persists.
+        try {
+          await write(fallbackData);
+          return;
         } catch (e2) {
-          debugPrint('Appwrite[$collection.$id] update-after-409: $e2');
+          debugPrint('Appwrite[$collection.$id] fallback write: $e2');
           return;
         }
       }
@@ -388,6 +512,7 @@ class AppwriteBackend {
       category: (data['category'] ?? '') as String,
       totalStock: (data['totalStock'] ?? 0) as int,
       available: (data['available'] ?? 0) as int,
+      maintenance: (data['maintenance'] ?? false) == true,
       ratePerDay: ((data['ratePerDay'] ?? 0) as num).toDouble(),
       icon: kInventoryIcons[(data['iconKey'] ?? '') as String? ?? ''] ??
           Icons.inventory_2_outlined,

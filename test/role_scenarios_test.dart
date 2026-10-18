@@ -506,7 +506,22 @@ void main() {
       expect(state.inventory, isEmpty);
       expect(state.orders, isEmpty);
       expect(state.customers, isEmpty);
-      expect(state.workspace, isEmpty);
+      // A brand-new cloud gets ONE honest starter workspace for its
+      // bootstrap owner — created via the real addWorkspace write path
+      // (the document actually exists in the cloud afterwards), while
+      // every business collection stays genuinely empty.
+      expect(state.workspaces, ["Olivia's Workspace"]);
+      expect(
+        empty.writes.where((w) => w.collection == 'workspaces'),
+        isNotEmpty,
+      );
+      expect(
+        empty.writes.where((w) =>
+            w.collection == 'inventory' ||
+            w.collection == 'orders' ||
+            w.collection == 'customers'),
+        isEmpty,
+      );
       expect(state.monthGrossRevenueK, 0);
     });
   });

@@ -14,7 +14,12 @@ import '../../core/palette.dart';
 /// and the user retries.
 class SignInView extends StatefulWidget {
   final VoidCallback onForgotPassword;
-  const SignInView({super.key, required this.onForgotPassword});
+  final VoidCallback onRegister;
+  const SignInView({
+    super.key,
+    required this.onForgotPassword,
+    required this.onRegister,
+  });
 
   @override
   State<SignInView> createState() => _SignInViewState();
@@ -255,6 +260,36 @@ class _SignInViewState extends State<SignInView> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text('New to RentWise?',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 13,
+                              color: AppPalette.body)),
+                    ),
+                    TextButton(
+                      onPressed: widget.onRegister,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text('Create an account',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppPalette.primary)),
+                    ),
+                  ],
+                ),
                 Text(
                   'By signing in, you agree to the workspace access policy.',
                   textAlign: TextAlign.center,

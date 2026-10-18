@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
 import '../../models/inventory_item.dart';
 import '../../state/workspace_state.dart';
-import '../../widgets/cards.dart';
+import '../../widgets/chips.dart';
 import '../../core/palette.dart';
 
 /// Adjust stock / toggle maintenance for an inventory item.
@@ -32,14 +32,15 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
   void initState() {
     super.initState();
     _available = widget.item.available;
-    _maintenance = widget.item.status == ItemStatus.maintenance;
+    _maintenance = widget.item.maintenance;
   }
 
   void _save() {
     final state = context.read<WorkspaceState>();
     state.adjustStock(
       widget.item,
-      available: _maintenance ? 0 : _available.clamp(0, widget.item.totalStock),
+      available: _available.clamp(0, widget.item.totalStock),
+      maintenance: _maintenance,
     );
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -64,12 +65,6 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
             children: [
               Row(
                 children: [
-                  IconChipLite(
-                      icon: widget.item.icon,
-                      color: AppPalette.primary,
-                      bg: AppPalette.primarySoft,
-                      size: 38),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,6 +83,11 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                                 color: AppPalette.muted)),
                       ],
                     ),
+                  ),
+                  StatusBadge(
+                    label: widget.item.status.label,
+                    fg: widget.item.status.fg,
+                    bg: widget.item.status.bg,
                   ),
                 ],
               ),
@@ -147,7 +147,9 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Mark as under maintenance (pulls all units from availability)',
+                        _maintenance
+                            ? 'Under maintenance — excluded from Available / On rent until returned to service'
+                            : 'Pull this item from availability (repairs, cleaning, damage)',
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
@@ -158,6 +160,17 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Status now: ${(_maintenance ? ItemStatus.maintenance : widget.item.copyWith(available: _available).status).label}',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: _maintenance
+                        ? AppPalette.amber
+                        : AppPalette.body),
               ),
               const SizedBox(height: 18),
               Row(

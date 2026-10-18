@@ -66,7 +66,7 @@ mkattr profiles '{"key":"name","type":"string","size":128,"required":true}' stri
 mkattr profiles '{"key":"email","type":"string","size":256,"required":true}' string
 mkattr profiles '{"key":"role","type":"enum","elements":["owner","employee"],"required":true}' enum
 mkattr profiles '{"key":"title","type":"string","size":64,"required":false,"default":""}' string
-mkattr profiles '{"key":"activeWorkspace","type":"string","size":128,"required":false,"default":"Riverside Events"}' string
+mkattr profiles '{"key":"activeWorkspace","type":"string","size":128,"required":false,"default":""}' string
 
 # ---- inventory_items
 mkcoll inventory_items 'Inventory items'
@@ -75,6 +75,7 @@ mkattr inventory_items '{"key":"note","type":"string","size":256,"required":fals
 mkattr inventory_items '{"key":"category","type":"string","size":64,"required":true}' string
 mkattr inventory_items '{"key":"totalStock","type":"integer","required":true,"min":0,"max":100000}' integer
 mkattr inventory_items '{"key":"available","type":"integer","required":true,"min":0,"max":100000}' integer
+mkattr inventory_items '{"key":"maintenance","type":"boolean","required":false,"default":false}' boolean
 mkattr inventory_items '{"key":"ratePerDay","type":"float","required":true,"min":0,"max":1000000}' float
 mkattr inventory_items '{"key":"iconKey","type":"string","size":64,"required":false,"default":"inventory_2"}' string
 mkattr inventory_items '{"key":"sortIndex","type":"integer","required":false,"default":0,"min":0,"max":100000}' integer
@@ -162,9 +163,22 @@ mkplat '{"type":"macos","name":"RentWise macOS","bundle":"com.rentwise.rentwise"
 mkplat '{"type":"windows","name":"RentWise Windows","package":"com.rentwise.rentwise"}'
 mkplat '{"type":"linux","name":"RentWise Linux","package":"com.rentwise.rentwise"}'
 
-echo '== users (owner + employee) =='
+echo '== users (optional, env-driven) =='
+# NEVER commit real passwords. Create the first owner HERE (console) or
+# simply register from the app — the first account on a fresh cloud
+# becomes the owner. To seed users from CI, export:
+#   AW_OWNER_EMAIL / AW_OWNER_PASSWORD / AW_OWNER_NAME
+#   AW_EMPLOYEE_EMAIL / AW_EMPLOYEE_PASSWORD / AW_EMPLOYEE_NAME
 mkuser() { api POST /users "$1" >/dev/null; }
-mkuser '{"userId":"owner-tinsae","email":"selamvenda8@gmail.com","password":"selam@336","name":"Tinsae Abeba"}'
-mkuser '{"userId":"employee-jordan","email":"jordan@riverside.events","password":"jordan@336","name":"Jordan Miller"}'
+if [ -n "${AW_OWNER_EMAIL:-}" ] && [ -n "${AW_OWNER_PASSWORD:-}" ]; then
+  mkuser "{\"userId\":\"owner-$(date +%s)\",\"email\":\"$AW_OWNER_EMAIL\",\"password\":\"$AW_OWNER_PASSWORD\",\"name\":\"${AW_OWNER_NAME:-Workspace Owner}\"}"
+else
+  echo '  skip owner (set AW_OWNER_EMAIL/AW_OWNER_PASSWORD to create)'
+fi
+if [ -n "${AW_EMPLOYEE_EMAIL:-}" ] && [ -n "${AW_EMPLOYEE_PASSWORD:-}" ]; then
+  mkuser "{\"userId\":\"employee-$(date +%s)\",\"email\":\"$AW_EMPLOYEE_EMAIL\",\"password\":\"$AW_EMPLOYEE_PASSWORD\",\"name\":\"${AW_EMPLOYEE_NAME:-Team Member}\"}"
+else
+  echo '  skip employee (set AW_EMPLOYEE_EMAIL/AW_EMPLOYEE_PASSWORD to create)'
+fi
 
 echo 'ALL DONE'
