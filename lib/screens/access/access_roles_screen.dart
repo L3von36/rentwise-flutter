@@ -10,9 +10,18 @@ import '../../state/shell_state.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/restricted.dart';
 import '../../core/palette.dart';
 
+/// OWNER CONSOLE — Access & roles.
+///
+/// One screen that answers "who can do what":
+///  * a gradient security hero with live team stats,
+///  * the team directory (the ONLY place employee accounts are created,
+///    plus role/title editing and password resets),
+///  * a role preview switch, appearance picker, permission matrix,
+///    the current session and the danger zone.
 class AccessRolesScreen extends StatelessWidget {
   const AccessRolesScreen({super.key});
 
@@ -32,6 +41,7 @@ class AccessRolesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
     final shell = context.watch<ShellState>();
+    final compact = Density.compact(context);
 
     // Owner-only console: even if this screen is somehow mounted for an
     // employee, only the restricted panel renders (no role switcher,
@@ -44,12 +54,17 @@ class AccessRolesScreen extends StatelessWidget {
       );
     }
 
+    final ownerMembers =
+        state.team.where((m) => m.role == UserRole.owner).length;
+    final employeeMembers = state.team.length - ownerMembers;
+
     return Padding(
       padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
           Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ---------------------------------------------------------- header
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -68,7 +83,7 @@ class AccessRolesScreen extends StatelessWidget {
                     Text('Access & roles',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
-                            fontSize: Density.compact(context) ? 17 : 21,
+                            fontSize: compact ? 17 : 21,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             color: AppPalette.ink)),
@@ -84,295 +99,457 @@ class AccessRolesScreen extends StatelessWidget {
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 14,
                   color: AppPalette.muted)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
 
-          // role-based access banner
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppPalette.primarySoft.withOpacity(0.55),
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppPalette.primaryTint),
-            ),
-            child: Row(
-              children: [
-                IconChipLite(
-                    icon: Icons.shield_outlined,
-                    color: AppPalette.primary,
-                    bg: AppPalette.surface,
-                    size: 40),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Role-based access is active',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppPalette.ink)),
-                      const SizedBox(height: 3),
-                      Text(
-                          'Every action is logged, and sensitive owner controls stay protected.',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 12.5,
-                              color: AppPalette.body)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                StatusBadge.custom(
-                  label: 'Protected',
-                  fg: AppPalette.green,
-                  bg: AppPalette.greenBg,
-                  dot: true,
-                ),
-              ],
+          // ---------------------------------------------- security hero
+          StaggerIn(
+            index: 0,
+            child: _SecurityHero(
+              members: state.team.length,
+              owners: ownerMembers,
+              employees: employeeMembers,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
           // team directory + the ONLY place employee accounts are
           // created (owner action; self-registration is closed).
-          const _TeamCard(),
-          const SizedBox(height: 18),
-
-          // role cards
-          Row(
-            children: [
-              Expanded(
-                child: _RoleCard(
-                  icon: Icons.person_outline,
-                  title: UserRole.employee.label,
-                  subtitle: UserRole.employee.tagline,
-                  selected: state.role == UserRole.employee,
-                  onTap: () => state.switchRole(UserRole.employee),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _RoleCard(
-                  icon: Icons.shield_outlined,
-                  title: UserRole.owner.label,
-                  subtitle: UserRole.owner.tagline,
-                  selected: state.role == UserRole.owner,
-                  onTap: () => state.switchRole(UserRole.owner),
-                ),
-              ),
-            ],
+          const StaggerIn(
+            index: 1,
+            child: _TeamCard(),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
+
+          // role preview — see the app as the other seat sees it
+          StaggerIn(
+            index: 2,
+            child: SectionCard(
+              icon: Icons.swap_horiz_rounded,
+              title: 'Role preview',
+              subtitle:
+                  'Step into the other seat to see what they see — your real '
+                  'access never changes.',
+              child: LayoutBuilder(builder: (context, box) {
+                final tiles = [
+                  Expanded(
+                    child: _RoleCard(
+                      icon: Icons.person_outline,
+                      title: UserRole.employee.label,
+                      subtitle: UserRole.employee.tagline,
+                      selected: state.role == UserRole.employee,
+                      onTap: () => state.switchRole(UserRole.employee),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _RoleCard(
+                      icon: Icons.shield_outlined,
+                      title: UserRole.owner.label,
+                      subtitle: UserRole.owner.tagline,
+                      selected: state.role == UserRole.owner,
+                      onTap: () => state.switchRole(UserRole.owner),
+                    ),
+                  ),
+                ];
+                if (box.maxWidth < 560) {
+                  return Column(
+                    children: [
+                      tiles[0],
+                      const SizedBox(height: 12),
+                      tiles[2],
+                    ],
+                  );
+                }
+                return Row(children: tiles);
+              }),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // appearance — the cross-platform home of the theme toggle
           // (the desktop title bar and tray menu expose the same control).
-          SectionCard(
-            icon: Icons.contrast_rounded,
-            title: 'Appearance',
-            subtitle: 'Choose how RentWise looks on this device.',
-            child: Row(
-              children: [
-                for (final mode in AppThemeSetting.values) ...[
-                  _ThemeChoice(
-                    mode: mode,
-                    selected: shell.themeSetting == mode,
-                    onTap: () => shell.setThemeSetting(mode),
+          StaggerIn(
+            index: 3,
+            child: SectionCard(
+              icon: Icons.contrast_rounded,
+              title: 'Appearance',
+              subtitle: 'Choose how RentWise looks on this device.',
+              child: Row(
+                children: [
+                  for (final mode in AppThemeSetting.values) ...[
+                    _ThemeChoice(
+                      mode: mode,
+                      selected: shell.themeSetting == mode,
+                      onTap: () => shell.setThemeSetting(mode),
+                    ),
+                    if (mode != AppThemeSetting.values.last)
+                      const SizedBox(width: 10),
+                  ],
+                  const Spacer(),
+                  Flexible(
+                    child: Text('Remembered on this device',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 11.5,
+                            color: AppPalette.muted)),
                   ),
-                  if (mode != AppThemeSetting.values.last)
-                    const SizedBox(width: 10),
                 ],
-                const Spacer(),
-                Flexible(
-                  child: Text('Remembered on this device',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 11.5,
-                          color: AppPalette.muted)),
-                ),
-              ],
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
-          // permission matrix
-          SectionCard(
-            icon: Icons.key_outlined,
-            title: 'Permission matrix',
-            subtitle: 'Compare access levels before inviting your next team member.',
-            action: OutlineButton(
-              label: 'Preview sign-in',
-              icon: Icons.visibility_outlined,
-              onTap: () => state.signOut(),
-            ),
-            child: Column(
-              children: [
-                // header
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          flex: 6,
-                          child: Text('CAPABILITY',
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.1,
-                                  color: AppPalette.muted))),
-                      Expanded(
-                          flex: 2,
-                          child: Text('EMPLOYEE',
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.1,
-                                  color: AppPalette.muted))),
-                      const SizedBox(width: 16),
-                      Expanded(
-                          flex: 2,
-                          child: Text('OWNER',
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.1,
-                                  color: AppPalette.muted))),
-                    ],
-                  ),
-                ),
-                for (final cap in _matrix)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 4),
-                    decoration: BoxDecoration(
-                      border: Border(
-                          top: BorderSide(color: AppPalette.stroke)),
-                    ),
+          // permission matrix — grouped so the split is obvious at a glance
+          StaggerIn(
+            index: 4,
+            child: SectionCard(
+              icon: Icons.key_outlined,
+              title: 'Permission matrix',
+              subtitle:
+                  'Compare access levels before inviting your next team member.',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // column headers
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10, left: 4),
                     child: Row(
                       children: [
-                        Expanded(
-                          flex: 6,
-                          child: Text(cap.label,
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppPalette.ink)),
-                        ),
+                        const Expanded(flex: 6, child: SizedBox()),
                         Expanded(
                           flex: 2,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: cap.employee
-                                ? const _CheckMark()
-                                : const _Dash(),
+                          child: _MatrixHeader(
+                            label: 'Employee',
+                            icon: Icons.person_outline,
+                            color: AppPalette.green,
                           ),
                         ),
-                        const SizedBox(width: 16),
                         Expanded(
                           flex: 2,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: cap.owner
-                                ? const _CheckMark()
-                                : const _Dash(),
+                          child: _MatrixHeader(
+                            label: 'Owner',
+                            icon: Icons.shield_outlined,
+                            color: AppPalette.primary,
                           ),
                         ),
                       ],
                     ),
                   ),
-              ],
+                  const _GroupLabel('Shared with every role'),
+                  for (final cap in _matrix.where((c) => c.employee))
+                    _MatrixRow(capability: cap.label, employee: true, owner: true),
+                  const _GroupLabel('Owner-only'),
+                  for (final cap in _matrix.where((c) => !c.employee))
+                    _MatrixRow(
+                        capability: cap.label, employee: false, owner: true),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
           // current session
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppPalette.surface,
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppPalette.stroke),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Eyebrow('Current session'),
-                      const SizedBox(height: 5),
-                      Text(
-                          '${state.account?.name ?? '—'} · ${state.role.label}',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppPalette.ink)),
-                      const SizedBox(height: 2),
-                      Text(
-                          'Signed in with ${state.account?.email ?? '—'}',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 12,
-                              color: AppPalette.muted)),
-                    ],
-                  ),
-                ),
-                InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => state.signOut(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout_rounded,
-                            size: 16, color: AppPalette.red),
-                        const SizedBox(width: 6),
-                        Text('Sign out',
-                            style: TextStyle(
-                                fontFamily: AppTheme.fontFamily,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppPalette.red)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          const StaggerIn(
+            index: 5,
+            child: _SessionCard(),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
           // danger zone — wipe sample/business data (owner only)
-          const _DangerZoneCard(),
+          const StaggerIn(
+            index: 6,
+            child: _DangerZoneCard(),
+          ),
         ],
       ),
     );
   }
 }
 
+/// Gradient security banner — replaces the old flat info box. Shows the
+/// live protection summary: team size, owners, employees, audit logging.
+class _SecurityHero extends StatelessWidget {
+  final int members;
+  final int owners;
+  final int employees;
+
+  const _SecurityHero({
+    required this.members,
+    required this.owners,
+    required this.employees,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = Density.compact(context);
+
+    final stats = [
+      _HeroStat(value: '$members', label: 'Members'),
+      _HeroStat(value: '$owners', label: 'Owners'),
+      _HeroStat(value: '$employees', label: 'Employees'),
+    ];
+
+    final headline = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.22)),
+          ),
+          child: const Icon(Icons.shield_outlined,
+              color: Colors.white, size: 22),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Role-based access is active',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+              const SizedBox(height: 3),
+              Text(
+                'Every action is logged, and sensitive owner controls stay '
+                'protected.',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    height: 1.35,
+                    color: Colors.white.withOpacity(0.78)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final statRow = Row(
+      children: [
+        for (var i = 0; i < stats.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(child: stats[i]),
+        ],
+      ],
+    );
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 16 : 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: AppPalette.heroGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.cardLg),
+        boxShadow: AppShadow.card(
+            opacity: AppPalette.dark ? 0.5 : 0.18),
+      ),
+      child: compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                headline,
+                const SizedBox(height: 14),
+                statRow,
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(flex: 5, child: headline),
+                const SizedBox(width: 18),
+                SizedBox(width: 270, child: statRow),
+              ],
+            ),
+    );
+  }
+}
+
+/// Translucent stat tile used inside the security hero.
+class _HeroStat extends StatelessWidget {
+  final String value;
+  final String label;
+  const _HeroStat({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value,
+              style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+          const SizedBox(height: 1),
+          Text(label.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                  color: Colors.white.withOpacity(0.72))),
+        ],
+      ),
+    );
+  }
+}
+
+// MATRIX -------------------------------------------------------------
+
+/// Colored uppercase column header for the permission matrix.
+class _MatrixHeader extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  const _MatrixHeader(
+      {required this.label, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(label.toUpperCase(),
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                  color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tiny uppercase group caption between matrix sections.
+class _GroupLabel extends StatelessWidget {
+  final String text;
+  const _GroupLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4, left: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 11,
+            decoration: BoxDecoration(
+                color: AppPalette.primary,
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(width: 7),
+          Text(text.toUpperCase(),
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: AppPalette.muted)),
+        ],
+      ),
+    );
+  }
+}
+
+/// One permission-matrix row: capability label + per-role check / dash.
+class _MatrixRow extends StatelessWidget {
+  final String capability;
+  final bool employee;
+  final bool owner;
+  const _MatrixRow({
+    required this.capability,
+    required this.employee,
+    required this.owner,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppPalette.stroke)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 6,
+            child: Text(capability,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: AppPalette.ink)),
+          ),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: employee ? const _CheckMark() : const _Dash(),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: owner ? const _CheckMark() : const _Dash(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// TEAM DIRECTORY -----------------------------------------------------
+
 /// Team directory — every workspace member plus the Add-employee
 /// action. This is the ONLY place employee accounts are created:
 /// self-registration on the auth screen closes as soon as an owner
 /// exists, so credentials are always issued by the owner.
-class _TeamCard extends StatelessWidget {
+class _TeamCard extends StatefulWidget {
   const _TeamCard();
 
-  Future<void> _openAddDialog(BuildContext context) async {
+  @override
+  State<_TeamCard> createState() => _TeamCardState();
+}
+
+class _TeamCardState extends State<_TeamCard> {
+  String _query = '';
+
+  Future<void> _openAddDialog() async {
     final created = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.35),
       builder: (_) => const _AddEmployeeDialog(),
     );
-    if (created == true && context.mounted) {
+    if (created == true && mounted) {
+      setState(() => _query = '');
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text(
             'Employee account created — share the credentials securely.'),
@@ -405,7 +582,20 @@ class _TeamCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
+    final compact = Density.compact(context);
     final team = state.team;
+    final owners = team.where((m) => m.role == UserRole.owner).length;
+
+    // search filter — matches name, email or job title
+    final q = _query.trim().toLowerCase();
+    final visible = q.isEmpty
+        ? team
+        : team
+            .where((m) =>
+                m.name.toLowerCase().contains(q) ||
+                m.email.toLowerCase().contains(q) ||
+                m.title.toLowerCase().contains(q))
+            .toList();
 
     return SectionCard(
       icon: Icons.groups_rounded,
@@ -421,11 +611,12 @@ class _TeamCard extends StatelessWidget {
             onTap: state.loadingTeam ? null : () => state.loadTeam(),
           ),
           const SizedBox(width: 8),
-          OutlineButton(
+          PrimaryButton(
             label: 'Add employee',
             icon: Icons.person_add_alt_rounded,
-            fg: AppPalette.primary,
-            onTap: () => _openAddDialog(context),
+            height: 36,
+            fontSize: 12.5,
+            onTap: _openAddDialog,
           ),
         ],
       ),
@@ -441,119 +632,431 @@ class _TeamCard extends StatelessWidget {
               ),
             )
           : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var i = 0; i < team.length; i++)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 4),
-                    decoration: BoxDecoration(
-                      border: Border(
-                          top: BorderSide(
-                              color: AppPalette.stroke
-                                  .withOpacity(i == 0 ? 0 : 1))),
-                    ),
+                // toolbar — live count summary + search
+                if (!compact)
+                  Row(
+                    children: [
+                      Expanded(child: _TeamSummary(count: team.length, owners: owners)),
+                      const SizedBox(width: 14),
+                      SizedBox(
+                        width: 230,
+                        child: _TeamSearchField(
+                          value: _query,
+                          onChanged: (v) => setState(() => _query = v),
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  _TeamSummary(count: team.length, owners: owners),
+                  const SizedBox(height: 10),
+                  _TeamSearchField(
+                    value: _query,
+                    onChanged: (v) => setState(() => _query = v),
+                  ),
+                ],
+                const SizedBox(height: 12),
+
+                // member rows
+                if (visible.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 17,
-                          backgroundColor: team[i].role == UserRole.owner
-                              ? AppPalette.primarySoft
-                              : AppPalette.greenBg,
+                        Icon(
+                            q.isEmpty
+                                ? Icons.groups_outlined
+                                : Icons.search_off_rounded,
+                            size: 18,
+                            color: AppPalette.faint),
+                        const SizedBox(width: 8),
+                        Expanded(
                           child: Text(
-                            team[i].initials,
+                            q.isEmpty
+                                ? 'No team profiles loaded yet — tap Refresh. '
+                                    'Create employee accounts with “Add employee”.'
+                                : 'No members match “$_query”. Try another name, '
+                                    'email or title.',
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: team[i].role == UserRole.owner
-                                    ? AppPalette.primary
-                                    : AppPalette.green),
+                                fontSize: 12.5,
+                                color: AppPalette.muted),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(team[i].name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            fontFamily: AppTheme.fontFamily,
-                                            fontSize: 13.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppPalette.ink)),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  StatusBadge.custom(
-                                    label: team[i].role.label,
-                                    fg: team[i].role == UserRole.owner
-                                        ? AppPalette.primary
-                                        : AppPalette.green,
-                                    bg: team[i].role == UserRole.owner
-                                        ? AppPalette.primarySoft
-                                        : AppPalette.greenBg,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                team[i].title.isEmpty
-                                    ? team[i].email
-                                    : '${team[i].title} · ${team[i].email}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontFamily: AppTheme.fontFamily,
-                                    fontSize: 11.5,
-                                    color: AppPalette.muted),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // per-member actions — everyone except yourself;
-                        // password reset applies to employees only (the
-                        // owner rotates their own password in Profile).
-                        if (team[i].userId.isNotEmpty &&
-                            team[i].userId != state.account?.userId) ...[
-                          IconButton(
-                            tooltip: 'Role & title',
-                            icon: Icon(Icons.edit_outlined,
-                                size: 17, color: AppPalette.muted),
-                            onPressed: () =>
-                                _openEditDialog(context, team[i]),
-                          ),
-                          if (team[i].role == UserRole.employee)
-                            IconButton(
-                              tooltip: 'Reset password',
-                              icon: Icon(Icons.key_rounded,
-                                  size: 17, color: AppPalette.muted),
-                              onPressed: () =>
-                                  _openResetDialog(context, team[i]),
-                            ),
-                        ],
                       ],
                     ),
-                  ),
-                if (team.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      'No team profiles loaded yet — tap Refresh. '
-                      'Create employee accounts with “Add employee”.',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
-                          color: AppPalette.muted),
+                  )
+                else
+                  for (var i = 0; i < visible.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 4),
+                    _MemberRow(
+                      member: visible[i],
+                      isSelf: visible[i].userId == state.account?.userId,
+                      onEdit: visible[i].userId.isNotEmpty &&
+                              visible[i].userId != state.account?.userId
+                          ? () => _openEditDialog(context, visible[i])
+                          : null,
+                      onReset: visible[i].userId.isNotEmpty &&
+                              visible[i].userId != state.account?.userId &&
+                              visible[i].role == UserRole.employee
+                          ? () => _openResetDialog(context, visible[i])
+                          : null,
                     ),
-                  ),
+                  ],
+
+                // dashed invite tile — the primary creation affordance
+                const SizedBox(height: 10),
+                _DashedAddTile(onTap: _openAddDialog),
               ],
             ),
     );
   }
+}
+
+/// "N members · N owners · N employees" live count line.
+class _TeamSummary extends StatelessWidget {
+  final int count;
+  final int owners;
+  const _TeamSummary({required this.count, required this.owners});
+
+  @override
+  Widget build(BuildContext context) {
+    String text;
+    if (count == 0) {
+      text = 'No members loaded';
+    } else {
+      final employees = count - owners;
+      text = '$count ${count == 1 ? 'member' : 'members'}'
+          ' · $owners ${owners == 1 ? 'owner' : 'owners'}'
+          ' · $employees ${employees == 1 ? 'employee' : 'employees'}';
+    }
+    return Text(text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+            fontFamily: AppTheme.fontFamily,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppPalette.muted));
+  }
+}
+
+/// Rounded search input for the team directory.
+class _TeamSearchField extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  const _TeamSearchField({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        isDense: true,
+        hintText: 'Search name, email or title',
+        prefixIcon: Icon(Icons.search_rounded,
+            size: 17, color: AppPalette.muted),
+        prefixIconConstraints:
+            const BoxConstraints(minWidth: 34, minHeight: 34),
+        suffixIcon: value.isEmpty
+            ? null
+            : IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.close_rounded,
+                    size: 15, color: AppPalette.muted),
+                onPressed: () => onChanged(''),
+              ),
+      ),
+    );
+  }
+}
+
+/// One member row: pastel initials avatar (owners get a shield badge),
+/// name + "You" chip + role badge, title · email, hover-highlighted,
+/// trailing edit / reset actions where allowed.
+class _MemberRow extends StatefulWidget {
+  final Account member;
+  final bool isSelf;
+  final VoidCallback? onEdit;
+  final VoidCallback? onReset;
+
+  const _MemberRow({
+    required this.member,
+    required this.isSelf,
+    required this.onEdit,
+    required this.onReset,
+  });
+
+  @override
+  State<_MemberRow> createState() => _MemberRowState();
+}
+
+class _MemberRowState extends State<_MemberRow> {
+  bool _hover = false;
+
+  static const _pastels = [
+    AppColors.avatarIndigo,
+    AppColors.avatarPurple,
+    AppColors.avatarTeal,
+    AppColors.avatarOrange,
+    AppColors.avatarGreen,
+    AppColors.avatarBlue,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final member = widget.member;
+    final isOwner = member.role == UserRole.owner;
+    final hasActions = widget.onEdit != null || widget.onReset != null;
+
+    return MouseRegion(
+      cursor: hasActions ? SystemMouseCursors.basic : MouseCursor.defer,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 130),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          color: _hover ? AppPalette.fill.withOpacity(0.7) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            _MemberAvatar(
+              initials: member.initials,
+              color: _pastels[member.name.hashCode.abs() % _pastels.length],
+              isOwner: isOwner,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(member.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppPalette.ink)),
+                      ),
+                      if (widget.isSelf) ...[
+                        const SizedBox(width: 6),
+                        _YouBadge(),
+                      ],
+                      const SizedBox(width: 8),
+                      StatusBadge.custom(
+                        label: member.role.label,
+                        fg: isOwner ? AppPalette.primary : AppPalette.green,
+                        bg: isOwner
+                            ? AppPalette.primarySoft
+                            : AppPalette.greenBg,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    member.title.isEmpty
+                        ? member.email
+                        : '${member.title} · ${member.email}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11.5,
+                        color: AppPalette.muted),
+                  ),
+                ],
+              ),
+            ),
+            // per-member actions — everyone except yourself; password
+            // reset applies to employees only (the owner rotates their
+            // own password in Profile).
+            if (hasActions) ...[
+              const SizedBox(width: 6),
+              if (widget.onEdit != null)
+                IconButton(
+                  tooltip: 'Role & title',
+                  icon: Icon(Icons.edit_outlined,
+                      size: 17, color: AppPalette.muted),
+                  onPressed: widget.onEdit,
+                ),
+              if (widget.onReset != null)
+                IconButton(
+                  tooltip: 'Reset password',
+                  icon:
+                      Icon(Icons.key_rounded, size: 17, color: AppPalette.muted),
+                  onPressed: widget.onReset,
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pastel initials avatar with a small shield overlay for owners.
+class _MemberAvatar extends StatelessWidget {
+  final String initials;
+  final Color color;
+  final bool isOwner;
+
+  const _MemberAvatar({
+    required this.initials,
+    required this.color,
+    required this.isOwner,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 38,
+      height: 38,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          InitialsAvatar(
+              initials: initials, color: color, size: 38, fontSize: 13),
+          if (isOwner)
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Container(
+                width: 15,
+                height: 15,
+                decoration: BoxDecoration(
+                  color: AppPalette.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: AppPalette.surface, width: 1.6),
+                ),
+                child: const Icon(Icons.shield_rounded,
+                    size: 8, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tiny "You" chip next to your own name.
+class _YouBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppPalette.blueBg,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Text('You',
+          style: TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+              color: AppPalette.blue)),
+    );
+  }
+}
+
+/// Dashed “＋ Add employee” tile at the bottom of the directory — a big,
+/// obvious creation affordance that tints toward the brand on hover.
+class _DashedAddTile extends StatefulWidget {
+  final VoidCallback onTap;
+  const _DashedAddTile({required this.onTap});
+
+  @override
+  State<_DashedAddTile> createState() => _DashedAddTileState();
+}
+
+class _DashedAddTileState extends State<_DashedAddTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = _hover ? AppPalette.primary : AppPalette.faint;
+    return PressableScale(
+      onTap: widget.onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 130),
+          child: CustomPaint(
+            painter: _DashedBorderPainter(
+              color: _hover ? AppPalette.primary : AppPalette.stroke,
+              radius: 12,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person_add_alt_rounded,
+                      size: 16, color: tint),
+                  const SizedBox(width: 8),
+                  Text('Add employee',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: _hover
+                              ? AppPalette.primary
+                              : AppPalette.body)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hand-rolled dashed rounded-rect border (no dashed BorderSide in
+/// Flutter) — used by the add-employee invite tile.
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+
+  _DashedBorderPainter({required this.color, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const dash = 5.0;
+    const gap = 4.0;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Offset.zero & size, Radius.circular(radius)));
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        final len = min(dash, metric.length - d);
+        canvas.drawPath(metric.extractPath(d, d + len), paint);
+        d += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
 }
 
 /// Dialog that creates an employee account (auth account + profile).
@@ -680,31 +1183,7 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 9),
-                decoration: BoxDecoration(
-                  color: AppPalette.redBg,
-                  borderRadius: BorderRadius.circular(9),
-                  border:
-                      Border.all(color: AppPalette.red.withOpacity(0.4)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline_rounded,
-                        size: 15, color: AppPalette.red),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_error!,
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppPalette.red)),
-                    ),
-                  ],
-                ),
-              ),
+              _ErrorBox(text: _error!),
             ],
           ],
         ),
@@ -732,6 +1211,95 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
     );
   }
 }
+
+// SESSION ------------------------------------------------------------
+
+/// The signed-in account on this device, with the sign-out action.
+class _SessionCard extends StatelessWidget {
+  const _SessionCard();
+
+  static const _pastels = [
+    AppColors.avatarIndigo,
+    AppColors.avatarPurple,
+    AppColors.avatarTeal,
+    AppColors.avatarOrange,
+    AppColors.avatarGreen,
+    AppColors.avatarBlue,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<WorkspaceState>();
+    final account = state.account;
+    final isOwner = state.role == UserRole.owner;
+
+    return SectionCard(
+      icon: Icons.account_circle_outlined,
+      title: 'Current session',
+      subtitle: 'You are signed in on this device.',
+      action: OutlineButton(
+        label: 'Sign out',
+        icon: Icons.logout_rounded,
+        fg: AppPalette.red,
+        onTap: () => state.signOut(),
+      ),
+      child: Row(
+        children: [
+          InitialsAvatar(
+            initials: account?.initials ?? '—',
+            color: account == null
+                ? AppPalette.faint
+                : _pastels[account.name.hashCode.abs() % _pastels.length],
+            size: 40,
+            fontSize: 14,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(account?.name ?? '—',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppPalette.ink)),
+                    ),
+                    const SizedBox(width: 8),
+                    StatusBadge.custom(
+                      label: state.role.label,
+                      fg: isOwner ? AppPalette.primary : AppPalette.green,
+                      bg: isOwner
+                          ? AppPalette.primarySoft
+                          : AppPalette.greenBg,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                    'Signed in with ${account?.email ?? '—'} · rotate your '
+                    'password anytime from Profile.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11.5,
+                        color: AppPalette.muted)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// DIALOGS ------------------------------------------------------------
 
 /// OWNER ACTION — edit a member's role (promote/demote) and job title.
 /// Role changes are refused for yourself and for the last remaining
@@ -870,12 +1438,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!,
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppPalette.red)),
+              _ErrorBox(text: _error!),
             ],
           ],
         ),
@@ -1023,12 +1586,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!,
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppPalette.red)),
+              _ErrorBox(text: _error!),
             ],
           ],
         ),
@@ -1056,6 +1614,8 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
     );
   }
 }
+
+// DANGER ZONE --------------------------------------------------------
 
 /// Owner-only danger zone: permanently deletes every business document
 /// from Appwrite (inventory, orders, customers, activity, pickups) and
@@ -1175,6 +1735,12 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
         ),
         child: Row(
           children: [
+            IconChipLite(
+                icon: Icons.delete_sweep_outlined,
+                color: AppPalette.red,
+                bg: AppPalette.surface,
+                size: 36),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1241,6 +1807,40 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
   }
 }
 
+// SHARED WIDGETS -----------------------------------------------------
+
+/// Red-tinted inline error banner used by every team dialog.
+class _ErrorBox extends StatelessWidget {
+  final String text;
+  const _ErrorBox({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppPalette.redBg,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppPalette.red.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded, size: 15, color: AppPalette.red),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppPalette.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FieldLabel extends StatelessWidget {
   final String text;
   const _FieldLabel(this.text);
@@ -1263,6 +1863,7 @@ class _Capability {
   const _Capability(this.label, {required this.employee, required this.owner});
 }
 
+/// Selectable tile in the role-preview section.
 class _RoleCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -1297,8 +1898,8 @@ class _RoleCard extends StatelessWidget {
             boxShadow: selected
                 ? [
                     BoxShadow(
-                        color: AppPalette.primary.withOpacity(0.10),
-                        blurRadius: 16,
+                        color: AppPalette.primary.withOpacity(0.12),
+                        blurRadius: 18,
                         offset: const Offset(0, 6)),
                   ]
                 : null,
