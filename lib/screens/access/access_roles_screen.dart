@@ -130,37 +130,36 @@ class AccessRolesScreen extends StatelessWidget {
                   'Step into the other seat to see what they see — your real '
                   'access never changes.',
               child: LayoutBuilder(builder: (context, box) {
-                final tiles = [
-                  Expanded(
-                    child: _RoleCard(
-                      icon: Icons.person_outline,
-                      title: UserRole.employee.label,
-                      subtitle: UserRole.employee.tagline,
-                      selected: state.role == UserRole.employee,
-                      onTap: () => state.switchRole(UserRole.employee),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _RoleCard(
-                      icon: Icons.shield_outlined,
-                      title: UserRole.owner.label,
-                      subtitle: UserRole.owner.tagline,
-                      selected: state.role == UserRole.owner,
-                      onTap: () => state.switchRole(UserRole.owner),
-                    ),
-                  ),
-                ];
+                final employeeCard = _RoleCard(
+                  icon: Icons.person_outline,
+                  title: UserRole.employee.label,
+                  subtitle: UserRole.employee.tagline,
+                  selected: state.role == UserRole.employee,
+                  onTap: () => state.switchRole(UserRole.employee),
+                );
+                final ownerCard = _RoleCard(
+                  icon: Icons.shield_outlined,
+                  title: UserRole.owner.label,
+                  subtitle: UserRole.owner.tagline,
+                  selected: state.role == UserRole.owner,
+                  onTap: () => state.switchRole(UserRole.owner),
+                );
                 if (box.maxWidth < 560) {
+                  // Stacked: NO Expanded — this column shrink-wraps
+                  // inside the page scroll, so flex children crash.
                   return Column(
                     children: [
-                      tiles[0],
+                      employeeCard,
                       const SizedBox(height: 12),
-                      tiles[2],
+                      ownerCard,
                     ],
                   );
                 }
-                return Row(children: tiles);
+                return Row(children: [
+                  Expanded(child: employeeCard),
+                  const SizedBox(width: 14),
+                  Expanded(child: ownerCard),
+                ]);
               }),
             ),
           ),
@@ -174,29 +173,38 @@ class AccessRolesScreen extends StatelessWidget {
               icon: Icons.contrast_rounded,
               title: 'Appearance',
               subtitle: 'Choose how RentWise looks on this device.',
-              child: Row(
-                children: [
-                  for (final mode in AppThemeSetting.values) ...[
-                    _ThemeChoice(
-                      mode: mode,
-                      selected: shell.themeSetting == mode,
-                      onTap: () => shell.setThemeSetting(mode),
-                    ),
-                    if (mode != AppThemeSetting.values.last)
-                      const SizedBox(width: 10),
+              child: Builder(builder: (context) {
+                final pills = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final mode in AppThemeSetting.values) ...[
+                      _ThemeChoice(
+                        mode: mode,
+                        selected: shell.themeSetting == mode,
+                        onTap: () => shell.setThemeSetting(mode),
+                      ),
+                      if (mode != AppThemeSetting.values.last)
+                        const SizedBox(width: 10),
+                    ],
                   ],
+                );
+                final hint = Text('Remembered on this device',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11.5,
+                        color: AppPalette.muted));
+                if (Density.compact(context)) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [pills, const SizedBox(height: 8), hint],
+                  );
+                }
+                return Row(children: [
+                  pills,
                   const Spacer(),
-                  Flexible(
-                    child: Text('Remembered on this device',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 11.5,
-                            color: AppPalette.muted)),
-                  ),
-                ],
-              ),
+                  Flexible(child: hint),
+                ]);
+              }),
             ),
           ),
           const SizedBox(height: 16),
@@ -212,14 +220,15 @@ class AccessRolesScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // column headers
+                  // column headers — role columns get flex 3 on phones
+                  // ("EMPLOYEE" cannot fit a flex-2 slice of a ~328px card).
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10, left: 4),
                     child: Row(
                       children: [
-                        const Expanded(flex: 6, child: SizedBox()),
+                        const Expanded(flex: 5, child: SizedBox()),
                         Expanded(
-                          flex: 2,
+                          flex: 3,
                           child: _MatrixHeader(
                             label: 'Employee',
                             icon: Icons.person_outline,
@@ -227,7 +236,7 @@ class AccessRolesScreen extends StatelessWidget {
                           ),
                         ),
                         Expanded(
-                          flex: 2,
+                          flex: 3,
                           child: _MatrixHeader(
                             label: 'Owner',
                             icon: Icons.shield_outlined,
@@ -432,13 +441,18 @@ class _MatrixHeader extends StatelessWidget {
         children: [
           Icon(icon, size: 13, color: color),
           const SizedBox(width: 5),
-          Text(label.toUpperCase(),
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
-                  color: color)),
+          Flexible(
+            child: Text(label.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                softWrap: false,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: color)),
+          ),
         ],
       ),
     );
@@ -498,7 +512,7 @@ class _MatrixRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            flex: 6,
+            flex: 5,
             child: Text(capability,
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
@@ -507,14 +521,14 @@ class _MatrixRow extends StatelessWidget {
                     color: AppPalette.ink)),
           ),
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Align(
               alignment: Alignment.centerRight,
               child: employee ? const _CheckMark() : const _Dash(),
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Align(
               alignment: Alignment.centerRight,
               child: owner ? const _CheckMark() : const _Dash(),
@@ -539,15 +553,37 @@ class _TeamCard extends StatefulWidget {
   State<_TeamCard> createState() => _TeamCardState();
 }
 
+/// Team dialogs open as centered dialogs on desktop, and as modal
+/// bottom sheets on phones — the platform-idiomatic form surface,
+/// with room for the on-screen keyboard.
+Future<T?> showTeamDialog<T>(
+    BuildContext context, WidgetBuilder builder) {
+  if (Density.compact(context)) {
+    return showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppPalette.surface,
+      barrierColor: Colors.black.withOpacity(0.35),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: builder,
+    );
+  }
+  return showDialog<T>(
+    context: context,
+    barrierColor: Colors.black.withOpacity(0.35),
+    builder: builder,
+  );
+}
+
 class _TeamCardState extends State<_TeamCard> {
   String _query = '';
 
   Future<void> _openAddDialog() async {
-    final created = await showDialog<bool>(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.35),
-      builder: (_) => const _AddEmployeeDialog(),
-    );
+    final created = await showTeamDialog<bool>(
+        context, (_) => const _AddEmployeeDialog());
     if (created == true && mounted) {
       setState(() => _query = '');
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -560,10 +596,9 @@ class _TeamCardState extends State<_TeamCard> {
 
   Future<void> _openEditDialog(BuildContext context, Account member) async {
     final state = context.read<WorkspaceState>();
-    await showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.35),
-      builder: (_) => _EditMemberDialog(
+    await showTeamDialog<void>(
+      context,
+      (_) => _EditMemberDialog(
         member: member,
         isSelf: member.userId == state.account?.userId,
         lockDemote: member.role == UserRole.owner && state.ownerCount <= 1,
@@ -572,11 +607,8 @@ class _TeamCardState extends State<_TeamCard> {
   }
 
   Future<void> _openResetDialog(BuildContext context, Account member) async {
-    await showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.35),
-      builder: (_) => _ResetPasswordDialog(member: member),
-    );
+    await showTeamDialog<void>(
+        context, (_) => _ResetPasswordDialog(member: member));
   }
 
   @override
@@ -1111,103 +1143,107 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = Density.compact(context);
+    final fields = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Creates the sign-in account and the employee profile. '
+          'Share the email + password with the employee — they sign '
+          'in on the Sign in screen. Employees cannot sign up.',
+          style: TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 12,
+              height: 1.5,
+              color: AppPalette.body),
+        ),
+        const SizedBox(height: 14),
+        const _FieldLabel('Full name'),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _nameCtrl,
+          autofocus: !compact,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: 'Sam Staff'),
+        ),
+        const SizedBox(height: 12),
+        const _FieldLabel('Work email'),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration:
+              const InputDecoration(hintText: 'sam@company.com'),
+        ),
+        const SizedBox(height: 12),
+        const _FieldLabel('Job title (optional)'),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _titleCtrl,
+          textCapitalization: TextCapitalization.words,
+          decoration:
+              const InputDecoration(hintText: 'Warehouse lead'),
+        ),
+        const SizedBox(height: 12),
+        const _FieldLabel('Temporary password'),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _passwordCtrl,
+          obscureText: _obscure,
+          onSubmitted: (_) => _submit(),
+          decoration: InputDecoration(
+            hintText: 'At least 8 characters',
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscure
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                size: 18,
+                color: AppPalette.muted,
+              ),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          _ErrorBox(text: _error!),
+        ],
+      ],
+    );
+    final actions = [
+      TextButton(
+        onPressed:
+            _submitting ? null : () => Navigator.pop(context, false),
+        child: Text('Cancel',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                color: AppPalette.body)),
+      ),
+      FilledButton(
+        onPressed: _submitting ? null : _submit,
+        child: _submitting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2.2))
+            : const Text('Create account',
+                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+      ),
+    ];
+    if (compact) {
+      return _SheetScaffold(
+            title: 'Add employee', actions: actions, child: fields);
+    }
     return AlertDialog(
       title: const Text('Add employee',
           style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 15,
               fontWeight: FontWeight.w800)),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Creates the sign-in account and the employee profile. '
-              'Share the email + password with the employee — they sign '
-              'in on the Sign in screen. Employees cannot sign up.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 12,
-                  height: 1.5,
-                  color: AppPalette.body),
-            ),
-            const SizedBox(height: 14),
-            const _FieldLabel('Full name'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _nameCtrl,
-              autofocus: true,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(hintText: 'Sam Staff'),
-            ),
-            const SizedBox(height: 12),
-            const _FieldLabel('Work email'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              decoration:
-                  const InputDecoration(hintText: 'sam@company.com'),
-            ),
-            const SizedBox(height: 12),
-            const _FieldLabel('Job title (optional)'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _titleCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration:
-                  const InputDecoration(hintText: 'Warehouse lead'),
-            ),
-            const SizedBox(height: 12),
-            const _FieldLabel('Temporary password'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _passwordCtrl,
-              obscureText: _obscure,
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                hintText: 'At least 8 characters',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    size: 18,
-                    color: AppPalette.muted,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              _ErrorBox(text: _error!),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed:
-              _submitting ? null : () => Navigator.pop(context, false),
-          child: Text('Cancel',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  color: AppPalette.body)),
-        ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.2))
-              : const Text('Create account',
-                  style: TextStyle(fontFamily: AppTheme.fontFamily)),
-        ),
-      ],
+      actions: actions,
+      content: SizedBox(width: 420, child: fields),
     );
   }
 }
@@ -1301,6 +1337,62 @@ class _SessionCard extends StatelessWidget {
 
 // DIALOGS ------------------------------------------------------------
 
+/// Chrome for team forms opened as phone bottom sheets: drag handle,
+/// title, scrollable body that lifts above the keyboard, and a
+/// full-width thumb-friendly action pair.
+class _SheetScaffold extends StatelessWidget {
+  final String title;
+  final Widget child;
+  final List<Widget> actions;
+  const _SheetScaffold(
+      {required this.title, required this.child, required this.actions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppPalette.stroke,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(title,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppPalette.ink)),
+            const SizedBox(height: 12),
+            child,
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                for (var i = 0; i < actions.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 10),
+                  Expanded(child: actions[i]),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// OWNER ACTION — edit a member's role (promote/demote) and job title.
 /// Role changes are refused for yourself and for the last remaining
 /// owner; the cloud enforces owner-only document updates as the second
@@ -1315,6 +1407,7 @@ class _EditMemberDialog extends StatefulWidget {
     required this.isSelf,
     required this.lockDemote,
   });
+
 
   @override
   State<_EditMemberDialog> createState() => _EditMemberDialogState();
@@ -1357,112 +1450,118 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = Density.compact(context);
+    final fields = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Role',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppPalette.ink)),
+        const SizedBox(height: 4),
+        RadioListTile<UserRole>(
+          value: UserRole.employee,
+          groupValue: _role,
+          onChanged: widget.lockDemote
+              ? null
+              : (v) => setState(() => _role = v!),
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text('Employee — day-to-day operations',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 13,
+                  color: widget.lockDemote
+                      ? AppPalette.faint
+                      : AppPalette.body)),
+          subtitle: widget.lockDemote
+              ? Text('Last owner — promote someone else first',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 11,
+                      color: AppPalette.muted))
+              : null,
+        ),
+        RadioListTile<UserRole>(
+          value: UserRole.owner,
+          groupValue: _role,
+          onChanged: widget.isSelf
+              ? null
+              : (v) => setState(() => _role = v!),
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text('Owner — full business visibility',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 13,
+                  color: widget.isSelf
+                      ? AppPalette.faint
+                      : AppPalette.body)),
+          subtitle: widget.isSelf
+              ? Text('You cannot change your own role',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 11,
+                      color: AppPalette.muted))
+              : null,
+        ),
+        const SizedBox(height: 8),
+        Text('Job title',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppPalette.ink)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _titleCtrl,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+              hintText: 'Warehouse lead'),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          _ErrorBox(text: _error!),
+        ],
+      ],
+    );
+    final actions = [
+      TextButton(
+        onPressed:
+            _submitting ? null : () => Navigator.pop(context),
+        child: Text('Cancel',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                color: AppPalette.body)),
+      ),
+      FilledButton(
+        onPressed: _submitting ? null : _submit,
+        child: _submitting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2.2))
+            : const Text('Save changes',
+                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+      ),
+    ];
+    if (compact) {
+      return _SheetScaffold(
+          title: 'Edit ${widget.member.name}',
+          actions: actions,
+          child: fields);
+    }
     return AlertDialog(
       title: Text('Edit ${widget.member.name}',
           style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 15,
               fontWeight: FontWeight.w800)),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Role',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppPalette.ink)),
-            const SizedBox(height: 4),
-            RadioListTile<UserRole>(
-              value: UserRole.employee,
-              groupValue: _role,
-              onChanged: widget.lockDemote
-                  ? null
-                  : (v) => setState(() => _role = v!),
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('Employee — day-to-day operations',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 13,
-                      color: widget.lockDemote
-                          ? AppPalette.faint
-                          : AppPalette.body)),
-              subtitle: widget.lockDemote
-                  ? Text('Last owner — promote someone else first',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 11,
-                          color: AppPalette.muted))
-                  : null,
-            ),
-            RadioListTile<UserRole>(
-              value: UserRole.owner,
-              groupValue: _role,
-              onChanged: widget.isSelf
-                  ? null
-                  : (v) => setState(() => _role = v!),
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text('Owner — full business visibility',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 13,
-                      color: widget.isSelf
-                          ? AppPalette.faint
-                          : AppPalette.body)),
-              subtitle: widget.isSelf
-                  ? Text('You cannot change your own role',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 11,
-                          color: AppPalette.muted))
-                  : null,
-            ),
-            const SizedBox(height: 8),
-            Text('Job title',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppPalette.ink)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _titleCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                  hintText: 'Warehouse lead'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              _ErrorBox(text: _error!),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed:
-              _submitting ? null : () => Navigator.pop(context),
-          child: Text('Cancel',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  color: AppPalette.body)),
-        ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.2))
-              : const Text('Save changes',
-                  style: TextStyle(fontFamily: AppTheme.fontFamily)),
-        ),
-      ],
+      actions: actions,
+      content: SizedBox(width: 400, child: fields),
     );
   }
 }
@@ -1527,90 +1626,96 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = Density.compact(context);
+    final fields = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Sets a new password for ${widget.member.email} right away. '
+          'Share it securely — they sign in with it and can change it '
+          'from Profile → Password.',
+          style: TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 12,
+              height: 1.5,
+              color: AppPalette.body),
+        ),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerRight,
+          child: OutlineButton(
+            label: 'Suggest strong password',
+            icon: Icons.auto_awesome_outlined,
+            onTap: _suggest,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _passwordCtrl,
+          obscureText: _obscure,
+          decoration: InputDecoration(
+            hintText: 'At least 8 characters',
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscure
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                size: 18,
+                color: AppPalette.muted,
+              ),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _confirmCtrl,
+          obscureText: _obscure,
+          onSubmitted: (_) => _submit(),
+          decoration:
+              const InputDecoration(hintText: 'Repeat password'),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          _ErrorBox(text: _error!),
+        ],
+      ],
+    );
+    final actions = [
+      TextButton(
+        onPressed:
+            _submitting ? null : () => Navigator.pop(context),
+        child: Text('Cancel',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                color: AppPalette.body)),
+      ),
+      FilledButton(
+        onPressed: _submitting ? null : _submit,
+        child: _submitting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2.2))
+            : const Text('Reset password',
+                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+      ),
+    ];
+    if (compact) {
+      return _SheetScaffold(
+          title: 'Reset ${widget.member.name}\u2019s password',
+          actions: actions,
+          child: fields);
+    }
     return AlertDialog(
       title: Text('Reset ${widget.member.name}\u2019s password',
           style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 15,
               fontWeight: FontWeight.w800)),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Sets a new password for ${widget.member.email} right away. '
-              'Share it securely — they sign in with it and can change it '
-              'from Profile → Password.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 12,
-                  height: 1.5,
-                  color: AppPalette.body),
-            ),
-            const SizedBox(height: 14),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlineButton(
-                label: 'Suggest strong password',
-                icon: Icons.auto_awesome_outlined,
-                onTap: _suggest,
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _passwordCtrl,
-              obscureText: _obscure,
-              decoration: InputDecoration(
-                hintText: 'At least 8 characters',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    size: 18,
-                    color: AppPalette.muted,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _confirmCtrl,
-              obscureText: _obscure,
-              onSubmitted: (_) => _submit(),
-              decoration:
-                  const InputDecoration(hintText: 'Repeat password'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              _ErrorBox(text: _error!),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed:
-              _submitting ? null : () => Navigator.pop(context),
-          child: Text('Cancel',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  color: AppPalette.body)),
-        ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.2))
-              : const Text('Reset password',
-                  style: TextStyle(fontFamily: AppTheme.fontFamily)),
-        ),
-      ],
+      actions: actions,
+      content: SizedBox(width: 400, child: fields),
     );
   }
 }
@@ -1635,69 +1740,75 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
   Future<void> _confirmAndReset() async {
     final state = context.read<WorkspaceState>();
     final ctrl = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.35),
-      builder: (dialogCtx) => AlertDialog(
+    final compact = Density.compact(context);
+    Widget confirmForm(BuildContext dialogCtx) {
+      final fields = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'This permanently deletes ALL inventory, orders, customers, '
+            'activity and pickups from Appwrite Cloud, and zeroes the '
+            'metrics. Your account, team profiles and workspaces are kept.',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12.5,
+                height: 1.5,
+                color: AppPalette.body),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'There is no undo. Type RESET to confirm.',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppPalette.red),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: ctrl,
+            autofocus: !compact,
+            decoration: const InputDecoration(hintText: 'RESET'),
+          ),
+        ],
+      );
+      final actions = [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogCtx, false),
+          child: Text('Cancel',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  color: AppPalette.body)),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppPalette.red,
+          ),
+          onPressed: () =>
+              Navigator.pop(dialogCtx, ctrl.text.trim() == 'RESET'),
+          child: const Text('Delete everything',
+              style: TextStyle(fontFamily: AppTheme.fontFamily)),
+        ),
+      ];
+      if (compact) {
+        return _SheetScaffold(
+            title: 'Reset workspace data?',
+            actions: actions,
+            child: fields);
+      }
+      return AlertDialog(
         title: const Text('Reset workspace data?',
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 15,
                 fontWeight: FontWeight.w800)),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'This permanently deletes ALL inventory, orders, customers, '
-                'activity and pickups from Appwrite Cloud, and zeroes the '
-                'metrics. Your account, team profiles and workspaces are kept.',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
-                    height: 1.5,
-                    color: AppPalette.body),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'There is no undo. Type RESET to confirm.',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppPalette.red),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: ctrl,
-                autofocus: true,
-                decoration: const InputDecoration(hintText: 'RESET'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: Text('Cancel',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    color: AppPalette.body)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.red,
-            ),
-            onPressed: () =>
-                Navigator.pop(dialogCtx, ctrl.text.trim() == 'RESET'),
-            child: const Text('Delete everything',
-                style: TextStyle(fontFamily: AppTheme.fontFamily)),
-          ),
-        ],
-      ),
-    );
+        content: SizedBox(width: 420, child: fields),
+        actions: actions,
+      );
+    }
+
+    final ok = await showTeamDialog<bool>(context, confirmForm);
     if (ok != true) return;
     setState(() => _running = true);
     try {
@@ -1733,75 +1844,99 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppPalette.red.withOpacity(0.35)),
         ),
-        child: Row(
-          children: [
+        child: Builder(builder: (context) {
+          final narrow = Density.compact(context);
+          final info = Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Reset workspace data',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.ink)),
+                const SizedBox(height: 3),
+                Text(
+                  'Deletes ${state.inventory.length} inventory lines, '
+                      '${state.orders.length} orders, ${state.customers.length} '
+                      'customers and the full activity log from Appwrite. '
+                      'Cannot be undone.',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 11.5,
+                      height: 1.45,
+                      color: AppPalette.body),
+                ),
+              ],
+            ),
+          );
+          final action = SizedBox(
+            height: 40,
+            width: narrow ? double.infinity : null,
+            child: Material(
+              color: AppPalette.red,
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: _running ? null : _confirmAndReset,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16),
+                  child: Center(
+                    child: _running
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(
+                                  Colors.white),
+                            ),
+                          )
+                        : const Text('Reset data',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white)),
+                  ),
+                ),
+              ),
+            ),
+          );
+          if (narrow) {
+            // Copy gets the full width; the destructive button sits
+            // alone underneath — nothing cramped or clipped.
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  IconChipLite(
+                      icon: Icons.delete_sweep_outlined,
+                      color: AppPalette.red,
+                      bg: AppPalette.surface,
+                      size: 36),
+                  const SizedBox(width: 12),
+                  info,
+                ]),
+                const SizedBox(height: 12),
+                action,
+              ],
+            );
+          }
+          return Row(children: [
             IconChipLite(
                 icon: Icons.delete_sweep_outlined,
                 color: AppPalette.red,
                 bg: AppPalette.surface,
                 size: 36),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Reset workspace data',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppPalette.ink)),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Deletes ${state.inventory.length} inventory lines, '
-                    '${state.orders.length} orders, ${state.customers.length} '
-                    'customers and the full activity log from Appwrite. '
-                    'Cannot be undone.',
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 11.5,
-                        height: 1.45,
-                        color: AppPalette.body),
-                  ),
-                ],
-              ),
-            ),
+            info,
             const SizedBox(width: 12),
-            SizedBox(
-              height: 40,
-              child: Material(
-                color: AppPalette.red,
-                borderRadius: BorderRadius.circular(10),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: _running ? null : _confirmAndReset,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16),
-                    child: Center(
-                      child: _running
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(
-                                    Colors.white),
-                              ),
-                            )
-                          : const Text('Reset data',
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+            action,
+          ]);
+        }),
       ),
     );
   }

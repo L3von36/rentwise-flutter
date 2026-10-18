@@ -43,33 +43,53 @@ class SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (icon != null) ...[
-                IconChipLite(
-                    icon: icon!,
-                    color: iconColor ?? AppPalette.primary,
-                    bg: iconBg ?? AppPalette.primarySoft),
-                const SizedBox(width: 10),
+          // Header: title row with the action inline when there is room.
+          // On phones the action drops BELOW the title — the old
+          // always-inline Row overflowed when a card carried two
+          // buttons (e.g. Team members: Refresh + Add employee).
+          // NOTE: no LayoutBuilder here — SectionCard is wrapped in
+          // IntrinsicHeight on the dashboard, and LayoutBuilder cannot
+          // answer intrinsic-dimension queries.
+          Builder(builder: (context) {
+            final titleColumn = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleLarge),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  Text(subtitle!,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
               ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: Theme.of(context).textTheme.titleLarge),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 3),
-                      Text(subtitle!,
-                          style: Theme.of(context).textTheme.bodySmall),
-                    ],
-                  ],
-                ),
-              ),
-              if (action != null) ...[const SizedBox(width: 10), action!],
-            ],
-          ),
+            );
+            final below = Density.compact(context);
+            final header = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (icon != null) ...[
+                  IconChipLite(
+                      icon: icon!,
+                      color: iconColor ?? AppPalette.primary,
+                      bg: iconBg ?? AppPalette.primarySoft),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(child: titleColumn),
+                if (action != null && !below) ...[
+                  const SizedBox(width: 10),
+                  action!,
+                ],
+              ],
+            );
+            if (action == null || !below) return header;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                header,
+                const SizedBox(height: 10),
+                action!,
+              ],
+            );
+          }),
           const SizedBox(height: 12),
           child,
         ],
