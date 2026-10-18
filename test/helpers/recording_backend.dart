@@ -46,10 +46,12 @@ class FakeUser {
   final String email;
   final String password;
   final Account account;
+  final String userId;
   const FakeUser({
     required this.email,
     required this.password,
     required this.account,
+    required this.userId,
   });
 }
 
@@ -68,12 +70,16 @@ class RecordingBackend extends AppwriteBackend {
                 FakeUser(
                   email: SampleDataset.demoEmployee.email,
                   password: 'employee-pass',
-                  account: SampleDataset.demoEmployee,
+                  account: SampleDataset.demoEmployee
+                      .copyWith(userId: 'u-employee'),
+                  userId: 'u-employee',
                 ),
                 FakeUser(
                   email: SampleDataset.demoOwner.email,
                   password: 'owner-pass',
-                  account: SampleDataset.demoOwner,
+                  account: SampleDataset.demoOwner
+                      .copyWith(userId: 'u-owner'),
+                  userId: 'u-owner',
                 ),
               ])
             u.email.toLowerCase(): u,
@@ -94,6 +100,9 @@ class RecordingBackend extends AppwriteBackend {
 
   int authenticateCalls = 0;
   int loadCalls = 0;
+
+  /// userId of the account that last authenticated via [authenticate].
+  String? signedInUserId;
 
   /// When true, loadWorkspace throws (simulates cloud unreachable
   /// right after a successful auth) — used to prove there is no
@@ -138,6 +147,7 @@ class RecordingBackend extends AppwriteBackend {
           401,
           'user_invalid_credentials');
     }
+    signedInUserId = u.userId;
     return u.account;
   }
 
@@ -169,9 +179,13 @@ class RecordingBackend extends AppwriteBackend {
       role: UserRole.owner,
       initials: initialsFor(name.trim()),
       title: 'Workspace owner',
+      userId: 'u-$key',
     );
     _users[key] = FakeUser(
-        email: email.trim(), password: password, account: account);
+        email: email.trim(),
+        password: password,
+        account: account,
+        userId: 'u-$key');
     writes.add(RecordedWrite(
       collection: 'profiles',
       id: key,
@@ -208,9 +222,13 @@ class RecordingBackend extends AppwriteBackend {
       role: UserRole.employee,
       initials: initialsFor(name.trim()),
       title: title.trim().isEmpty ? 'Team member' : title.trim(),
+      userId: 'u-$key',
     );
     _users[key] = FakeUser(
-        email: email.trim(), password: password, account: account);
+        email: email.trim(),
+        password: password,
+        account: account,
+        userId: 'u-$key');
     writes.add(RecordedWrite(
       collection: 'profiles',
       id: key,
@@ -229,6 +247,108 @@ class RecordingBackend extends AppwriteBackend {
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
     return members;
+  }
+
+  /// Mirrors the real backend's owner role/title edit: mutates the
+  /// stored profile so later sign-ins see the new role.
+  @override
+  Future<Account> updateTeamMember({
+    required String userId,
+    UserRole? role,
+    String? title,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    if (failWrites) {
+      throw aw.AppwriteException('cloud rejected mutation', 400,
+          'general_access_refused');
+    }
+    String? key;
+    for (final e in _users.entries) {
+      if (e.value.userId == userId) {
+        key = e.key;
+        break;
+      }
+    }
+    if (key == null) {
+      throw aw.AppwriteException('Profile not found.', 404,
+          'document_not_found');
+    }
+    final u = _users[key]!;
+    final updated = u.account.copyWith(role: role, title: title);
+    _users[key] = FakeUser(
+        email: u.email,
+        password: u.password,
+        account: updated,
+        userId: u.userId);
+    writes.add(RecordedWrite(
+      collection: 'profiles',
+      id: userId,
+      isNew: false,
+      data: {
+        if (role != null) 'role': role.name,
+        if (title != null) 'title': title,
+      },
+    ));
+    return updated;
+  }
+
+  /// Mirrors the deployed reset-password function execution.
+  @override
+  Future<void> resetTeamMemberPassword({
+    required String userId,
+    required String newPassword,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    if (failWrites) {
+      throw aw.AppwriteException('function not deployed', 404,
+          'general_not_found');
+    }
+    writes.add(RecordedWrite(
+      collection: 'functions',
+      id: 'reset-password',
+      isNew: false,
+      data: {'userId': userId},
+    ));
+  }
+
+  /// Mirrors account.updatePassword — verifies the CURRENT password
+  /// against the signed-in user and rotates the stored one.
+  @override
+  Future<void> changeMyPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    FakeUser? u;
+    String? key;
+    for (final e in _users.entries) {
+      if (e.value.userId == signedInUserId) {
+        u = e.value;
+        key = e.key;
+        break;
+      }
+    }
+    if (u == null || key == null) {
+      throw aw.AppwriteException(
+          'Invalid credentials. Email or password is incorrect.', 401,
+          'user_invalid_credentials');
+    }
+    if (u.password != currentPassword) {
+      throw aw.AppwriteException(
+          'Invalid credentials. Email or password is incorrect.', 401,
+          'user_invalid_credentials');
+    }
+    _users[key] = FakeUser(
+        email: u.email,
+        password: newPassword,
+        account: u.account,
+        userId: u.userId);
+    writes.add(RecordedWrite(
+      collection: 'account',
+      id: u.email,
+      isNew: false,
+      data: const {'password': 'rotated'},
+    ));
   }
 
   @override

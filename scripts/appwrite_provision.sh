@@ -9,11 +9,15 @@
 #   AW_ENDPOINT (default https://cloud.appwrite.io/v1)
 #   AW_PROJECT  (default rentwise)
 #
-# SECURITY MODEL (v1.15):
-#   • Profiles: users may READ and CREATE their own profile (bootstrap:
-#     the first account on a fresh cloud becomes owner), but can NEVER
-#     update or delete — a role is fixed at creation and can only be
-#     changed with the API key (or the Appwrite console).
+# SECURITY MODEL (v1.17):
+#   • Profiles: users may READ all profiles and CREATE in exactly two
+#     flows (the one-time owner bootstrap, the owner's Add-employee
+#     action). Updates are gated by DOCUMENT-level permissions: every
+#     profile doc lists update("user:<ownerId>") for each owner, and the
+#     collection runs with documentSecurity=true — employees can never
+#     change their own role, and the OWNER can promote/demote/edit
+#     titles in-app (Access & roles → Team members). The sweep below
+#     re-stamps those document permissions on every run (re-run safe).
 #   • `metrics` is readable only by the `owners` team — employees cannot
 #     pull financial metrics through the API even with a session. The
 #     script syncs every owner profile into the owners team, including
@@ -88,8 +92,8 @@ PERM_PREFS_CREATE='["create(\"users\")"]'                        # reads gated p
 PERM_OWNERS_READ='["read(\"team:owners\")"]'
 
 echo '== collections + attributes =='
-# ---- profiles (read + create-only for clients; roles immutable)
-mkcoll profiles 'Profiles' "$PERM_USERS_READ_CREATE" false
+# ---- profiles (read all + create; updates gated per-document to owners)
+mkcoll profiles 'Profiles' "$PERM_USERS_READ_CREATE" true
 mkattr profiles '{"key":"userId","type":"string","size":64,"required":true}' string
 mkattr profiles '{"key":"name","type":"string","size":128,"required":true}' string
 mkattr profiles '{"key":"email","type":"string","size":256,"required":true}' string
@@ -184,7 +188,7 @@ setperm() { # coll perms docsec
     "{\"permissions\":$2,\"documentSecurity\":$3}" >/dev/null \
     && echo "  locked: $1" >&2
 }
-setperm profiles        "$PERM_USERS_READ_CREATE" false
+setperm profiles        "$PERM_USERS_READ_CREATE" true
 setperm user_prefs      "$PERM_PREFS_CREATE" true
 setperm metrics         "$PERM_OWNERS_READ" false
 setperm inventory_items "$PERM_USERS_CRUD" false
@@ -225,7 +229,58 @@ for uid in $OWNERS; do
 done
 [ -z "$OWNERS" ] && echo '  (no owner profiles yet — the first sign-up becomes the owner; re-run to team them)' >&2
 
+echo '== profile documents: grant update to owners (in-app role editing) =='
+# Stamp every profile document with: read(users) + update(user:<ownerId>)
+# for each owner. Requires documentSecurity=true (set above). Employees
+# can never update their own role; owners can edit roles/titles in-app.
+python3 - "$ENDPOINT" "$PROJECT" "$KEY" <<'PYEOF'
+import json, sys, urllib.request
+
+endpoint, project, key = sys.argv[1], sys.argv[2], sys.argv[3]
+base = f"{endpoint}/databases/rentwise-db/collections/profiles"
+headers = {
+    "X-Appwrite-Project": project,
+    "X-Appwrite-Key": key,
+    "Content-Type": "application/json",
+}
+
+def get(url):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as r:
+        return json.load(r)
+
+def patch(url, body):
+    req = urllib.request.Request(url, data=json.dumps(body).encode(),
+                                 headers=headers, method="PATCH")
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+
+docs = []
+cursor = None
+while True:
+    q = "queries%5B%5D=limit%28100%29"
+    if cursor:
+        q += f"&queries%5B%5D=cursorAfter%28%22{cursor}%22%29"
+    page = get(f"{base}/documents?{q}")
+    docs.extend(page.get("documents", []))
+    if len(page.get("documents", [])) < 100:
+        break
+    cursor = page["documents"][-1]["$id"]
+
+owners = [d["userId"] for d in docs if d.get("role") == "owner"]
+if not owners:
+    print("  (no owner profiles yet — nothing to stamp)")
+    sys.exit(0)
+
+for d in docs:
+    perms = ['read("users")'] + [f'update("user:{uid}")' for uid in owners]
+    patch(f"{base}/documents/{d['$id']}", {"permissions": perms})
+    print(f"  stamped {d['$id']} (role={d.get('role')})")
+
+print(f"  {len(docs)} profile document(s) shared with {len(owners)} owner(s)")
+PYEOF
+
 echo 'ALL DONE'
 echo 'Next steps:'
 echo '  • Seed a demo dataset (optional): AW_KEY=<key> AW_SEED=1 flutter test test/seed_appwrite_test.dart'
-echo '  • Promote/demote a profile role: Appwrite console → Databases → profiles, or the API key (role is fixed at creation for clients).'
+echo '  • Role/title editing now works IN-APP (Access & roles → Team members) — this script enabled it.'
+echo '  • Employee password reset needs the reset-password function (scripts/functions/reset_password/README.md).'

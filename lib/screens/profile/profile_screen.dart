@@ -145,6 +145,10 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
+          // self-service password rotation — every role. Owners reset
+          // EMPLOYEE passwords from Access & roles → Team members.
+          const _ChangePasswordCard(),
+          const SizedBox(height: 14),
           SectionCard(
             icon: Icons.settings_outlined,
             title: 'Session',
@@ -191,6 +195,123 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------- pieces
+/// Self-service password change (account.updatePassword — session-safe).
+class _ChangePasswordCard extends StatefulWidget {
+  const _ChangePasswordCard();
+
+  @override
+  State<_ChangePasswordCard> createState() => _ChangePasswordCardState();
+}
+
+class _ChangePasswordCardState extends State<_ChangePasswordCard> {
+  final _currentCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _obscure = true;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final state = context.read<WorkspaceState>();
+    setState(() => _error = null);
+    if (_newCtrl.text != _confirmCtrl.text) {
+      setState(() => _error = 'New passwords do not match.');
+      return;
+    }
+    setState(() => _submitting = true);
+    final err = await state.changeMyPassword(
+        _currentCtrl.text, _newCtrl.text);
+    if (!mounted) return;
+    if (err == null) {
+      _currentCtrl.clear();
+      _newCtrl.clear();
+      _confirmCtrl.clear();
+      setState(() => _submitting = false);
+      return;
+    }
+    setState(() {
+      _submitting = false;
+      _error = err;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      icon: Icons.password_rounded,
+      title: 'Password',
+      subtitle:
+          'Rotate your own password — the session stays signed in.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _currentCtrl,
+            obscureText: _obscure,
+            decoration: const InputDecoration(
+                hintText: 'Current password'),
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _newCtrl,
+                obscureText: _obscure,
+                decoration: const InputDecoration(
+                    hintText: 'New password (min 8 characters)'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: _obscure ? 'Show passwords' : 'Hide passwords',
+              icon: Icon(
+                _obscure
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                size: 18,
+                color: AppPalette.muted,
+              ),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _confirmCtrl,
+            obscureText: _obscure,
+            onSubmitted: (_) => _submit(),
+            decoration:
+                const InputDecoration(hintText: 'Repeat new password'),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppPalette.red)),
+          ],
+          const SizedBox(height: 12),
+          OutlineButton(
+            label: _submitting ? 'Updating…' : 'Update password',
+            icon: Icons.check_rounded,
+            fg: AppPalette.primary,
+            onTap: _submitting ? null : _submit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InfoLine extends StatelessWidget {
   final IconData icon;
   final String label;

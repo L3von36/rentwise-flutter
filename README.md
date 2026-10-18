@@ -69,6 +69,9 @@ Two roles exist: **owner** and **employee**. The role is fixed at profile creati
 | Delete inventory items / change pricing | Yes | No |
 | Reports & CSV exports | Yes | No |
 | Create employee accounts (Owner dashboard) | Yes | No |
+| Edit member roles & titles (Owner dashboard) | Yes | No |
+| Reset an employee's password (Owner dashboard) | Yes | No |
+| Rotate your own password (Profile) | Yes | Yes |
 | Reset workspace data (danger zone) | Yes | No |
 | Create / switch workspaces | Yes | No |
 | View financial metrics | Yes | No |
@@ -101,6 +104,10 @@ AW_KEY=<api key with databases/users/teams scopes> bash scripts/appwrite_provisi
 
 - **Owner (you)**: tap **Create an account** on the sign-in card ONCE — this registers the workspace's **owner** and creates the starter workspace. As soon as an owner exists, self-registration is permanently closed: later sign-up attempts are refused with *"Registration is closed — this workspace already has an owner."*
 - **Employees**: created **only by the owner** from **Owner Dashboard → Access & roles → Team members → Add employee**. The dialog creates the Appwrite auth account (email + temporary password, min 8 chars) and the employee profile in one step — the team list updates instantly and the action is activity-logged. Share the credentials with the employee; they sign in on the normal **Sign in** screen (employees cannot sign up).
+- **Managing the team (v1.17)**: every row in **Team members** has actions —
+  - **Role & title (pencil)** — promote an employee to owner or demote, and edit job titles. Roles are enforced twice: the app checks capabilities AND the cloud only lets owner user ids update profile documents (document-level permissions; run `scripts/appwrite_provision.sh` once to migrate an existing project). You can never change your own role, and the last owner cannot be demoted.
+  - **Reset password (key)** — sets a new password for an employee right away (with a strong-password suggestion). Requires the one-time `reset-password` Appwrite Function deployment: see `scripts/functions/reset_password/README.md` (Console → Functions → paste → add `APPWRITE_API_KEY`). Until it is deployed the app tells you exactly that, honestly.
+  - **Your own password**: Profile → Password → rotate it any time (needs your current password; the session stays signed in).
 - **Signing in with an unknown/unassigned account** (e.g. a console-created user with no profile) is refused: *"This account is not added to a RentWise workspace yet. Employee accounts are created by the workspace owner (Owner Dashboard → Access & roles)."* — no role is ever granted silently.
 - **From the Appwrite console**: Auth → Add user alone is NOT enough anymore — without a `profiles` document the account cannot sign in. Create the `profiles` document with the API key, or better: add the employee from the Owner Dashboard.
 - Customers are NOT app accounts — they are records in the `customers` collection, managed by owner/staff from the Customers screen.

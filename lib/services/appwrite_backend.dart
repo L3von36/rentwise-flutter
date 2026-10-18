@@ -72,6 +72,18 @@ class AppwriteBackend {
   late final aw.Client _client;
   late final aw.Account _account = aw.Account(_client);
   late final aw.Databases _db = aw.Databases(_client);
+  late final aw.Functions _functions = aw.Functions(_client);
+
+  /// Document permissions for a `profiles` document: every signed-in
+  /// user may read it; ONLY owners may update it (role/title edits).
+  /// The profiles collection is provisioned with documentSecurity=true,
+  /// so these per-document permissions are what gate updates — an
+  /// employee can never change their own role, and a non-migrated cloud
+  /// (no documentSecurity) refuses updates entirely and honestly.
+  static List<String> _profilePermissions(Iterable<String> ownerIds) => [
+        aw.Permission.read(aw.Role.users()),
+        for (final id in ownerIds) aw.Permission.update(aw.Role.user(id)),
+      ];
 
   String? _userId;
 
@@ -102,6 +114,7 @@ class AppwriteBackend {
       initials:
           initialsFor((d['name'] ?? user.name) as String? ?? user.name),
       title: (d['title'] ?? '') as String? ?? '',
+      userId: user.$id,
     );
   }
 
@@ -151,6 +164,7 @@ class AppwriteBackend {
       role: UserRole.owner,
       initials: initialsFor(name.trim().isEmpty ? email : name.trim()),
       title: 'Workspace owner',
+      userId: user.$id,
     );
     await _db.createDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -163,6 +177,7 @@ class AppwriteBackend {
         'role': 'owner',
         'title': owner.title,
       },
+      permissions: _profilePermissions([user.$id]),
     ).timeout(_callTimeout);
     return owner;
   }
@@ -196,6 +211,7 @@ class AppwriteBackend {
       role: UserRole.employee,
       initials: initialsFor(trimmedName.isEmpty ? email.trim() : trimmedName),
       title: title.trim().isEmpty ? 'Team member' : title.trim(),
+      userId: user.$id,
     );
     await _db.createDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -208,6 +224,7 @@ class AppwriteBackend {
         'role': 'employee',
         'title': member.title,
       },
+      permissions: _profilePermissions([_userId ?? user.$id]),
     ).timeout(_callTimeout);
     return member;
   }
@@ -234,6 +251,7 @@ class AppwriteBackend {
             : UserRole.employee,
         initials: initialsFor(name.isEmpty ? email : name),
         title: (d['title'] ?? '') as String? ?? '',
+        userId: doc.$id,
       ));
     }
     members.sort((a, b) {
@@ -241,6 +259,136 @@ class AppwriteBackend {
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
     return members;
+  }
+
+  /// OWNER ACTION — updates a team member's role and/or job title on
+  /// their `profiles` document. The collection is provisioned with
+  /// documentSecurity=true and owner-only document update permissions
+  /// (see `_profilePermissions` + scripts/appwrite_provision.sh), so an
+  /// employee can never promote themselves; on a non-migrated cloud this
+  /// fails with an honest permission error instead.
+  ///
+  /// After the edit, every profile document is re-shared with the FULL
+  /// set of owner user ids, so a freshly promoted owner can immediately
+  /// manage the team too. Only the target document update is mandatory —
+  /// re-sharing failures are logged and tolerated (single-owner shops
+  /// never notice).
+  Future<Account> updateTeamMember({
+    required String userId,
+    UserRole? role,
+    String? title,
+  }) async {
+    final team = await listTeam();
+    final ownerIds = <String>{
+      for (final m in team)
+        if (m.role == UserRole.owner) m.userId,
+    };
+    String? effectiveTitle;
+    if (title != null) {
+      effectiveTitle = title.trim().isEmpty ? 'Team member' : title.trim();
+    }
+    final newRole = role;
+    if (newRole == UserRole.owner) ownerIds.add(userId);
+
+    Account? target;
+    for (final m in team) {
+      if (m.userId == userId) {
+        target = m;
+        break;
+      }
+    }
+    final data = <String, Object?>{
+      if (newRole != null) 'role': newRole.name,
+      if (effectiveTitle != null) 'title': effectiveTitle,
+    };
+    await _db.updateDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.colProfiles,
+      documentId: userId,
+      data: data,
+      permissions: _profilePermissions(ownerIds),
+    ).timeout(_callTimeout);
+
+    // Re-share every OTHER profile doc with the full owner set so newly
+    // promoted owners can manage the team too. Best-effort.
+    if (newRole != null) {
+      for (final m in team) {
+        if (m.userId == userId) continue;
+        try {
+          await _db.updateDocument(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: AppwriteConfig.colProfiles,
+            documentId: m.userId,
+            data: {},
+            permissions: _profilePermissions(ownerIds),
+          ).timeout(_callTimeout);
+        } catch (e) {
+          debugPrint('Appwrite[profiles.reshare ${m.userId}] $e');
+        }
+      }
+    }
+
+    return Account(
+      name: target?.name ?? '',
+      email: target?.email ?? '',
+      role: newRole ?? target?.role ?? UserRole.employee,
+      initials: initialsFor(target?.name ?? ''),
+      title: effectiveTitle ?? target?.title ?? '',
+      userId: userId,
+    );
+  }
+
+  /// OWNER ACTION — resets an EMPLOYEE's password through the deployed
+  /// `reset-password` Appwrite Function (the client SDK cannot change
+  /// another user's password — that requires the server API key, which
+  /// never ships in the app).
+  ///
+  /// Deploy once: scripts/functions/reset_password/README.md
+  Future<void> resetTeamMemberPassword({
+    required String userId,
+    required String newPassword,
+  }) async {
+    final models.Execution execution;
+    try {
+      execution = await _functions
+          .createExecution(
+            functionId: AppwriteConfig.fnResetPassword,
+            body: jsonEncode({
+              'userId': userId,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(_callTimeout);
+    } on aw.AppwriteException catch (e) {
+      if (e.code == 404) {
+        throw StateError(
+            'The reset-password function is not deployed yet. One-time '
+            'setup: Appwrite Console → Functions → create "reset-password" '
+            '(Node runtime) and paste scripts/functions/reset_password/main.js '
+            '— see that folder\u2019s README.');
+      }
+      rethrow;
+    }
+    if (execution.status != 'completed') {
+      final detail = execution.responseBody.trim();
+      throw StateError(detail.isEmpty
+          ? 'Password reset failed (function status: ${execution.status}).'
+          : 'Password reset failed — $detail');
+    }
+  }
+
+  /// SELF-SERVICE — every signed-in member (owner or employee) can
+  /// rotate their own password with the client SDK; the session stays.
+  Future<void> changeMyPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _account
+        .updatePassword(
+          password: newPassword,
+          oldPassword: currentPassword,
+        )
+        .timeout(_callTimeout);
   }
 
   /// True when at least one profile with role `owner` exists.

@@ -64,19 +64,28 @@ class Account {
   final String initials;
   final String title;
 
+  /// Appwrite auth user id — also the `profiles` document id. Empty for
+  /// locally-constructed accounts that never touched the cloud (tests,
+  /// previews). Team management (role/title edits, password reset)
+  /// addresses members by this id.
+  final String userId;
+
   const Account({
     required this.name,
     required this.email,
     required this.role,
     required this.initials,
     required this.title,
+    this.userId = '',
   });
 
-  Account copyWith({UserRole? role}) => Account(
+  Account copyWith({UserRole? role, String? title, String? userId}) =>
+      Account(
         name: name,
         email: email,
         role: role ?? this.role,
         initials: initials,
-        title: title,
+        title: title ?? this.title,
+        userId: userId ?? this.userId,
       );
 }

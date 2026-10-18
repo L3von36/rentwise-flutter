@@ -13,6 +13,11 @@ class AppwriteConfig {
   /// Appwrite database + collection ids used by the workspace.
   static const String databaseId = 'rentwise-db';
 
+  /// Appwrite Function that lets the OWNER reset an employee's password
+  /// (the client SDK cannot change another user's password). Deploy once
+  /// from scripts/functions/reset_password — see its README.
+  static const String fnResetPassword = 'reset-password';
+
   /// Workspace member profiles (role, title). Clients may READ profiles
   /// and CREATE them in exactly two cases: the one-time owner bootstrap
   /// (registerAccount, refused once an owner exists) and the owner's

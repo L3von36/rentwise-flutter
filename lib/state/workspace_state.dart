@@ -413,6 +413,164 @@ class WorkspaceState extends ChangeNotifier {
     }
   }
 
+  /// Number of owner profiles in the loaded team directory.
+  int get ownerCount =>
+      _team.where((m) => m.role == UserRole.owner).length;
+
+  /// OWNER ACTION — edits a team member's role and/or job title.
+  /// Guardrails: owner-only, never your own role, and the last owner
+  /// cannot be demoted. Returns null on success or an error message.
+  Future<String?> updateTeamMember(
+    Account member, {
+    UserRole? newRole,
+    String? title,
+  }) async {
+    if (!isSignedIn) return 'Sign in first.';
+    if (!role.canManageTeam) {
+      _deny('edit team roles');
+      notifyListeners();
+      return 'Owner access required — team roles are managed by the '
+          'workspace owner.';
+    }
+    final b = _backend;
+    if (b == null) {
+      return 'Appwrite backend is not configured in this build.';
+    }
+    final isSelf = member.userId == _account?.userId;
+    if (isSelf && newRole != null && newRole != member.role) {
+      return 'You cannot change your own role here — ask another owner, '
+          'or use the Appwrite console.';
+    }
+    final demotingLastOwner = member.role == UserRole.owner &&
+        newRole == UserRole.employee &&
+        ownerCount <= 1;
+    if (demotingLastOwner) {
+      return 'At least one owner must remain. Promote another member to '
+          'owner first.';
+    }
+    try {
+      final updated = await b.updateTeamMember(
+        userId: member.userId,
+        role: newRole,
+        title: title,
+      );
+      _team = [
+        for (final m in _team)
+          if (m.userId == member.userId)
+            m.copyWith(role: updated.role, title: updated.title)
+          else
+            m,
+      ]..sort((a, b) {
+          if (a.role != b.role) return a.role == UserRole.owner ? -1 : 1;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
+      if (newRole != null && newRole != member.role) {
+        _log(
+          type: ActivityType.note,
+          body: newRole == UserRole.owner
+              ? '**${_account?.name ?? 'The owner'}** promoted '
+                  '**${member.name}** to owner'
+              : '**${_account?.name ?? 'The owner'}** changed '
+                  '**${member.name}**\u2019s role to employee',
+        );
+      }
+      _emit(newRole == null
+          ? 'Updated ${member.name}\u2019s job title.'
+          : newRole == UserRole.owner
+              ? '${member.name} is now an owner.'
+              : '${member.name} is now an employee.');
+      notifyListeners();
+      return null;
+    } catch (e) {
+      final msg = _teamActionError(e);
+      _emit(msg, error: true);
+      notifyListeners();
+      return msg;
+    }
+  }
+
+  /// OWNER ACTION — resets an employee's password via the deployed
+  /// reset-password Appwrite Function. Returns null on success.
+  Future<String?> resetTeamMemberPassword(
+      Account member, String newPassword) async {
+    if (!isSignedIn) return 'Sign in first.';
+    if (!role.canManageTeam) {
+      _deny('reset team passwords');
+      notifyListeners();
+      return 'Owner access required — password resets are managed by the '
+          'workspace owner.';
+    }
+    if (newPassword.length < 8) {
+      return 'Password must be at least 8 characters (Appwrite requirement).';
+    }
+    final b = _backend;
+    if (b == null) {
+      return 'Appwrite backend is not configured in this build.';
+    }
+    try {
+      await b.resetTeamMemberPassword(
+        userId: member.userId,
+        newPassword: newPassword,
+      );
+      _log(
+        type: ActivityType.note,
+        body: '**${_account?.name ?? 'The owner'}** reset the password for '
+            '**${member.name}**',
+      );
+      _emit('Password reset for ${member.name} — share it securely. '
+          'They can change it afterwards from their Profile.');
+      notifyListeners();
+      return null;
+    } catch (e) {
+      final msg = _teamActionError(e);
+      _emit(msg, error: true);
+      notifyListeners();
+      return msg;
+    }
+  }
+
+  /// SELF-SERVICE — rotates the signed-in user's own password. Returns
+  /// null on success or a human-friendly error message.
+  Future<String?> changeMyPassword(
+      String currentPassword, String newPassword) async {
+    final b = _backend;
+    if (b == null) {
+      return 'Appwrite backend is not configured in this build.';
+    }
+    if (newPassword.length < 8) {
+      return 'Password must be at least 8 characters (Appwrite requirement).';
+    }
+    try {
+      await b.changeMyPassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      _emit('Password updated.');
+      notifyListeners();
+      return null;
+    } catch (e) {
+      var msg = AppwriteBackend.authErrorText(e);
+      if (msg == 'Email or password is incorrect.') {
+        msg = 'Current password is incorrect.';
+      }
+      _emit(msg, error: true);
+      notifyListeners();
+      return msg;
+    }
+  }
+
+  /// Maps team-action failures to actionable messages (permission model
+  /// not migrated yet, missing function deployment, network…).
+  String _teamActionError(Object e) {
+    final raw = e.toString();
+    if (raw.contains('StateError')) {
+      return raw.startsWith('StateError: ')
+          ? raw.substring('StateError: '.length)
+          : raw.replaceFirst(RegExp(r'^Bad state: '), '');
+    }
+    return AppwriteBackend.authErrorText(e);
+  }
+
   // ------------------------------------------------------------------ access
   /// Sections an employee may open. The owner role has access to
   /// everything — employees work for the owner and never see business

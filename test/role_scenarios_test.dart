@@ -700,6 +700,129 @@ void main() {
       );
     });
 
+    test('owner promotes an employee to owner, edits titles — and the '
+        'last owner cannot be demoted', () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      final emp =
+          state.team.firstWhere((m) => m.role == UserRole.employee);
+      final err = await state.updateTeamMember(
+        emp,
+        newRole: UserRole.owner,
+        title: 'Co-manager',
+      );
+      expect(err, isNull);
+      expect(state.team.where((m) => m.role == UserRole.owner).length, 2);
+      final promoted =
+          state.team.firstWhere((m) => m.userId == emp.userId);
+      expect(promoted.role, UserRole.owner);
+      expect(promoted.title, 'Co-manager');
+      final write = backend.writes
+          .firstWhere((w) => w.collection == 'profiles' && w.id == emp.userId);
+      expect(write.data['role'], 'owner');
+      expect(write.data['title'], 'Co-manager');
+      // Promotion is activity-logged.
+      expect(
+        state.activity
+            .any((a) => a.body.contains('promoted') && a.body.contains(emp.name)),
+        isTrue,
+      );
+
+      // With two owners a demotion is allowed…
+      final err2 =
+          await state.updateTeamMember(promoted, newRole: UserRole.employee);
+      expect(err2, isNull);
+      expect(
+        state.team.firstWhere((m) => m.userId == emp.userId).role,
+        UserRole.employee,
+      );
+
+      // …but the LAST owner can never be demoted. (Here the last owner
+      // is the signed-in owner, so the self-guard speaks first; the
+      // state ALSO refuses the demotion of a last owner via the
+      // 'At least one owner' check — defense in depth — and the edit
+      // dialog disables the option entirely.)
+      final lastOwner =
+          state.team.firstWhere((m) => m.role == UserRole.owner);
+      final err3 = await state.updateTeamMember(
+        lastOwner,
+        newRole: UserRole.employee,
+      );
+      expect(err3, isNotNull);
+      expect(
+        state.team.where((m) => m.role == UserRole.owner).length,
+        1,
+        reason: 'the demotion must not have gone through',
+      );
+    });
+
+    test('you cannot change your own role, and employees cannot edit '
+        'the team at all', () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      final me = state.team
+          .firstWhere((m) => m.userId == state.account!.userId);
+      final err = await state.updateTeamMember(me, newRole: UserRole.employee);
+      expect(err, isNotNull);
+      expect(err, contains('your own role'));
+
+      final employeeState = WorkspaceState(backend: backend);
+      await employeeState.signInWithEmail(
+          SampleDataset.demoEmployee.email, 'employee-pass');
+      final someone = employeeState.team.isEmpty
+          ? const Account(
+              name: 'x',
+              email: 'x@example.com',
+              role: UserRole.employee,
+              initials: 'X',
+              title: '',
+              userId: 'u-x')
+          : employeeState.team.first;
+      final err2 =
+          await employeeState.updateTeamMember(someone, newRole: UserRole.owner);
+      expect(err2, contains('Owner access required'));
+      expect(employeeState.lastNotice!.isError, isTrue);
+    });
+
+    test('owner resets an employee password via the function; everyone '
+        'rotates their own password with the current one', () async {
+      final backend = RecordingBackend();
+      final state = WorkspaceState(backend: backend);
+      await state.signInWithEmail(
+          SampleDataset.demoOwner.email, 'owner-pass');
+
+      final emp =
+          state.team.firstWhere((m) => m.role == UserRole.employee);
+      final weak = await state.resetTeamMemberPassword(emp, 'short');
+      expect(weak, contains('at least 8 characters'));
+
+      final err = await state.resetTeamMemberPassword(emp, 'brand-new-pass');
+      expect(err, isNull);
+      final fnWrite = backend.writes
+          .firstWhere((w) => w.collection == 'functions');
+      expect(fnWrite.id, 'reset-password');
+      expect(fnWrite.data['userId'], emp.userId);
+
+      // Self-service: wrong current password is refused…
+      final err2 = await state.changeMyPassword('wrong-current', 'another-pass-1');
+      expect(err2, contains('Current password is incorrect.'));
+      // …the correct one rotates it, and the NEW password signs in.
+      final err3 = await state.changeMyPassword('owner-pass', 'another-pass-1');
+      expect(err3, isNull);
+      final freshState = WorkspaceState(backend: backend);
+      final signInErr =
+          await freshState.signInWithEmail(SampleDataset.demoOwner.email,
+              'another-pass-1');
+      expect(signInErr, isNull);
+      expect(freshState.isSignedIn, isTrue);
+    });
+
     test('stock invariants — availability clamped, negative stock impossible',
         () async {
       final backend = RecordingBackend();

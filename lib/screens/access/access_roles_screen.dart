@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
@@ -379,6 +381,27 @@ class _TeamCard extends StatelessWidget {
     }
   }
 
+  Future<void> _openEditDialog(BuildContext context, Account member) async {
+    final state = context.read<WorkspaceState>();
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (_) => _EditMemberDialog(
+        member: member,
+        isSelf: member.userId == state.account?.userId,
+        lockDemote: member.role == UserRole.owner && state.ownerCount <= 1,
+      ),
+    );
+  }
+
+  Future<void> _openResetDialog(BuildContext context, Account member) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (_) => _ResetPasswordDialog(member: member),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
@@ -491,6 +514,27 @@ class _TeamCard extends StatelessWidget {
                             ],
                           ),
                         ),
+                        // per-member actions — everyone except yourself;
+                        // password reset applies to employees only (the
+                        // owner rotates their own password in Profile).
+                        if (team[i].userId.isNotEmpty &&
+                            team[i].userId != state.account?.userId) ...[
+                          IconButton(
+                            tooltip: 'Role & title',
+                            icon: Icon(Icons.edit_outlined,
+                                size: 17, color: AppPalette.muted),
+                            onPressed: () =>
+                                _openEditDialog(context, team[i]),
+                          ),
+                          if (team[i].role == UserRole.employee)
+                            IconButton(
+                              tooltip: 'Reset password',
+                              icon: Icon(Icons.key_rounded,
+                                  size: 17, color: AppPalette.muted),
+                              onPressed: () =>
+                                  _openResetDialog(context, team[i]),
+                            ),
+                        ],
                       ],
                     ),
                   ),
@@ -682,6 +726,330 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2.2))
               : const Text('Create account',
+                  style: TextStyle(fontFamily: AppTheme.fontFamily)),
+        ),
+      ],
+    );
+  }
+}
+
+/// OWNER ACTION — edit a member's role (promote/demote) and job title.
+/// Role changes are refused for yourself and for the last remaining
+/// owner; the cloud enforces owner-only document updates as the second
+/// line of defence.
+class _EditMemberDialog extends StatefulWidget {
+  final Account member;
+  final bool isSelf;
+  final bool lockDemote;
+
+  const _EditMemberDialog({
+    required this.member,
+    required this.isSelf,
+    required this.lockDemote,
+  });
+
+  @override
+  State<_EditMemberDialog> createState() => _EditMemberDialogState();
+}
+
+class _EditMemberDialogState extends State<_EditMemberDialog> {
+  late UserRole _role = widget.member.role;
+  late final _titleCtrl =
+      TextEditingController(text: widget.member.title);
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _error = null;
+      _submitting = true;
+    });
+    final state = context.read<WorkspaceState>();
+    final err = await state.updateTeamMember(
+      widget.member,
+      newRole: _role == widget.member.role ? null : _role,
+      title: _titleCtrl.text,
+    );
+    if (!mounted) return;
+    if (err == null) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      _submitting = false;
+      _error = err;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Edit ${widget.member.name}',
+          style: const TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w800)),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Role',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppPalette.ink)),
+            const SizedBox(height: 4),
+            RadioListTile<UserRole>(
+              value: UserRole.employee,
+              groupValue: _role,
+              onChanged: widget.lockDemote
+                  ? null
+                  : (v) => setState(() => _role = v!),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text('Employee — day-to-day operations',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 13,
+                      color: widget.lockDemote
+                          ? AppPalette.faint
+                          : AppPalette.body)),
+              subtitle: widget.lockDemote
+                  ? Text('Last owner — promote someone else first',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          color: AppPalette.muted))
+                  : null,
+            ),
+            RadioListTile<UserRole>(
+              value: UserRole.owner,
+              groupValue: _role,
+              onChanged: widget.isSelf
+                  ? null
+                  : (v) => setState(() => _role = v!),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text('Owner — full business visibility',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 13,
+                      color: widget.isSelf
+                          ? AppPalette.faint
+                          : AppPalette.body)),
+              subtitle: widget.isSelf
+                  ? Text('You cannot change your own role',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          color: AppPalette.muted))
+                  : null,
+            ),
+            const SizedBox(height: 8),
+            Text('Job title',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppPalette.ink)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _titleCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                  hintText: 'Warehouse lead'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!,
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppPalette.red)),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed:
+              _submitting ? null : () => Navigator.pop(context),
+          child: Text('Cancel',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  color: AppPalette.body)),
+        ),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2.2))
+              : const Text('Save changes',
+                  style: TextStyle(fontFamily: AppTheme.fontFamily)),
+        ),
+      ],
+    );
+  }
+}
+
+/// OWNER ACTION — reset an employee's password through the deployed
+/// reset-password Appwrite Function. Suggests a strong temporary
+/// password; the employee can rotate it from their own Profile.
+class _ResetPasswordDialog extends StatefulWidget {
+  final Account member;
+  const _ResetPasswordDialog({required this.member});
+
+  @override
+  State<_ResetPasswordDialog> createState() =>
+      _ResetPasswordDialogState();
+}
+
+class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
+  final _passwordCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _obscure = true;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  void _suggest() {
+    const chars =
+        'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    final rnd = Random.secure();
+    final pw = List.generate(
+        12, (_) => chars[rnd.nextInt(chars.length)]).join();
+    _passwordCtrl.text = pw;
+    _confirmCtrl.text = pw;
+    setState(() => _obscure = false);
+  }
+
+  Future<void> _submit() async {
+    setState(() => _error = null);
+    if (_passwordCtrl.text != _confirmCtrl.text) {
+      setState(() => _error = 'Passwords do not match.');
+      return;
+    }
+    setState(() => _submitting = true);
+    final state = context.read<WorkspaceState>();
+    final err = await state.resetTeamMemberPassword(
+        widget.member, _passwordCtrl.text);
+    if (!mounted) return;
+    if (err == null) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      _submitting = false;
+      _error = err;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Reset ${widget.member.name}\u2019s password',
+          style: const TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w800)),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sets a new password for ${widget.member.email} right away. '
+              'Share it securely — they sign in with it and can change it '
+              'from Profile → Password.',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 12,
+                  height: 1.5,
+                  color: AppPalette.body),
+            ),
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlineButton(
+                label: 'Suggest strong password',
+                icon: Icons.auto_awesome_outlined,
+                onTap: _suggest,
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _passwordCtrl,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                hintText: 'At least 8 characters',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 18,
+                    color: AppPalette.muted,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _confirmCtrl,
+              obscureText: _obscure,
+              onSubmitted: (_) => _submit(),
+              decoration:
+                  const InputDecoration(hintText: 'Repeat password'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!,
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppPalette.red)),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed:
+              _submitting ? null : () => Navigator.pop(context),
+          child: Text('Cancel',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  color: AppPalette.body)),
+        ),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2.2))
+              : const Text('Reset password',
                   style: TextStyle(fontFamily: AppTheme.fontFamily)),
         ),
       ],
