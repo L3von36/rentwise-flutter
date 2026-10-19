@@ -121,6 +121,147 @@ class KpiCard extends StatelessWidget {
   }
 }
 
+/// Horizontal phone strip of KPI tiles with a built-in scroll affordance.
+///
+/// Tiles keep a fixed readable [tileWidth] instead of being squeezed into
+/// thirds. When the row overflows the viewport it becomes swipeable and a
+/// soft edge fade + partial "peek" of the next tile hint at the hidden
+/// content; when everything fits, tiles expand to share the width exactly
+/// like a plain [Row] of [Expanded]s.
+class KpiStrip extends StatefulWidget {
+  final List<Widget> children;
+  final double tileWidth;
+  final double gap;
+
+  const KpiStrip({
+    super.key,
+    required this.children,
+    this.tileWidth = 124,
+    this.gap = 12,
+  });
+
+  @override
+  State<KpiStrip> createState() => _KpiStripState();
+}
+
+class _KpiStripState extends State<KpiStrip> {
+  final _controller = ScrollController();
+  double _offset = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool _onScroll(ScrollNotification n) {
+    if (n.metrics.axis != Axis.horizontal) return false;
+    if ((_offset - n.metrics.pixels).abs() < 0.5) return false;
+    setState(() => _offset = n.metrics.pixels);
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.children.isEmpty) return const SizedBox.shrink();
+
+    return LayoutBuilder(builder: (context, c) {
+      final n = widget.children.length;
+      final gap = widget.gap;
+      final fits =
+          n * widget.tileWidth + (n - 1) * gap <= c.maxWidth + 0.5;
+
+      // Everything fits: expand tiles to share the width — same look as
+      // the old Expanded row, no scroll, no affordance.
+      if (fits) {
+        return Row(
+          children: [
+            for (var i = 0; i < n; i++) ...[
+              if (i > 0) SizedBox(width: gap),
+              Expanded(child: widget.children[i]),
+            ],
+          ],
+        );
+      }
+
+      // Overflow: fixed-width tiles in a swipeable strip. The next tile
+      // peeks past the right edge and a gradient fade marks the scroll.
+      final maxOffset = n * widget.tileWidth + (n - 1) * gap - c.maxWidth;
+      final canRight = _offset < maxOffset - 0.5;
+      final canLeft = _offset > 0.5;
+
+      return NotificationListener<ScrollNotification>(
+        onNotification: _onScroll,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              controller: _controller,
+              scrollDirection: Axis.horizontal,
+              physics: const ClampingScrollPhysics(),
+              child: Row(
+                children: [
+                  for (var i = 0; i < n; i++) ...[
+                    if (i > 0) SizedBox(width: gap),
+                    SizedBox(
+                        width: widget.tileWidth, child: widget.children[i]),
+                  ],
+                ],
+              ),
+            ),
+            // Right fade — "there is more" affordance.
+            if (canRight)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 28,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          AppPalette.canvas.withOpacity(0),
+                          AppPalette.canvas.withOpacity(0.9),
+                        ],
+                        stops: const [0, 1],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            // Left fade — appears once scrolled so users can find their
+            // way back.
+            if (canLeft)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 20,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerRight,
+                        end: Alignment.centerLeft,
+                        colors: [
+                          AppPalette.canvas.withOpacity(0),
+                          AppPalette.canvas.withOpacity(0.9),
+                        ],
+                        stops: const [0, 1],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
 /// Compact KPI tile for the mobile "Today at a glance" strip.
 class KpiTileMini extends StatelessWidget {
   final IconData icon;

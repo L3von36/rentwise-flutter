@@ -192,47 +192,42 @@ class _EmployeeDashboard extends StatelessWidget {
           else
               SizedBox(
                 height: 122,
-                child: Row(
+                // Same swipeable glance strip as the owner view: tiles
+                // keep a readable width and peek past the edge with a
+                // fade affordance on narrow phones.
+                child: KpiStrip(
                   children: [
-                    Expanded(
-                      child: KpiTileMini(
-                        icon: Icons.checklist_rounded,
-                        iconColor: AppPalette.primary,
-                        iconBg: AppPalette.primarySoft,
-                        label: 'Tasks due',
-                        value: '${tasks.length}',
-                        subtitle: 'today',
-                        trailing: const TrendChip.flat(text: 'Shift'),
-                        onTap: () => openTasks(context),
-                      ),
+                    KpiTileMini(
+                      icon: Icons.checklist_rounded,
+                      iconColor: AppPalette.primary,
+                      iconBg: AppPalette.primarySoft,
+                      label: 'Tasks due',
+                      value: '${tasks.length}',
+                      subtitle: 'today',
+                      trailing: const TrendChip.flat(text: 'Shift'),
+                      onTap: () => openTasks(context),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: KpiTileMini(
-                        icon: Icons.local_shipping_outlined,
-                        iconColor: AppPalette.blue,
-                        iconBg: AppPalette.blueBg,
-                        label: 'On delivery',
-                        value: '${state.outForDeliveryCount}',
-                        subtitle: 'on the road',
-                        trailing: const TrendChip.flat(text: 'Live'),
-                        onTap: () => state.navigate(Section.orders),
-                      ),
+                    KpiTileMini(
+                      icon: Icons.local_shipping_outlined,
+                      iconColor: AppPalette.blue,
+                      iconBg: AppPalette.blueBg,
+                      label: 'On delivery',
+                      value: '${state.outForDeliveryCount}',
+                      subtitle: 'on the road',
+                      trailing: const TrendChip.flat(text: 'Live'),
+                      onTap: () => state.navigate(Section.orders),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: KpiTileMini(
-                        icon: Icons.assignment_return_outlined,
-                        iconColor: AppPalette.amber,
-                        iconBg: AppPalette.amberBg,
-                        label: 'Returns',
-                        value: '${state.returnsTodayCount}',
-                        subtitle: 'to check in',
-                        trailing: TrendChip(
-                            text: '${state.pickupsDueTodayCount} due',
-                            positive: false),
-                        onTap: () => state.navigate(Section.orders),
-                      ),
+                    KpiTileMini(
+                      icon: Icons.assignment_return_outlined,
+                      iconColor: AppPalette.amber,
+                      iconBg: AppPalette.amberBg,
+                      label: 'Returns',
+                      value: '${state.returnsTodayCount}',
+                      subtitle: 'to check in',
+                      trailing: TrendChip(
+                          text: '${state.pickupsDueTodayCount} due',
+                          positive: false),
+                      onTap: () => state.navigate(Section.orders),
                     ),
                   ],
                 ),
@@ -1985,50 +1980,48 @@ class _OwnerCompactDashboard extends StatelessWidget {
           const SizedBox(height: 10),
           SizedBox(
             height: 122,
-            child: Row(
+            // Swipeable glance strip: fixed-width tiles peek past the
+            // right edge with a fade affordance instead of being squeezed
+            // into unreadable thirds on narrow phones.
+            child: KpiStrip(
               children: [
-                Expanded(
-                  child: KpiTileMini(
-                    icon: Icons.payments_outlined,
-                    iconColor: AppPalette.primary,
-                    iconBg: AppPalette.primarySoft,
-                    label: "Today's revenue",
-                    value: state.earnings.isEmpty
-                        ? '—'
-                        : '\$${(state.earnings.last.value * 1000).toStringAsFixed(0)}',
-                    subtitle: 'vs. yesterday',
-                    trailing: TrendChip(
-                        text: '${state.earningsTrendPct.toStringAsFixed(1)}%',
-                        positive: state.earningsTrendPct >= 0),
-                    onTap: () => state.navigate(Section.reports),
-                  ),
+                KpiTileMini(
+                  icon: Icons.payments_outlined,
+                  iconColor: AppPalette.primary,
+                  iconBg: AppPalette.primarySoft,
+                  label: "Today's revenue",
+                  value: state.earnings.isEmpty
+                      ? '—'
+                      : '\$${(state.earnings.last.value * 1000).toStringAsFixed(0)}',
+                  subtitle: 'vs. yesterday',
+                  trailing: TrendChip(
+                      text: '${state.earningsTrendPct.toStringAsFixed(1)}%',
+                      positive: state.earningsTrendPct >= 0),
+                  onTap: () => state.navigate(Section.reports),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KpiTileMini(
-                    icon: Icons.event_available_outlined,
-                    iconColor: AppPalette.purple,
-                    iconBg: AppPalette.purpleBg,
-                    label: 'Active rentals',
-                    value: '24',
-                    subtitle: 'since yesterday',
-                    trailing: const TrendChip(text: '+4', positive: true),
-                    onTap: () => state.navigate(Section.orders),
-                  ),
+                KpiTileMini(
+                  icon: Icons.event_available_outlined,
+                  iconColor: AppPalette.purple,
+                  iconBg: AppPalette.purpleBg,
+                  label: 'Active rentals',
+                  value: '${state.openOrdersCount}',
+                  subtitle: 'open right now',
+                  trailing: const TrendChip.flat(text: 'Live'),
+                  onTap: () => state.navigate(Section.orders),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KpiTileMini(
-                    icon: Icons.schedule_rounded,
-                    iconColor: AppPalette.amber,
-                    iconBg: AppPalette.amberBg,
-                    label: 'Pending returns',
-                    value: '8',
-                    subtitle: 'today',
-                    trailing: const TrendChip(
-                        text: '2 due', positive: false),
-                    onTap: () => state.navigate(Section.orders),
-                  ),
+                KpiTileMini(
+                  icon: Icons.schedule_rounded,
+                  iconColor: AppPalette.amber,
+                  iconBg: AppPalette.amberBg,
+                  label: 'Pending returns',
+                  value: '${state.returnsTodayCount}',
+                  subtitle: 'to check in today',
+                  trailing: state.returnsLateCount > 0
+                      ? TrendChip(
+                          text: '${state.returnsLateCount} late',
+                          positive: false)
+                      : const TrendChip.flat(text: 'On time'),
+                  onTap: () => state.navigate(Section.orders),
                 ),
               ],
             ),

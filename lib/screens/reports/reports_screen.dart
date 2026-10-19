@@ -287,7 +287,7 @@ class _PerformanceHero extends StatelessWidget {
       _HeroStat(
           value:
               '${momentumPct >= 0 ? '+' : '-'}${momentumPct.abs().toStringAsFixed(1)}%',
-          label: 'Day momentum'),
+          label: 'Momentum'),
     ];
     final statRow = Row(
       children: [
@@ -355,15 +355,20 @@ class _HeroStat extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   color: Colors.white)),
           const SizedBox(height: 1),
-          Text(label.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                  color: Colors.white.withOpacity(0.72))),
+          // Safety net: labels scale down instead of ellipsizing at any
+          // width or system text scale (e.g. 'UTILIZATION' on the 270px
+          // desktop hero row).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label.toUpperCase(),
+                maxLines: 1,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                    color: Colors.white.withOpacity(0.72))),
+          ),
         ],
       ),
     );

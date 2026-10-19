@@ -2,15 +2,20 @@ import 'package:flutter/foundation.dart'
     show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart'
     show
+        Axis,
         BuildContext,
         Icons,
         IconData,
         Material,
+        MaterialApp,
         NavigationDrawer,
         Navigator,
         Scaffold,
+        SingleChildScrollView,
         Size,
+        SizedBox,
         TextField,
+        Text,
         Theme,
         ThemeMode,
         Widget;
@@ -23,6 +28,7 @@ import 'package:rentwise/models/rental_order.dart' show OrderStatus;
 import 'package:rentwise/state/shell_state.dart';
 import 'package:rentwise/state/workspace_state.dart';
 import 'package:rentwise/widgets/bottom_nav.dart';
+import 'package:rentwise/widgets/kpi_card.dart' show KpiStrip, KpiTileMini;
 import 'package:rentwise/widgets/side_nav.dart';
 import 'helpers/recording_backend.dart';
 import 'fixtures/sample_dataset.dart';
@@ -465,9 +471,61 @@ void main() {
     // The wide-only "Business Open" banner stays off the phone layout.
     expect(find.text('Business Open'), findsNothing);
 
-    // Glance strip still anchors the screen below the hero.
+    // Glance strip still anchors the screen below the hero — and stays
+    // honest: tile values come from live workspace getters (the old
+    // hardcoded '24' / '8' are gone), and the strip renders as a
+    // swipeable KpiStrip with a scroll affordance instead of squeezing
+    // three Expanded tiles into unreadable thirds.
     expect(find.text("Today's revenue"), findsOneWidget);
     expect(find.text('Details'), findsOneWidget);
+    expect(find.text('24'), findsNothing);
+    expect(find.text('8'), findsNothing);
+    final state = tester.state(find.byType(Navigator)).context
+        .read<WorkspaceState>();
+    final activeTile = find.ancestor(
+        of: find.text('Active rentals'), matching: find.byType(KpiTileMini));
+    expect(
+        find.descendant(
+            of: activeTile, matching: find.text('${state.openOrdersCount}')),
+        findsOneWidget);
+    final returnsTile = find.ancestor(
+        of: find.text('Pending returns'), matching: find.byType(KpiTileMini));
+    expect(
+        find.descendant(
+            of: returnsTile,
+            matching: find.text('${state.returnsTodayCount}')),
+        findsOneWidget);
+
+    // 390px < 3 × 124px tiles + gaps: the strip becomes a horizontal
+    // scroll view (fade affordance), and swiping left reveals the tail.
+    final kpiStrip = find.byType(KpiStrip);
+    expect(kpiStrip, findsOneWidget);
+    final hScroll = find.descendant(
+        of: kpiStrip,
+        matching: find.byWidgetPredicate((w) =>
+            w is SingleChildScrollView &&
+            w.scrollDirection == Axis.horizontal));
+    expect(hScroll, findsOneWidget);
+    await tester.drag(hScroll, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('KpiStrip lays out as a plain row when tiles all fit',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 500,
+          child: KpiStrip(children: [Text('A'), Text('B'), Text('C')]),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    // No overflow → no scroll view, tiles share the width like Expandeds.
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('C'), findsOneWidget);
   });
 
   testWidgets('tapping an order row opens its detail page', (tester) async {
