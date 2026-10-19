@@ -32,6 +32,16 @@ extension ActivityTypeX on ActivityType {
         ActivityType.note => AppPalette.blueBg,
         ActivityType.newBooking => AppPalette.primarySoft,
       };
+
+  /// Icon glyph used by the notifications feed and the activity timeline.
+  IconData get icon => switch (this) {
+        ActivityType.rental => Icons.inventory_2_outlined,
+        ActivityType.payment => Icons.payments_outlined,
+        ActivityType.orderUpdate => Icons.receipt_long_rounded,
+        ActivityType.returnItem => Icons.assignment_return_outlined,
+        ActivityType.note => Icons.sticky_note_2_outlined,
+        ActivityType.newBooking => Icons.event_available_outlined,
+      };
 }
 
 /// A single time-stamped workspace action.

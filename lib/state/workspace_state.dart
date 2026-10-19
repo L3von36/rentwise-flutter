@@ -1077,14 +1077,26 @@ class WorkspaceState extends ChangeNotifier {
         .toList();
   }
 
-  int get actionsTodayCount => _activity.length;
+  /// True when [t] falls on the same calendar day as "now".
+  static bool _isToday(DateTime t) {
+    final n = DateTime.now();
+    return t.year == n.year && t.month == n.month && t.day == n.day;
+  }
+
+  /// Entries logged today (honest "today" numbers for the activity hero).
+  List<ActivityEntry> get todaysActivity =>
+      _activity.where((a) => _isToday(a.at)).toList();
+
+  int get actionsTodayCount => todaysActivity.length;
+  int get activityTotalCount => _activity.length;
   int get paymentsTodayCount => _activity
-      .where((a) => a.type == ActivityType.payment)
+      .where((a) => a.type == ActivityType.payment && _isToday(a.at))
       .length;
   int get rentalUpdatesCount => _activity
       .where((a) =>
-          a.type == ActivityType.orderUpdate ||
-          a.type == ActivityType.rental)
+          (a.type == ActivityType.orderUpdate ||
+              a.type == ActivityType.rental) &&
+          _isToday(a.at))
       .length;
 
   void setActivityFilter(String f) {

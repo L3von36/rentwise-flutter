@@ -86,7 +86,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(width: 10),
           ] else if (phoneApp) ...[
             _SearchIconButton(onOpen: () => openGlobalSearch(context)),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
           ] else
             const Spacer(),
 
@@ -172,8 +172,8 @@ class _SearchIconButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onTap: onOpen,
         child: Container(
-          width: 34,
-          height: 34,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppPalette.stroke),
@@ -422,8 +422,8 @@ class _ThemeToggleButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onTap: shell.toggleTheme,
         child: Container(
-          width: 34,
-          height: 34,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppPalette.stroke),
@@ -460,8 +460,8 @@ class _BellButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             onTap: () => _showNotifications(context),
             child: Container(
-              width: 34,
-              height: 34,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppPalette.stroke),

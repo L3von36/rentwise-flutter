@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/density.dart';
@@ -7,6 +6,7 @@ import '../../core/app_theme.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/top_bar.dart' show RichActivityText;
 import '../../models/activity_entry.dart';
 import '../../core/palette.dart';
@@ -27,9 +27,17 @@ class ActivityLogScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
-    final now = DateTime.now();
+    final compact = Density.compact(context);
     final entries = state.filteredActivity;
-    final dateLabel = DateFormat('EEEE, MMMM d').format(now);
+
+    // Newest first, grouped by calendar day — a bare time next to an
+    // entry from yesterday read as "later today" before grouping.
+    final sorted = [...entries]
+      ..sort((a, b) => b.at.compareTo(a.at));
+    final groups = <String, List<ActivityEntry>>{};
+    for (final e in sorted) {
+      groups.putIfAbsent(_dayLabel(e.at), () => []).add(e);
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
@@ -37,265 +45,303 @@ class ActivityLogScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              IconChipLite(
-                  icon: Icons.show_chart,
-                  color: AppPalette.primary,
-                  bg: AppPalette.primarySoft,
-                  size: 40),
-              const SizedBox(width: 11),
-              Expanded(
+          _ActivityHero(
+            today: state.actionsTodayCount,
+            rentals: state.rentalUpdatesCount,
+            payments: state.paymentsTodayCount,
+          ),
+          const SizedBox(height: 14),
+
+          // Filter chips — always visible, one horizontal swipe away.
+          _FilterChips(
+            filters: _filters,
+            selected: state.activityFilter,
+            onSelected: state.setActivityFilter,
+          ),
+          const SizedBox(height: 14),
+
+            if (entries.isEmpty)
+            _EmptyTimeline(filter: state.activityFilter)
+          else
+            for (final day in groups.keys) ...[
+              SectionCard(
+                icon: Icons.show_chart,
+                title: day,
+                subtitle:
+                    '${groups[day]!.length} update(s) — every action '
+                    'time-stamped and attributed.',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Eyebrow('Workspace / Activity Log'),
-                    const SizedBox(height: 4),
-                    Text('Activity Log',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: Density.compact(context) ? 17 : 21,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                            color: AppPalette.ink)),
+                    ..._buildTimeline(groups[day]!),
                   ],
                 ),
               ),
+              const SizedBox(height: 14),
             ],
-          ),
-          const SizedBox(height: 6),
-          Text('A transparent history of every employee action in the workspace.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 14,
-                  color: AppPalette.muted)),
-          const SizedBox(height: 14),
-
-          // stat mini-cards
-          LayoutBuilder(builder: (context, c) {
-            final cols = c.maxWidth < 900 ? 2 : 4;
-            const gap = 16.0;
-            final w = (c.maxWidth - gap * (cols - 1)) / cols;
-                        return Wrap(
-              spacing: gap,
-              runSpacing: gap,
-              children: [
-                _StatCard(
-                    width: w,
-                    dotColor: AppPalette.primary,
-                    value: '${state.actionsTodayCount}',
-                    label: 'actions today'),
-                _StatCard(
-                    width: w,
-                    dotColor: AppPalette.green,
-                    value: '${state.rentalUpdatesCount}',
-                    label: 'rental updates'),
-                _StatCard(
-                    width: w,
-                    dotColor: AppPalette.amber,
-                    value: '${state.paymentsTodayCount}',
-                    label: 'payments recorded'),
-                _StatCard(
-                    width: w,
-                    dotColor: AppPalette.purple,
-                    value: '100%',
-                    label: 'logged automatically'),
-              ],
-            );
-          }),
-          const SizedBox(height: 14),
-
-          SectionCard(
-            icon: Icons.show_chart,
-            title: 'Today · $dateLabel',
-            subtitle:
-                'Every update is time-stamped and attached to the employee who made it.',
-            action: PopupMenuButton<String>(
-              tooltip: 'Filter activity',
-              color: AppPalette.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(11),
-                side: BorderSide(color: AppPalette.stroke),
-              ),
-              onSelected: state.setActivityFilter,
-              offset: const Offset(0, 8),
-              itemBuilder: (_) => [
-                for (final f in _filters)
-                  PopupMenuItem(
-                    value: f,
-                    height: 38,
-                    child: Row(
-                      children: [
-                        if (f == state.activityFilter)
-                          Icon(Icons.check_rounded,
-                              size: 15, color: AppPalette.primary)
-                        else
-                          const SizedBox(width: 15),
-                        const SizedBox(width: 6),
-                        Text(f,
-                            style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 13,
-                              fontWeight: f == state.activityFilter
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: f == state.activityFilter
-                                  ? AppPalette.primary
-                                  : AppPalette.body,
-                            )),
-                      ],
-                    ),
-                  ),
-              ],
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppPalette.stroke),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.filter_list_rounded,
-                        size: 16, color: AppPalette.body),
-                    const SizedBox(width: 7),
-                    Text('Filter activity',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppPalette.body)),
-                  ],
-                ),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // active filter chips
-                if (state.activityFilter != 'All') ...[
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      StatusBadge.custom(
-                        label: state.activityFilter,
-                        fg: AppPalette.primary,
-                        bg: AppPalette.primarySoft,
-                        dot: true,
-                      ),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(99),
-                        onTap: () => state.setActivityFilter('All'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(99),
-                            border:
-                                Border.all(color: AppPalette.stroke),
-                          ),
-                          child: Text('Clear filter',
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppPalette.muted)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                // timeline
-                ..._buildTimeline(entries),
-                if (entries.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 36),
-                    child: Center(
-                      child: Text('No activity matches this filter.',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 13.5,
-                              color: AppPalette.muted)),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          if (compact) const SizedBox(height: 6),
         ],
       ),
     );
   }
 
   List<Widget> _buildTimeline(List<ActivityEntry> entries) {
-    final widgets = <Widget>[];
-    for (var i = 0; i < entries.length; i++) {
-      widgets.add(_TimelineEntry(
-        entry: entries[i],
-        isLast: i == entries.length - 1,
-      ));
-    }
-    return widgets;
+    return [
+      for (var i = 0; i < entries.length; i++)
+        StaggerIn(
+          index: i,
+          child: _TimelineEntry(
+            entry: entries[i],
+            isLast: i == entries.length - 1,
+          ),
+        ),
+    ];
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final double width;
-  final Color dotColor;
-  final String value;
-  final String label;
-  const _StatCard({
-    required this.width,
-    required this.dotColor,
-    required this.value,
-    required this.label,
+// ---------------------------------------------------------------- hero
+
+/// Gradient hero — same language as Reports / Access / Notifications:
+/// glass icon tile, white headline, LIVE pulse and translucent stats.
+class _ActivityHero extends StatelessWidget {
+  final int today;
+  final int rentals;
+  final int payments;
+
+  const _ActivityHero({
+    required this.today,
+    required this.rentals,
+    required this.payments,
   });
 
   @override
   Widget build(BuildContext context) {
+    final compact = Density.compact(context);
+
+    final headline = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.22)),
+          ),
+          child: const Icon(Icons.show_chart,
+              color: Colors.white, size: 22),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Activity Log',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+              const SizedBox(height: 3),
+              Text(
+                'Live numbers for today, straight from the log.',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    height: 1.35,
+                    color: Colors.white.withOpacity(0.78)),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(99),
+            border:
+                Border.all(color: Colors.white.withOpacity(0.25)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                    color: AppPalette.greenBar, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 5),
+              const Text('LIVE',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: Colors.white)),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final statRow = Row(
+      children: [
+        Expanded(
+            child: _HeroStat(value: '$today', label: 'Actions')),
+        const SizedBox(width: 10),
+        Expanded(
+            child: _HeroStat(value: '$rentals', label: 'Rentals')),
+        const SizedBox(width: 10),
+        Expanded(
+            child: _HeroStat(value: '$payments', label: 'Payments')),
+      ],
+    );
+
     return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: EdgeInsets.all(compact ? 16 : 20),
       decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppPalette.stroke),
-        boxShadow: AppShadow.card(opacity: 0.04),
+        gradient: LinearGradient(
+          colors: AppPalette.heroGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.cardLg),
+        boxShadow:
+            AppShadow.card(opacity: AppPalette.dark ? 0.5 : 0.18),
       ),
-      child: Row(
-        children: [
-          Dot(color: dotColor, size: 8),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
+      child: compact
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value,
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: Density.compact(context) ? 15 : 17,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                        color: AppPalette.ink)),
-                const SizedBox(height: 2),
-                Text(label,
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 12,
-                        color: AppPalette.muted)),
+                headline,
+                const SizedBox(height: 14),
+                statRow,
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(flex: 5, child: headline),
+                const SizedBox(width: 18),
+                SizedBox(width: 280, child: statRow),
               ],
             ),
-          ),
+    );
+  }
+}
+
+/// Translucent stat tile used inside the activity hero.
+class _HeroStat extends StatelessWidget {
+  final String value;
+  final String label;
+  const _HeroStat({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value,
+              style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+          const SizedBox(height: 1),
+          Text(label.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                  color: Colors.white.withOpacity(0.72))),
         ],
       ),
     );
   }
 }
 
-/// Timeline entry with connecting spine.
+// ---------------------------------------------------------------- filter
+
+/// Horizontal chip strip — replaces the old popup-menu filter, which
+/// hid the most-used control one tap too deep on phones.
+class _FilterChips extends StatelessWidget {
+  final List<String> filters;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  const _FilterChips({
+    required this.filters,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        itemCount: filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final f = filters[i];
+          final active = f == selected;
+          return PressableScale(
+            onTap: () => onSelected(f),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              decoration: BoxDecoration(
+                color: active ? AppPalette.primarySoft : AppPalette.surface,
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(
+                    color:
+                        active ? AppPalette.primaryBorder : AppPalette.stroke),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (active) ...[
+                    Dot(color: AppPalette.primary, size: 6),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(f,
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12,
+                          fontWeight: active
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: active
+                              ? AppPalette.primary
+                              : AppPalette.body)),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------- timeline
+
+/// Timeline entry with connecting spine. The dot is tinted with the
+/// entry type so the day reads as colored rhythm, not gray static.
 class _TimelineEntry extends StatelessWidget {
   final ActivityEntry entry;
   final bool isLast;
@@ -307,8 +353,6 @@ class _TimelineEntry extends StatelessWidget {
     final ampm = entry.at.hour >= 12 ? 'PM' : 'AM';
     final m = entry.at.minute.toString().padLeft(2, '0');
     final time = '$h:$m $ampm';
-    final ws = context.watch<WorkspaceState>().workspace;
-    final wsLabel = ws.isEmpty ? 'Workspace' : ws;
 
     return IntrinsicHeight(
       child: Row(
@@ -324,10 +368,9 @@ class _TimelineEntry extends StatelessWidget {
                   height: 10,
                   margin: const EdgeInsets.only(top: 5),
                   decoration: BoxDecoration(
-                    color: AppPalette.raise,
+                    color: entry.type.fg.withOpacity(0.18),
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: AppPalette.primaryTint, width: 3),
+                    border: Border.all(color: entry.type.fg, width: 2.5),
                   ),
                 ),
                 if (!isLast)
@@ -343,41 +386,112 @@ class _TimelineEntry extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(time,
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 12,
-                              color: AppPalette.faint)),
-                      const Spacer(),
-                      StatusBadge.custom(
-                        label: entry.type.label,
-                        fg: entry.type.fg,
-                        bg: entry.type.bg,
-                        fontSize: 11,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichActivityText(body: entry.body, fontSize: 13.5),
+                        const SizedBox(height: 4),
+                        Text(time,
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 11,
+                                color: AppPalette.faint)),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  RichActivityText(body: entry.body, fontSize: 13.5),
-                  const SizedBox(height: 4),
-                  Text('Workspace action · $wsLabel',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 11.5,
-                          color: AppPalette.faint)),
+                  const SizedBox(width: 8),
+                  StatusBadge.custom(
+                    label: entry.type.label,
+                    fg: entry.type.fg,
+                    bg: entry.type.bg,
+                    fontSize: 11,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 4),
+                  ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Today" / "Yesterday" / "Oct 17" group label for an entry timestamp.
+String _dayLabel(DateTime at) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final that = DateTime(at.year, at.month, at.day);
+  final diff = today.difference(that).inDays;
+  if (diff == 0) return 'Today';
+  if (diff == 1) return 'Yesterday';
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  return '${months[at.month - 1]} ${at.day}';
+}
+
+/// Friendly empty state (no entries at all, or nothing after filtering).
+class _EmptyTimeline extends StatelessWidget {
+  final String filter;
+  const _EmptyTimeline({required this.filter});
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = filter != 'All';
+    return SectionCard(
+      icon: Icons.show_chart,
+      title: filtered ? 'Nothing matches "$filter"' : 'No activity yet',
+      subtitle: filtered
+          ? 'Try another filter or clear it to see the full log.'
+          : 'Actions will appear here as your team works.',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 26),
+        child: Center(
+          child: Column(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: AppPalette.primarySoft,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                    filtered
+                        ? Icons.filter_alt_off_outlined
+                        : Icons.history_rounded,
+                    size: 26,
+                    color: AppPalette.primary),
+              ),
+              const SizedBox(height: 12),
+              Text(filtered ? 'No "$filter" entries' : 'A fresh start',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppPalette.ink)),
+              const SizedBox(height: 4),
+              Text(
+                'Every rental, payment and note lands in this '
+                'log automatically — nothing to write by hand.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    height: 1.45,
+                    color: AppPalette.muted),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
