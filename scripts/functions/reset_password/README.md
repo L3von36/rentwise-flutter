@@ -14,9 +14,11 @@ before touching anything.
    - Execution permission: **Users** (any signed-in user may execute;
      the function itself verifies the owner role)
 2. Open the function → **Deployments → Create deployment**:
-   - Commands: `install: npm install` → **leave empty** (no deps),
+   - Commands: leave `install` empty (no dependencies),
      entrypoint: `src/main.js`
-   - Paste the full contents of `main.js` as the code.
+   - Upload the folder contents (`main.js` + `package.json` — the
+     package.json marks the code as an ES module, required by the
+     `export default` in main.js).
 3. **Settings → Variables** → add:
    - `APPWRITE_API_KEY` — an API key with scopes:
      `users.read`, `users.write`, `databases.read`, `documents.read`
