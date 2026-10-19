@@ -56,7 +56,7 @@ class _SignUpViewState extends State<SignUpView> {
     }
     if (password.length < 8) {
       setState(() => _formError =
-          'Password must be at least 8 characters (Appwrite requirement).');
+          'Password must be at least 8 characters.');
       return;
     }
     if (password != _confirmCtrl.text) {
@@ -101,22 +101,12 @@ class _SignUpViewState extends State<SignUpView> {
                 bg: AppPalette.primarySoft,
                 size: 42),
             const SizedBox(height: 16),
-            Text('CREATE THE OWNER ACCOUNT',
-                style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.8,
-                  color: AppPalette.muted,
-                )),
-            const SizedBox(height: 8),
             Text('Register your workspace',
                 style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 6),
             Text(
-                'This one-time registration creates your OWNER account. '
-                'Employee accounts are added later by you, from the '
-                'Owner Dashboard → Access & roles.',
+                'Creates your owner account. Employee accounts are added '
+                'later from Access & roles.',
                 style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 20),
 
@@ -127,7 +117,7 @@ class _SignUpViewState extends State<SignUpView> {
               controller: _nameCtrl,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
-                hintText: 'Tinsae Abeba',
+                hintText: 'Your full name',
                 prefixIcon: Icon(Icons.badge_outlined,
                     size: 18, color: AppPalette.muted),
                 prefixIconConstraints:

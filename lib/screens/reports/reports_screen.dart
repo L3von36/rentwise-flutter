@@ -43,8 +43,6 @@ class ReportsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Eyebrow('Owner monitor'),
-          const SizedBox(height: 6),
           Text('Reports',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
@@ -52,12 +50,6 @@ class ReportsScreen extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.8,
                   color: AppPalette.ink)),
-          const SizedBox(height: 6),
-          Text('How your rental business is performing this month.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 14,
-                  color: AppPalette.muted)),
           const SizedBox(height: 16),
 
           // hero — month headline + live stat tiles
@@ -76,37 +68,13 @@ class ReportsScreen extends StatelessWidget {
           StaggerIn(
             index: 1,
             child: LayoutBuilder(builder: (context, c) {
-              final cols = c.maxWidth < 820 ? 2 : 4;
+              final cols = c.maxWidth < 820 ? 2 : 2;
               const gap = 14.0;
               final w = (c.maxWidth - gap * (cols - 1)) / cols;
               return Wrap(
                 spacing: gap,
                 runSpacing: gap,
                 children: [
-                  SizedBox(
-                    width: w,
-                    child: KpiCard(
-                      icon: Icons.payments_outlined,
-                      iconColor: AppPalette.primary,
-                      iconBg: AppPalette.primarySoft,
-                      label: 'Gross revenue',
-                      value:
-                          '\$${state.monthGrossRevenueK.toStringAsFixed(1)}k',
-                      subtitle: 'this month',
-                      trailing: _MomentumChip(pct: momentum),
-                    ),
-                  ),
-                  SizedBox(
-                    width: w,
-                    child: KpiCard(
-                      icon: Icons.donut_small_outlined,
-                      iconColor: AppPalette.purple,
-                      iconBg: AppPalette.purpleBg,
-                      label: 'Fleet utilization',
-                      value: '${state.utilization.toStringAsFixed(1)}%',
-                      subtitle: 'this month',
-                    ),
-                  ),
                   SizedBox(
                     width: w,
                     child: KpiCard(
@@ -236,36 +204,6 @@ class _PerformanceHero extends StatelessWidget {
             ],
           ),
         ),
-        if (!compact) ...[
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(color: Colors.white.withOpacity(0.22)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                      color: Color(0xFF7EF0B2), shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 6),
-                const Text('LIVE',
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                        color: Colors.white)),
-              ],
-            ),
-          ),
-        ],
       ],
     );
 
@@ -669,7 +607,6 @@ class _CategoryPanel extends StatelessWidget {
       iconColor: AppPalette.purple,
       iconBg: AppPalette.purpleBg,
       title: 'Top categories',
-      subtitle: 'Where the month’s revenue came from.',
       child: series.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 26),
@@ -840,7 +777,6 @@ class _PipelinePanel extends StatelessWidget {
       iconColor: AppPalette.blue,
       iconBg: AppPalette.blueBg,
       title: 'Order pipeline',
-      subtitle: 'Live operational counters from your orders.',
       child: Column(
         children: [
           _PipeRow(

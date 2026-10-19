@@ -42,10 +42,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final pickups = state.pickups;
 
     return DetailPage(
-      eyebrow: 'Workspace / Calendar',
-      title: 'Dispatch calendar',
-      subtitle:
-          'Pickups and event dates in one place — tap a day to see its agenda.',
+      eyebrow: 'Calendar',
+      title: 'Pickup calendar',
+      subtitle: 'Pickups and event dates',
       icon: Icons.calendar_month_outlined,
       actions: [
         OutlineButton(
@@ -210,10 +209,6 @@ class _MonthGrid extends StatelessWidget {
     );
   }
 
-  void onFirstToday(DateTime t) {
-    onSelect(t);
-  }
-
   Widget _cellFor(int? day) {
     if (day == null) return const SizedBox(height: 40);
     final date = DateTime(month.year, month.month, day);
@@ -342,24 +337,19 @@ class _AgendaCard extends StatelessWidget {
       title: day == null
           ? 'Agenda'
           : 'Agenda · ${DateFormat('EEE, MMM d').format(day!)}',
-      subtitle: empty
-          ? 'Nothing scheduled for this day.'
-          : '${dayPickups.length} pickup(s) · ${dayOrders.length} event date(s)',
       child: empty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
                 children: [
-                  Icon(Icons.wb_sunny_outlined,
-                      size: 16, color: AppPalette.amber),
+                  Icon(Icons.event_busy_outlined,
+                      size: 16, color: AppPalette.faint),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text('A clear day — good slot for maintenance work.',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 12.5,
-                            color: AppPalette.muted)),
-                  ),
+                  Text('Nothing scheduled for this day.',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12.5,
+                          color: AppPalette.muted)),
                 ],
               ),
             )
@@ -368,16 +358,13 @@ class _AgendaCard extends StatelessWidget {
                 for (var i = 0; i < dayPickups.length; i++)
                   StaggerIn(
                     index: i,
-                    child: HoverFill(
-                      onTap: () => openCalendar(context),
-                      child: _AgendaRow(
-                        icon: Icons.local_shipping_outlined,
-                        iconColor: AppPalette.green,
-                        iconBg: AppPalette.greenBg,
-                        title: 'Pickup · ${dayPickups[i].title}',
-                        meta:
-                            '${dayPickups[i].venue} · ${dayPickups[i].itemCount} items · ${dayPickups[i].contactName}',
-                      ),
+                    child: _AgendaRow(
+                      icon: Icons.local_shipping_outlined,
+                      iconColor: AppPalette.green,
+                      iconBg: AppPalette.greenBg,
+                      title: 'Pickup · ${dayPickups[i].title}',
+                      meta:
+                          '${dayPickups[i].venue} · ${dayPickups[i].itemCount} items · ${dayPickups[i].contactName}',
                     ),
                   ),
                 for (var i = 0; i < dayOrders.length; i++)
@@ -469,11 +456,16 @@ class _UpcomingRuns extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final upcoming = [...state.pickups]..sort((a, b) => a.date.compareTo(b.date));
+    // Runs from today onward — past runs belong to the returns flow,
+    // not the upcoming schedule.
+    final today = DateTime(now.year, now.month, now.day);
+    final upcoming = state.pickups
+        .where((p) => !p.date.isBefore(today))
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
     return SectionCard(
       icon: Icons.local_shipping_outlined,
-      title: 'All upcoming pickups',
-      subtitle: '${upcoming.length} run(s) on the schedule.',
+      title: 'Upcoming pickups',
       child: Column(
         children: [
           for (var i = 0; i < upcoming.length; i++)
@@ -555,7 +547,11 @@ class _RunLine extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           StatusBadge.custom(
-            label: diff <= 0 ? 'Today' : 'In $diff days',
+            label: diff == 0
+                ? 'Today'
+                : diff == 1
+                    ? 'Tomorrow'
+                    : 'In $diff days',
             fg: diff <= 1 ? AppPalette.amber : AppPalette.green,
             bg: diff <= 1 ? AppPalette.amberBg : AppPalette.greenBg,
           ),

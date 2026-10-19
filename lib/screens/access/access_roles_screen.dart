@@ -78,8 +78,6 @@ class AccessRolesScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Eyebrow('Workspace / Access & roles'),
-                    const SizedBox(height: 4),
                     Text('Access & roles',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
@@ -92,13 +90,6 @@ class AccessRolesScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text('Control what employees can see and do across '
-              '${state.workspace.isEmpty ? 'your workspace' : state.workspace}.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 14,
-                  color: AppPalette.muted)),
           const SizedBox(height: 20),
 
           // ---------------------------------------------- security hero
@@ -126,9 +117,6 @@ class AccessRolesScreen extends StatelessWidget {
             child: SectionCard(
               icon: Icons.swap_horiz_rounded,
               title: 'Role preview',
-              subtitle:
-                  'Step into the other seat to see what they see — your real '
-                  'access never changes.',
               child: LayoutBuilder(builder: (context, box) {
                 final employeeCard = _RoleCard(
                   icon: Icons.person_outline,
@@ -172,7 +160,6 @@ class AccessRolesScreen extends StatelessWidget {
             child: SectionCard(
               icon: Icons.contrast_rounded,
               title: 'Appearance',
-              subtitle: 'Choose how RentWise looks on this device.',
               child: Builder(builder: (context) {
                 final pills = Row(
                   mainAxisSize: MainAxisSize.min,
@@ -215,8 +202,6 @@ class AccessRolesScreen extends StatelessWidget {
             child: SectionCard(
               icon: Icons.key_outlined,
               title: 'Permission matrix',
-              subtitle:
-                  'Compare access levels before inviting your next team member.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -294,12 +279,6 @@ class _SecurityHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact = Density.compact(context);
 
-    final stats = [
-      _HeroStat(value: '$members', label: 'Members'),
-      _HeroStat(value: '$owners', label: 'Owners'),
-      _HeroStat(value: '$employees', label: 'Employees'),
-    ];
-
     final headline = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -341,15 +320,6 @@ class _SecurityHero extends StatelessWidget {
       ],
     );
 
-    final statRow = Row(
-      children: [
-        for (var i = 0; i < stats.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(child: stats[i]),
-        ],
-      ],
-    );
-
     return Container(
       padding: EdgeInsets.all(compact ? 16 : 20),
       decoration: BoxDecoration(
@@ -362,62 +332,7 @@ class _SecurityHero extends StatelessWidget {
         boxShadow: AppShadow.card(
             opacity: AppPalette.dark ? 0.5 : 0.18),
       ),
-      child: compact
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                headline,
-                const SizedBox(height: 14),
-                statRow,
-              ],
-            )
-          : Row(
-              children: [
-                Expanded(flex: 5, child: headline),
-                const SizedBox(width: 18),
-                SizedBox(width: 270, child: statRow),
-              ],
-            ),
-    );
-  }
-}
-
-/// Translucent stat tile used inside the security hero.
-class _HeroStat extends StatelessWidget {
-  final String value;
-  final String label;
-  const _HeroStat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.20)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value,
-              style: const TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white)),
-          const SizedBox(height: 1),
-          Text(label.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                  color: Colors.white.withOpacity(0.72))),
-        ],
-      ),
+      child: headline,
     );
   }
 }
@@ -632,8 +547,6 @@ class _TeamCardState extends State<_TeamCard> {
     return SectionCard(
       icon: Icons.groups_rounded,
       title: 'Team members',
-      subtitle: 'Employee accounts are created here by you — '
-          'self-registration is disabled.',
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -737,10 +650,6 @@ class _TeamCardState extends State<_TeamCard> {
                           : null,
                     ),
                   ],
-
-                // dashed invite tile — the primary creation affordance
-                const SizedBox(height: 10),
-                _DashedAddTile(onTap: _openAddDialog),
               ],
             ),
     );
@@ -1003,93 +912,6 @@ class _YouBadge extends StatelessWidget {
 
 /// Dashed “＋ Add employee” tile at the bottom of the directory — a big,
 /// obvious creation affordance that tints toward the brand on hover.
-class _DashedAddTile extends StatefulWidget {
-  final VoidCallback onTap;
-  const _DashedAddTile({required this.onTap});
-
-  @override
-  State<_DashedAddTile> createState() => _DashedAddTileState();
-}
-
-class _DashedAddTileState extends State<_DashedAddTile> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final tint = _hover ? AppPalette.primary : AppPalette.faint;
-    return PressableScale(
-      onTap: widget.onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 130),
-          child: CustomPaint(
-            painter: _DashedBorderPainter(
-              color: _hover ? AppPalette.primary : AppPalette.stroke,
-              radius: 12,
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.person_add_alt_rounded,
-                      size: 16, color: tint),
-                  const SizedBox(width: 8),
-                  Text('Add employee',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: _hover
-                              ? AppPalette.primary
-                              : AppPalette.body)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Hand-rolled dashed rounded-rect border (no dashed BorderSide in
-/// Flutter) — used by the add-employee invite tile.
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-
-  _DashedBorderPainter({required this.color, required this.radius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dash = 5.0;
-    const gap = 4.0;
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          Offset.zero & size, Radius.circular(radius)));
-    for (final metric in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < metric.length) {
-        final len = min(dash, metric.length - d);
-        canvas.drawPath(metric.extractPath(d, d + len), paint);
-        d += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
-}
 
 /// Dialog that creates an employee account (auth account + profile).
 /// Kept open on failure with the error shown inline, closed with
@@ -1149,7 +971,7 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Creates the sign-in account and the employee profile. '
+          'Creates the sign-in account and the profile. '
           'Share the email + password with the employee — they sign '
           'in on the Sign in screen. Employees cannot sign up.',
           style: TextStyle(
@@ -1272,7 +1094,6 @@ class _SessionCard extends StatelessWidget {
     return SectionCard(
       icon: Icons.account_circle_outlined,
       title: 'Current session',
-      subtitle: 'You are signed in on this device.',
       action: OutlineButton(
         label: 'Sign out',
         icon: Icons.logout_rounded,
@@ -1318,8 +1139,7 @@ class _SessionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                    'Signed in with ${account?.email ?? '—'} · rotate your '
-                    'password anytime from Profile.',
+                    'Signed in with ${account?.email ?? '—'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -1633,8 +1453,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
       children: [
         Text(
           'Sets a new password for ${widget.member.email} right away. '
-          'Share it securely — they sign in with it and can change it '
-          'from Profile → Password.',
+          'Share it securely.',
           style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 12,

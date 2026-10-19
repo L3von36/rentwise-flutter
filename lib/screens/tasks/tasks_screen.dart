@@ -36,7 +36,7 @@ class _TasksScreenState extends State<TasksScreen> {
   static const _filters = [
     ('All', null),
     ('Prep', 'prep'),
-    ('Deliveries', 'delivery'),
+    ('On rent', 'delivery'),
     ('Payments', 'payment'),
   ];
 
@@ -49,10 +49,9 @@ class _TasksScreenState extends State<TasksScreen> {
         _kind == null ? tasks : tasks.where((t) => t.kind == _kind).toList();
 
     return DetailPage(
-      eyebrow: 'Workspace / Tasks',
+      eyebrow: 'Tasks',
       title: 'Shift tasks',
-      subtitle:
-          '${tasks.length} on deck · ordered by priority — work top to bottom.',
+      subtitle: '${tasks.length} on deck for today',
       icon: Icons.checklist_rounded,
       // Wide windows get a centered readable column instead of task rows
       // stretching edge to edge.
@@ -63,32 +62,10 @@ class _TasksScreenState extends State<TasksScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          // summary strip
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _SummaryChip(
-                  label: 'Prep',
-                  count: tasks.where((t) => t.kind == 'prep').length,
-                  color: AppPalette.amber),
-              _SummaryChip(
-                  label: 'On the road',
-                  count: tasks.where((t) => t.kind == 'delivery').length,
-                  color: AppPalette.blue),
-              _SummaryChip(
-                  label: 'Payments',
-                  count: tasks.where((t) => t.kind == 'payment').length,
-                  color: AppPalette.purple),
-            ],
-          ),
-          const SizedBox(height: 14),
           SectionCard(
             icon: Icons.checklist_rounded,
-            title: 'Your task list',
-            subtitle: filtered.isEmpty
-                ? 'Nothing in this bucket — all clear.'
-                : 'Tap a task to open its order, or advance it with the action button.',
+            title: 'Tasks',
+            subtitle: filtered.isEmpty ? 'Nothing in this bucket — all clear.' : null,
             action: LinkChip(
               label: 'Open calendar',
               onTap: () => openCalendar(context),
@@ -120,7 +97,7 @@ class _TasksScreenState extends State<TasksScreen> {
                         Icon(Icons.verified_outlined,
                             size: 18, color: AppPalette.green),
                         const SizedBox(width: 8),
-                        Text('All clear — every task is done for today.',
+                        Text('Nothing in this bucket.',
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 12.5,
@@ -283,7 +260,7 @@ class _TaskCard extends StatelessWidget {
       };
 
   String _labelFor(OrderStatus next) => switch (next) {
-        OrderStatus.needsPayment => 'Delivered',
+        OrderStatus.needsPayment => 'Returned',
         OrderStatus.confirmed => 'Mark paid',
         _ => 'Advance',
       };
@@ -334,39 +311,6 @@ class _AdvanceButton extends StatelessWidget {
                     color: AppPalette.primary)),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SummaryChip extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-  const _SummaryChip(
-      {required this.label, required this.count, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppPalette.fill.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: AppPalette.stroke),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Dot(color: color),
-          const SizedBox(width: 6),
-          Text('$count $label',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppPalette.body)),
-        ],
       ),
     );
   }

@@ -23,9 +23,8 @@ class ProfileScreen extends StatelessWidget {
     final account = state.account;
 
     return DetailPage(
-      eyebrow: 'Workspace / Profile',
+      eyebrow: 'Profile',
       title: account?.name ?? 'Profile',
-      subtitle: 'Your identity, appearance and session.',
       icon: Icons.account_circle_outlined,
       // Centered readable column on wide windows — full-width identity
       // cards and password fields look broken at 1300px+.
@@ -39,7 +38,6 @@ class ProfileScreen extends StatelessWidget {
           SectionCard(
             icon: Icons.badge_outlined,
             title: 'Identity',
-            subtitle: 'What your teammates see in the activity log.',
             child: Column(
               children: [
                 Row(
@@ -121,33 +119,9 @@ class ProfileScreen extends StatelessWidget {
           SectionCard(
             icon: Icons.dark_mode_rounded,
             title: 'Appearance',
-            subtitle: 'Persisted across restarts — same engine as the top-bar toggle.',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SegmentedThemePicker(
-                  current: shell.themeSetting,
-                  onChanged: shell.setThemeSetting,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.bolt_rounded,
-                        size: 15, color: AppPalette.primary),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        'Tip: the sun/moon button in the top bar flips light/dark instantly; “System” follows your OS.',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 12,
-                            height: 1.45,
-                            color: AppPalette.muted),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            child: SegmentedThemePicker(
+              current: shell.themeSetting,
+              onChanged: shell.setThemeSetting,
             ),
           ),
           const SizedBox(height: 14),
@@ -158,22 +132,9 @@ class ProfileScreen extends StatelessWidget {
           SectionCard(
             icon: Icons.settings_outlined,
             title: 'Session',
-            subtitle: 'Workspace controls for your role.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (state.isOwner)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: OutlineButton(
-                      label: 'Access & roles',
-                      icon: Icons.verified_user_outlined,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        state.navigate(Section.access);
-                      },
-                    ),
-                  ),
                 OutlineButton(
                   label: 'Sign out',
                   icon: Icons.logout_rounded,
@@ -257,7 +218,7 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
       icon: Icons.password_rounded,
       title: 'Password',
       subtitle:
-          'Rotate your own password — the session stays signed in.',
+          'Update your password',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

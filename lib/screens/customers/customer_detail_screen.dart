@@ -42,7 +42,7 @@ class CustomerDetailScreen extends StatelessWidget {
     final profile = SectionCard(
       icon: Icons.person_outline_rounded,
       title: 'Profile',
-      subtitle: '${live.company} · customer since ${df.format(live.lastBooking)}',
+      subtitle: '${live.company} · last booking ${df.format(live.lastBooking)}',
       action: LinkChip(
         label: 'New booking',
         onTap: () => showNewBookingSheet(context, prefillCustomer: live.name),
@@ -141,7 +141,7 @@ class CustomerDetailScreen extends StatelessWidget {
               iconBg: AppPalette.greenBg,
               label: 'Lifetime spend',
               value: money.format(live.lifetimeSpend),
-              subtitle: 'Across all bookings',
+              subtitle: 'total to date',
             ),
           ),
           SizedBox(
@@ -154,7 +154,7 @@ class CustomerDetailScreen extends StatelessWidget {
               value: live.rentals == 0
                   ? '—'
                   : money.format(live.lifetimeSpend / live.rentals),
-              subtitle: 'Quoted value',
+              subtitle: 'realized value',
             ),
           ),
           SizedBox(
@@ -165,7 +165,7 @@ class CustomerDetailScreen extends StatelessWidget {
               iconBg: AppPalette.amberBg,
               label: 'Last booking',
               value: df.format(live.lastBooking),
-              subtitle: 'Most recent activity',
+              subtitle: 'most recent',
             ),
           ),
         ],
@@ -177,12 +177,12 @@ class CustomerDetailScreen extends StatelessWidget {
       title: 'Order history',
       subtitle: orders.isEmpty
           ? 'No orders yet — their first booking will show up here.'
-          : '${orders.length} booking(s) · newest first',
+          : '${orders.length} ${orders.length == 1 ? 'booking' : 'bookings'} · newest first',
       child: orders.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                  'Start their first booking with the button on the profile card.',
+                  'No orders yet.',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -205,9 +205,8 @@ class CustomerDetailScreen extends StatelessWidget {
     final insights = _MiniInsights(orders: orders);
 
     return DetailPage(
-      eyebrow: 'Workspace / Customers / ${live.id}',
+      eyebrow: 'Customers / ${live.name}',
       title: live.name,
-      subtitle: 'Everything RentWise knows about this relationship.',
       icon: Icons.person_outline_rounded,
       iconColor: live.avatarColor,
       iconBg: AppPalette.fill,
@@ -372,8 +371,6 @@ class _MiniInsights extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalSpend =
-        orders.fold<double>(0, (s, o) => s + o.total);
     final items =
         orders.fold<int>(0, (s, o) => s + o.itemCount);
     final closed =
@@ -382,14 +379,8 @@ class _MiniInsights extends StatelessWidget {
     return SectionCard(
       icon: Icons.insights_outlined,
       title: 'Quick insights',
-      subtitle: 'Computed from this customer’s bookings.',
       child: Row(
         children: [
-          Expanded(
-            child: _FactTile(
-                label: 'Bookings',
-                value: '${orders.length}'),
-          ),
           Expanded(
             child: _FactTile(
                 label: 'Items rented',
@@ -401,13 +392,6 @@ class _MiniInsights extends StatelessWidget {
                 value: orders.isEmpty
                     ? '—'
                     : '${(closed / orders.length * 100).round()}%'),
-          ),
-          Expanded(
-            child: _FactTile(
-                label: 'Total value',
-                value: NumberFormat.currency(
-                        symbol: '\$', decimalDigits: 0)
-                    .format(totalSpend)),
           ),
         ],
       ),

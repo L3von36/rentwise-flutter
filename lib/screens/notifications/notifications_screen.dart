@@ -66,8 +66,7 @@ class NotificationsScreen extends StatelessWidget {
                 icon: Icons.notifications_none_rounded,
                 title: day,
                 subtitle:
-                    '${groups[day]!.length} update(s) — newest first. '
-                    'Tap one to jump there.',
+                    '${groups[day]!.length} update(s)',
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
                 child: Column(
                   children: [
@@ -138,56 +137,15 @@ class _NotificationsHero extends StatelessWidget {
         ),
         const SizedBox(width: 13),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Notifications',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white)),
-              const SizedBox(height: 3),
-              Text(
-                unread == 0
-                    ? 'You are all caught up'
-                    : '$unread unread update${unread == 1 ? '' : 's'} '
-                        'waiting',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
-                    color: Colors.white.withOpacity(0.82)),
-              ),
-            ],
-          ),
-        ),
-        // LIVE pulse — same language as the dashboard / reports badges.
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.16),
-            borderRadius: BorderRadius.circular(99),
-            border:
-                Border.all(color: Colors.white.withOpacity(0.25)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                    color: AppPalette.greenBar, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 5),
-              const Text('LIVE',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: Colors.white)),
-            ],
+          child: Text(
+            unread == 0
+                ? 'You are all caught up'
+                : '$unread unread update${unread == 1 ? '' : 's'} waiting',
+            style: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: Colors.white),
           ),
         ),
       ],
@@ -196,10 +154,6 @@ class _NotificationsHero extends StatelessWidget {
     final stats = Row(
       children: [
         Expanded(
-            child: _HeroStat(
-                value: '$unread', label: 'Unread')),
-        const SizedBox(width: 10),
-        Expanded(
             child: _HeroStat(value: '$today', label: 'Today')),
         const SizedBox(width: 10),
         Expanded(
@@ -207,19 +161,19 @@ class _NotificationsHero extends StatelessWidget {
       ],
     );
 
-    final cta = _HeroAction(
-      label: unread == 0 ? 'All read' : 'Mark all read',
-      enabled: unread > 0,
-      onTap: unread == 0
-          ? null
-          : () {
+    final cta = unread > 0
+        ? _HeroAction(
+      label: 'Mark all read',
+      enabled: true,
+      onTap: () {
               state.markActivityRead();
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                 content: Text('All notifications marked as read'),
                 behavior: SnackBarBehavior.floating,
               ));
             },
-    );
+    )
+        : const SizedBox.shrink();
 
     return Container(
       padding: EdgeInsets.all(compact ? 16 : 20),
@@ -438,24 +392,6 @@ class _EmptyFeed extends StatelessWidget {
                 ),
                 child: Icon(Icons.done_all_rounded,
                     size: 26, color: AppPalette.primary),
-              ),
-              const SizedBox(height: 12),
-              Text('You are all caught up',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppPalette.ink)),
-              const SizedBox(height: 4),
-              Text(
-                'Rentals, payments and returns will show up '
-                'here the moment your team logs them.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
-                    height: 1.45,
-                    color: AppPalette.muted),
               ),
             ],
           ),

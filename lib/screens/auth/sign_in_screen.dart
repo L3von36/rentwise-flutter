@@ -26,7 +26,6 @@ class SignInView extends StatefulWidget {
 }
 
 class _SignInViewState extends State<SignInView> {
-  bool _remember = true;
   bool _obscure = true;
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -73,15 +72,6 @@ class _SignInViewState extends State<SignInView> {
                     bg: AppPalette.primarySoft,
                     size: 42),
                 const SizedBox(height: 16),
-                Text('SECURE WORKSPACE ACCESS',
-                    style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.8,
-                      color: AppPalette.muted,
-                    )),
-                const SizedBox(height: 8),
                 Text('Welcome back',
                     style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 6),
@@ -131,42 +121,8 @@ class _SignInViewState extends State<SignInView> {
                 const SizedBox(height: 12),
 
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Flexible(
-                      child: InkWell(
-                        onTap: () => setState(() => _remember = !_remember),
-                        borderRadius: BorderRadius.circular(6),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 17,
-                                height: 17,
-                                child: Checkbox(
-                                  value: _remember,
-                                  onChanged: (v) =>
-                                      setState(() => _remember = v ?? false),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text('Remember me',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontFamily: AppTheme.fontFamily,
-                                      fontSize: 13,
-                                      color: AppPalette.body,
-                                    )),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     TextButton(
                       onPressed: widget.onForgotPassword,
                       style: TextButton.styleFrom(
@@ -291,7 +247,7 @@ class _SignInViewState extends State<SignInView> {
                   ],
                 ),
                 Text(
-                  'By signing in, you agree to the workspace access policy.',
+                  'Workspace access is managed by your company owner.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: AppTheme.fontFamily,

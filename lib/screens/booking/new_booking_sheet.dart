@@ -265,8 +265,8 @@ class _BookingDialogState extends State<_BookingDialog> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Booking #$id created · $_customer confirmed · '
-            'collect \\${_downPayment.toStringAsFixed(0)} down payment first'),
+        content: Text('Booking #$id created for $_customer · '
+            'collect \\${_downPayment.toStringAsFixed(0)} down payment at pickup'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -300,12 +300,6 @@ class _BookingDialogState extends State<_BookingDialog> {
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AppPalette.ink)),
-                  const SizedBox(height: 2),
-                  Text('Reserve items for an upcoming event.',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
-                          color: AppPalette.muted)),
                 ],
               ),
             ),
@@ -562,7 +556,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Total \\${_total.toStringAsFixed(0)} · down \\${_downPayment.toStringAsFixed(0)} · '
+                          'down \\${_downPayment.toStringAsFixed(0)} · '
                               'remaining \\${(_total - _downPayment).clamp(0, double.infinity).toStringAsFixed(0)} · '
                               'collateral \\${_collateral.toStringAsFixed(0)} — all settled before pickup',
                           style: TextStyle(
@@ -583,9 +577,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Customer pickup — the shop does not deliver. The '
-                        'customer collects the items and returns them; '
-                        'transport is on the customer.',
+                        'Customer pickup & return — transport is on the customer.',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11,
@@ -623,7 +615,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Estimated total',
+                    Text('Estimated rate',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11.5,

@@ -126,25 +126,19 @@ class _EmployeeDashboard extends StatelessWidget {
                       iconBg: AppPalette.primarySoft,
                       label: 'Tasks on deck',
                       value: '${tasks.length}',
-                      subtitle:
-                          'Pickups, deliveries & check-ins',
-                      trailing: const TrendChip.flat(text: 'Today'),
+                      subtitle: 'Pickups, returns & check-ins',
                       onTap: () => openTasks(context),
                     ),
                   ),
                   SizedBox(
                     width: cardW,
                     child: KpiCard(
-                      icon: Icons.local_shipping_outlined,
+                      icon: Icons.shopping_bag_outlined,
                       iconColor: AppPalette.blue,
                       iconBg: AppPalette.blueBg,
                       label: 'With customer',
                       value: '${state.outForDeliveryCount}',
-                      subtitle: state.nextDispatch == null
-                          ? 'No dispatches scheduled'
-                          : 'Next: ${state.nextDispatch!.venue} · '
-                              '${DateFormat.jm().format(state.nextDispatch!.date)}',
-                      trailing: const TrendChip.flat(text: 'Live'),
+                      subtitle: 'currently rented out',
                       onTap: () {
                         state.setOrderStatusFilter(OrderStatus.outForDelivery);
                         state.navigate(Section.orders);
@@ -162,9 +156,6 @@ class _EmployeeDashboard extends StatelessWidget {
                       subtitle: state.returnsLateCount > 0
                           ? 'Keep an eye on ${state.returnsLateCount} late returns'
                           : 'All returns on schedule',
-                      trailing: TrendChip(
-                          text: '${state.pickupsDueTodayCount} due',
-                          positive: false),
                       onTap: () => state.navigate(Section.orders),
                     ),
                   ),
@@ -177,9 +168,8 @@ class _EmployeeDashboard extends StatelessWidget {
                       label: 'To stage & pack',
                       value: '${state.preparingCount}',
                       subtitle: state.preparingCount > 0
-                          ? '${state.orders.firstWhere((o) => o.status == OrderStatus.preparing).eventName} · ${state.orders.firstWhere((o) => o.status == OrderStatus.preparing).itemCount} items'
+                          ? 'being staged & packed'
                           : 'Queue is clear',
-                      trailing: const TrendChip.flat(text: 'Queue'),
                       onTap: () {
                         state.setOrderStatusFilter(OrderStatus.preparing);
                         state.navigate(Section.orders);
@@ -203,18 +193,16 @@ class _EmployeeDashboard extends StatelessWidget {
                       iconBg: AppPalette.primarySoft,
                       label: 'Tasks due',
                       value: '${tasks.length}',
-                      subtitle: 'today',
-                      trailing: const TrendChip.flat(text: 'Shift'),
+                      subtitle: 'for today',
                       onTap: () => openTasks(context),
                     ),
                     KpiTileMini(
-                      icon: Icons.local_shipping_outlined,
+                      icon: Icons.shopping_bag_outlined,
                       iconColor: AppPalette.blue,
                       iconBg: AppPalette.blueBg,
                       label: 'On rent',
                       value: '${state.outForDeliveryCount}',
-                      subtitle: 'on the road',
-                      trailing: const TrendChip.flat(text: 'Live'),
+                      subtitle: 'out with customers',
                       onTap: () => state.navigate(Section.orders),
                     ),
                     KpiTileMini(
@@ -224,9 +212,6 @@ class _EmployeeDashboard extends StatelessWidget {
                       label: 'Returns',
                       value: '${state.returnsTodayCount}',
                       subtitle: 'to check in',
-                      trailing: TrendChip(
-                          text: '${state.pickupsDueTodayCount} due',
-                          positive: false),
                       onTap: () => state.navigate(Section.orders),
                     ),
                   ],
@@ -305,7 +290,6 @@ class _ShiftHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = _done + tasks.length;
     final fraction = total == 0 ? 1.0 : (_done / total).clamp(0.0, 1.0);
-    final nextTask = tasks.isEmpty ? null : tasks.first;
 
     return Container(
       padding: EdgeInsets.fromLTRB(compact ? 14 : 18, compact ? 14 : 16,
@@ -357,7 +341,8 @@ class _ShiftHero extends StatelessWidget {
                     Text(
                       compact
                           ? DateFormat('EEEE, MMMM d').format(now).toUpperCase()
-                          : '${DateFormat('EEEE, MMMM d, yyyy').format(now)} · SHIFT 9:00 AM – 6:00 PM'
+                          : DateFormat('EEEE, MMMM d, yyyy')
+                              .format(now)
                               .toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -385,7 +370,7 @@ class _ShiftHero extends StatelessWidget {
                       tasks.isEmpty
                           ? 'You are all caught up — nothing pending today.'
                           : 'You have ${tasks.length} tasks on deck today, '
-                              'including ${state.returnsTodayCount} with customers.',
+                              'including ${state.returnsTodayCount} return check-ins.',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -422,16 +407,11 @@ class _ShiftHero extends StatelessWidget {
                     ),
                     if (compact) ...[
                       const SizedBox(height: 10),
-                      Row(
+                      const Row(
                         children: [
                           _HeroPill(
-                            icon: Icons.bolt_rounded,
-                            text: '${tasks.length} on deck',
-                          ),
-                          const SizedBox(width: 8),
-                          const _HeroPill(
                             icon: Icons.timelapse_rounded,
-                            text: 'Until 6:00 PM',
+                            text: 'Until ${Catalog.businessCloseTime}',
                           ),
                         ],
                       ),
@@ -439,85 +419,6 @@ class _ShiftHero extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // ---- right rail (wide): up-next + actions
-              if (!compact) ...[
-                const SizedBox(width: 22),
-                InkWell(
-                  borderRadius: BorderRadius.circular(13),
-                  onTap: () => openTasks(context),
-                  child: Container(
-                    width: 232,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(color: Colors.white.withOpacity(0.22)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text('UP NEXT',
-                                  style: TextStyle(
-                                      fontFamily: AppTheme.fontFamily,
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.3,
-                                      color: Colors.white70)),
-                            ),
-                            Icon(Icons.open_in_new_rounded,
-                                size: 12,
-                                color: Colors.white.withOpacity(0.75)),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          nextTask == null
-                              ? 'Enjoy the calm shift'
-                              : 'Next: ${nextTask.title}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          nextTask?.meta ?? 'Every active rental is on track.',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 11,
-                              color: Colors.white.withOpacity(0.8)),
-                        ),
-                        const SizedBox(height: 11),
-                        _HeroButton(
-                          label: 'Check-in return',
-                          icon: Icons.assignment_turned_in_outlined,
-                          solid: false,
-                          expanded: true,
-                          onTap: () => state.navigate(Section.orders),
-                        ),
-                        const SizedBox(height: 7),
-                        _HeroButton(
-                          label: 'New rental booking',
-                          icon: Icons.add_rounded,
-                          solid: true,
-                          expanded: true,
-                          onTap: () => showNewBookingSheet(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ],
@@ -555,88 +456,6 @@ class _HeroPill extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// Hero action button — frosted or solid-white variant.
-class _HeroButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool solid;
-  final bool expanded;
-  final VoidCallback onTap;
-
-  const _HeroButton({
-    required this.label,
-    required this.icon,
-    required this.solid,
-    required this.onTap,
-    this.expanded = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final button = Material(
-      color: solid ? Colors.white : Colors.white.withOpacity(0.13),
-      borderRadius: BorderRadius.circular(9),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(9),
-        child: Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
-            border: solid
-                ? null
-                : Border.all(color: Colors.white.withOpacity(0.28)),
-          ),
-          child: Row(
-            mainAxisAlignment: expanded
-                ? MainAxisAlignment.spaceBetween
-                : MainAxisAlignment.center,
-            children: [
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon,
-                        size: 14,
-                        color:
-                            solid ? AppPalette.primaryDeep : Colors.white),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: solid
-                                ? AppPalette.primaryDeep
-                                : Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (expanded)
-                Icon(Icons.chevron_right_rounded,
-                    size: 15,
-                    color: solid
-                        ? AppPalette.primaryDeep
-                        : Colors.white.withOpacity(0.8)),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (expanded) {
-      return SizedBox(width: double.infinity, child: button);
-    }
-    return button;
   }
 }
 
@@ -679,9 +498,7 @@ class _TaskListCardState extends State<_TaskListCard> {
     return SectionCard(
       icon: Icons.checklist_rounded,
       title: 'Your task list',
-      subtitle: filtered.isEmpty
-          ? 'Nothing in this bucket — all clear.'
-          : 'Ordered by priority — tap any task to open it.',
+      subtitle: filtered.isEmpty ? 'Nothing in this bucket — all clear.' : null,
       action: LinkChip(
         label: 'All tasks',
         onTap: () => openTasks(context),
@@ -945,8 +762,7 @@ class _DispatchCard extends StatelessWidget {
     ];
     return SectionCard(
       icon: Icons.local_shipping_outlined,
-      title: "Today's dispatch",
-      subtitle: 'Runs scheduled for the rest of the day.',
+      title: "Today's pickups",
       action: LinkChip(
         label: 'Open calendar',
         onTap: () => openCalendar(context),
@@ -1281,7 +1097,7 @@ class _MyActivityCard extends StatelessWidget {
     return SectionCard(
       icon: Icons.history_rounded,
       title: 'My recent actions',
-      subtitle: 'Everything you have logged today.',
+      subtitle: null,
       action: LinkChip(
         label: 'View all',
         onTap: () => state.navigate(Section.activity),
@@ -1349,23 +1165,10 @@ class _OwnerWideDashboard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text('Welcome back, ${_firstName(state)}',
                         style: Theme.of(context).textTheme.headlineLarge),
-                    const SizedBox(height: 6),
-                    Text(
-                        "Here's the pulse of ${state.workspace} today.",
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 13,
-                            color: AppPalette.muted)),
                   ],
                 ),
               ),
               const SizedBox(width: 16),
-              OutlineButton(
-                label: 'View reports',
-                icon: Icons.bar_chart_rounded,
-                onTap: () => state.navigate(Section.reports),
-              ),
-              const SizedBox(width: 10),
               PrimaryButton(
                 label: 'New rental booking',
                 icon: Icons.add_rounded,
@@ -1410,30 +1213,12 @@ class _OwnerWideDashboard extends StatelessWidget {
                 SizedBox(
                   width: cardW,
                   child: KpiCard(
-                    icon: Icons.trending_up_rounded,
-                    iconColor: AppPalette.purple,
-                    iconBg: AppPalette.purpleBg,
-                    label: 'Month to date',
-                    value:
-                        '\$${state.monthGrossRevenueK.toStringAsFixed(1)}k',
-                    subtitle:
-                        'Gross bookings · ${DateFormat.MMMM().format(DateTime.now())}',
-                    trailing: TrendChip(
-                        text: '${state.earningsTrendPct.toStringAsFixed(1)}%',
-                        positive: state.earningsTrendPct >= 0),
-                    onTap: () => state.navigate(Section.reports),
-                  ),
-                ),
-                SizedBox(
-                  width: cardW,
-                  child: KpiCard(
                     icon: Icons.donut_large_rounded,
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
                     label: 'Fleet utilization',
                     value: '${state.utilization.toStringAsFixed(1)}%',
                     subtitle: '${state.totalUnits} units on hand',
-                    trailing: const TrendChip.flat(text: 'Live'),
                     onTap: () => state.navigate(Section.inventory),
                   ),
                 ),
@@ -1446,8 +1231,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     label: 'Awaiting payment',
                     value: '\$${awaiting.toStringAsFixed(0)}',
                     subtitle:
-                        '${state.needsPaymentCount} order(s) pending',
-                    trailing: const TrendChip.flat(text: 'Follow up'),
+                        '${state.needsPaymentCount} ${state.needsPaymentCount == 1 ? 'order' : 'orders'} pending',
                     onTap: () {
                       state.setOrderStatusFilter(OrderStatus.needsPayment);
                       state.navigate(Section.orders);
@@ -1473,7 +1257,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                   child: Column(
                     children: [
                       _SnapshotCard(
-                          state: state, snapshot: snapshot, compact: false),
+                          state: state, snapshot: snapshot),
                       const SizedBox(height: 20),
                       _UpcomingPickups(state: state, now: now),
                     ],
@@ -1884,15 +1668,6 @@ class _OwnerHero extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.6,
                             color: Colors.white)),
-                    const SizedBox(height: 6),
-                    Text(
-                        "Here's the pulse of ${state.workspace} today.",
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: 12.5,
-                            color: Colors.white.withOpacity(0.85))),
                     const SizedBox(height: 12),
                     // live status + headline number, frosted (wraps on
                     // narrow phones instead of overflowing)
@@ -1964,21 +1739,12 @@ class _OwnerCompactDashboard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Today at a glance
-          Row(
-            children: [
-              Text('Today at a glance',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppPalette.ink)),
-              const Spacer(),
-              LinkChip(
-                label: 'Details',
-                onTap: () => state.navigate(Section.orders),
-              ),
-            ],
-          ),
+          Text('Today at a glance',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppPalette.ink)),
           const SizedBox(height: 10),
           SizedBox(
             height: 122,
@@ -2008,7 +1774,6 @@ class _OwnerCompactDashboard extends StatelessWidget {
                   label: 'Active rentals',
                   value: '${state.openOrdersCount}',
                   subtitle: 'open right now',
-                  trailing: const TrendChip.flat(text: 'Live'),
                   onTap: () => state.navigate(Section.orders),
                 ),
                 KpiTileMini(
@@ -2046,30 +1811,12 @@ class _OwnerCompactDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('Live activity',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              color: AppPalette.ink)),
-                    ),
-                    StatusBadge.custom(
-                      label: 'Live',
-                      fg: AppPalette.green,
-                      bg: AppPalette.greenBg,
-                      dot: true,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text('Employee actions, in real time.',
+                Text('Live activity',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 12.5,
-                        color: AppPalette.muted)),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.ink)),
                 const SizedBox(height: 12),
                 for (final e in entries)
                   Padding(
@@ -2132,8 +1879,8 @@ class _OwnerCompactDashboard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Eyebrow(dispatchOverdue
-                                  ? 'Dispatch overdue'
-                                  : 'Next dispatch'),
+                                  ? 'Pickup overdue'
+                                  : 'Next pickup'),
                               const SizedBox(height: 3),
                               Text(next.venue,
                                   maxLines: 1,
@@ -2225,12 +1972,10 @@ class _OwnerCompactDashboard extends StatelessWidget {
 class _SnapshotCard extends StatelessWidget {
   final WorkspaceState state;
   final List<InventoryItem> snapshot;
-  final bool compact;
 
   const _SnapshotCard({
     required this.state,
     required this.snapshot,
-    required this.compact,
   });
 
   @override
@@ -2238,42 +1983,18 @@ class _SnapshotCard extends StatelessWidget {
     return SectionCard(
       icon: Icons.inventory_2_outlined,
       title: 'Inventory snapshot',
-      subtitle: 'Monitor availability before the next pickup.',
       action: LinkChip(
         label: 'View inventory',
         onTap: () => state.navigate(Section.inventory),
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              PopupFilterButton(
-                value: state.categoryFilter,
-                items: Catalog.categories,
-                onChanged: (v) => state.setCategoryFilter(v),
-              ),
-              const Spacer(),
-              Text('${snapshot.length} items',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 12,
-                      color: AppPalette.muted)),
-            ],
+          InventoryTable(
+            items: state.filteredInventory.take(6).toList(),
+            compactMode: false,
+            onRent: (item) => showNewBookingSheet(context, prefill: item),
+            onEdit: (item) => showItemAdjustDialog(context, item),
           ),
-          const SizedBox(height: 10),
-          if (compact)
-            for (final item in state.filteredInventory.take(6))
-              InventoryListTile(
-                item: item,
-                onTap: () => state.navigate(Section.inventory),
-              )
-          else
-            InventoryTable(
-              items: state.filteredInventory.take(6).toList(),
-              compactMode: false,
-              onRent: (item) => showNewBookingSheet(context, prefill: item),
-              onEdit: (item) => showItemAdjustDialog(context, item),
-            ),
         ],
       ),
     );
@@ -2291,7 +2012,6 @@ class _UpcomingPickups extends StatelessWidget {
     return SectionCard(
       icon: Icons.calendar_month_outlined,
       title: 'Upcoming pickups',
-      subtitle: 'Next three bookings on the calendar',
       action: LinkChip(
         label: 'Open calendar',
         onTap: () => openCalendar(context),
@@ -2322,7 +2042,6 @@ class _RecentActivity extends StatelessWidget {
     return SectionCard(
       icon: Icons.show_chart,
       title: 'Recent activity',
-      subtitle: "What's happening in the workspace.",
       action: LinkChip(
         label: 'Open log',
         onTap: () => state.navigate(Section.activity),
@@ -2338,14 +2057,6 @@ class _RecentActivity extends StatelessWidget {
                 onTap: () => state.navigate(Section.activity),
               ),
             ),
-          const SizedBox(height: 2),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: LinkChip(
-              label: 'View all activity',
-              onTap: () => state.navigate(Section.activity),
-            ),
-          ),
         ],
       ),
     );
