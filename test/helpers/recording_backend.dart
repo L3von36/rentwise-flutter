@@ -384,13 +384,27 @@ class RecordingBackend extends AppwriteBackend {
   @override
   Future<void> putOrder(RentalOrder order, {bool isNew = false}) =>
       _record('orders', order.id, isNew,
-          extra: {'status': order.status.name, 'total': order.total});
+          extra: {
+            'status': order.status.name,
+            'total': order.total,
+            'downPayment': order.downPayment,
+            'downPaymentPaidAt': order.downPaymentPaidAt?.toIso8601String(),
+            'collateralAmount': order.collateralAmount,
+            'collateralPaidAt': order.collateralPaidAt?.toIso8601String(),
+            'remainingPaidAt': order.remainingPaidAt?.toIso8601String(),
+            'idVerifiedAt': order.idVerifiedAt?.toIso8601String(),
+            'signatureData': order.signatureData,
+            'signedName': order.signedName,
+            'signedAt': order.signedAt?.toIso8601String(),
+          });
 
   @override
   Future<void> putCustomer(Customer customer, {bool isNew = false}) =>
       _record('customers', customer.id, isNew, extra: {
         'rentals': customer.rentals,
         'lifetimeSpend': customer.lifetimeSpend,
+        'idType': customer.idType,
+        'idNumber': customer.idNumber,
       });
 
   @override

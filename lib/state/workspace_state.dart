@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/palette.dart';
+import '../data/appwrite_mappers.dart';
 import '../data/catalog.dart';
 import '../models/account.dart';
 import '../models/activity_entry.dart';
@@ -645,9 +646,9 @@ class WorkspaceState extends ChangeNotifier {
           ));
         case OrderStatus.outForDelivery:
           tasks.add(ShiftTask(
-            title: 'Confirm delivery',
+            title: 'Expect return',
             meta: '#${o.id} · ${o.eventName} · ${o.contactName}',
-            chip: 'On the road',
+            chip: 'With customer',
             chipFg: AppPalette.blue,
             chipBg: AppPalette.blueBg,
             kind: 'delivery',
@@ -892,15 +893,13 @@ class WorkspaceState extends ChangeNotifier {
       _orders.where((o) => o.status == OrderStatus.preparing).length;
   int get needsPaymentCount =>
       _orders.where((o) => o.status == OrderStatus.needsPayment).length;
-  double get awaitingPaymentTotal => _orders
-      .where((o) => o.status == OrderStatus.needsPayment)
-      .fold(0, (s, o) => s + o.total);
+  double get awaitingPaymentTotal => outstandingMoneyTotal;
   int get outForDeliveryCount =>
       _orders.where((o) => o.status == OrderStatus.outForDelivery).length;
   int get returnsTodayCount =>
       _orders.where((o) => o.status == OrderStatus.outForDelivery).length;
 
-  /// Out-for-delivery orders whose event date has already passed —
+  /// Out-with-customer orders whose event date has already passed —
   /// an honest "late" count derived from live data.
   int get returnsLateCount => _orders
       .where((o) =>
@@ -973,6 +972,14 @@ class WorkspaceState extends ChangeNotifier {
   /// pipeline). Rejects illegal lifecycle transitions and emits an
   /// error notice — a crafted call cannot push an order backwards or
   /// into an undefined state. Returns true when the change was applied.
+  ///
+  /// HANDOVER GATE (v1.26 payment policy): an order can only move to
+  /// [OrderStatus.outForDelivery] — i.e. the items may leave the shop —
+  /// when the down payment, remaining balance and collateral are all
+  /// received, the customer\'s ID is verified and the rental agreement
+  /// is signed. The customer picks the items up themselves (transport
+  /// is on the customer); a blocked handover emits the exact list of
+  /// what is still missing.
   bool updateOrderStatus(RentalOrder order, OrderStatus status) {
     if (!role.canOperateRentals) {
       _deny('update orders');
@@ -983,6 +990,15 @@ class WorkspaceState extends ChangeNotifier {
       _emit(
         'Invalid status change — ${order.status.label} orders cannot jump '
         'straight to ${status.label}.',
+        error: true,
+      );
+      notifyListeners();
+      return false;
+    }
+    if (status == OrderStatus.outForDelivery && !order.canHandOver) {
+      final blockers = order.handoverBlockers.join(' · ');
+      _emit(
+        'Handover blocked for #${order.id} — collect first: $blockers.',
         error: true,
       );
       notifyListeners();
@@ -1005,11 +1021,140 @@ class WorkspaceState extends ChangeNotifier {
     );
     if (status == OrderStatus.returned) {
       _emit('Order #${order.id} returned — restock items in Inventory '
-          'after count/inspection.');
+          'after count/inspection. Refund the collateral deposit '
+          '(${order.collateralAmount <= 0 ? 'none held' : '\$${order.collateralAmount.toStringAsFixed(0)}'}).');
     }
     notifyListeners();
     return true;
   }
+
+  // -------------------------------------------------- payment policy (v1.26)
+  // Down payment → remaining balance → collateral, then ID + signature —
+  // ALL before the order may move to "With customer". Every action is
+  // written through to the order document and logged as a payment.
+
+  /// Applies [patch] to the live order, pushes it and logs [body].
+  /// Returns the updated order, or null when blocked/not found.
+  RentalOrder? _applyOrderPatch(
+    RentalOrder order,
+    RentalOrder Function(RentalOrder) patch, {
+    required ActivityType type,
+    required String body,
+    String pushLabel = 'orders.payment',
+  }) {
+    if (!role.canOperateRentals) {
+      _deny('record payments');
+      notifyListeners();
+      return null;
+    }
+    final idx = _orders.indexWhere((o) => o.id == order.id);
+    if (idx == -1) return null;
+    final updated = patch(order);
+    _orders[idx] = updated;
+    final b = _backend;
+    if (b != null) {
+      _push(b.putOrder(updated, isNew: false), pushLabel);
+    }
+    _log(type: type, body: body);
+    notifyListeners();
+    return updated;
+  }
+
+  /// Records the DOWN PAYMENT as received (always the first collection).
+  bool markDownPaymentReceived(RentalOrder order) {
+    if (order.downPayment <= 0 || order.downPaymentPaidAt != null) return false;
+    return _applyOrderPatch(
+          order,
+          (o) => o.copyWith(downPaymentPaidAt: DateTime.now()),
+          type: ActivityType.payment,
+          body: '**${_account?.name ?? 'Someone'}** collected the **down payment '
+              '\$${order.downPayment.toStringAsFixed(0)}** on **#${order.id} · ${order.eventName}**',
+        ) !=
+        null;
+  }
+
+  /// Records the REMAINING balance (total − down payment) as received.
+  bool markRemainingReceived(RentalOrder order) {
+    if (order.remainingDue <= 0 || order.remainingPaidAt != null) return false;
+    return _applyOrderPatch(
+          order,
+          (o) => o.copyWith(remainingPaidAt: DateTime.now()),
+          type: ActivityType.payment,
+          body: '**${_account?.name ?? 'Someone'}** collected the **remaining '
+              '\$${order.remainingDue.toStringAsFixed(0)}** on **#${order.id} · ${order.eventName}**',
+        ) !=
+        null;
+  }
+
+  /// Records the COLLATERAL deposit as received (refunded at return).
+  bool markCollateralReceived(RentalOrder order) {
+    if (order.collateralAmount <= 0 || order.collateralPaidAt != null) {
+      return false;
+    }
+    return _applyOrderPatch(
+          order,
+          (o) => o.copyWith(collateralPaidAt: DateTime.now()),
+          type: ActivityType.payment,
+          body: '**${_account?.name ?? 'Someone'}** held a **collateral deposit '
+              '\$${order.collateralAmount.toStringAsFixed(0)}** on **#${order.id} · ${order.eventName}**',
+        ) !=
+        null;
+  }
+
+  /// Records that the customer\'s ID was sighted and matches the
+  /// directory record ([Customer.idType]/[idNumber] when known).
+  bool markIdVerified(RentalOrder order) {
+    if (order.idVerifiedAt != null) return false;
+    return _applyOrderPatch(
+          order,
+          (o) => o.copyWith(idVerifiedAt: DateTime.now()),
+          type: ActivityType.orderUpdate,
+          body: '**${_account?.name ?? 'Someone'}** verified the customer ID '
+              'for **#${order.id} · ${order.eventName}**',
+        ) !=
+        null;
+  }
+
+  /// Stores the signed rental agreement (strokes + printed name) on the
+  /// order. The strokes must already be normalized to the signature
+  /// grid (see [signatureToDoc] for the codec).
+  bool saveSignature(RentalOrder order,
+      {required List<List<Offset>> strokes, required String signedName}) {
+    final data = signatureToDoc(strokes);
+    if (data.isEmpty || data.length > 2800) {
+      _emit('Signature could not be stored — please sign again.',
+          error: true);
+      notifyListeners();
+      return false;
+    }
+    final name = signedName.trim().isEmpty
+        ? (customerByName(order.customerName)?.name ?? order.customerName)
+        : signedName.trim();
+    return _applyOrderPatch(
+          order,
+          (o) => o.copyWith(
+                signatureData: data,
+                signedName: name,
+                signedAt: DateTime.now(),
+              ),
+          type: ActivityType.orderUpdate,
+          body: '**${_account?.name ?? 'Someone'}** captured the signed rental '
+              'agreement for **#${order.id} · ${order.eventName}** (signed by $name)',
+        ) !=
+        null;
+  }
+
+  /// Money outstanding across every open order — down payments,
+  /// remaining balances and collateral not yet received.
+  double get outstandingMoneyTotal => _orders
+      .where((o) => o.status.isOpen)
+      .fold(0, (s, o) => s + o.outstandingTotal);
+
+  /// Orders open for at least one handover requirement — the pick-up
+  /// shortlist the front desk works from.
+  List<RentalOrder> get awaitingHandoverOrders => _orders
+      .where((o) => o.status.isOpen && !o.canHandOver)
+      .toList();
 
   // -------------------------------------------------------------- customers
   late List<Customer> _customers;
@@ -1040,6 +1185,8 @@ class WorkspaceState extends ChangeNotifier {
     required String company,
     required String email,
     required String phone,
+    String idType = '',
+    String idNumber = '',
   }) {
     if (!role.canManageCustomers) {
       _deny('manage customers');
@@ -1052,6 +1199,8 @@ class WorkspaceState extends ChangeNotifier {
       company: company,
       email: email,
       phone: phone,
+      idType: idType,
+      idNumber: idNumber,
       rentals: 0,
       lifetimeSpend: 0,
       lastBooking: DateTime.now(),
@@ -1155,12 +1304,20 @@ class WorkspaceState extends ChangeNotifier {
   /// Creates a booking (both roles — core front-desk operation):
   /// decrements availability, appends an order, writes activity and
   /// updates the customer's stats. Returns the generated order id.
+  ///
+  /// The payment plan is agreed HERE: [downPayment] (collected first —
+  /// tap "Mark received" on the order once the money lands) and
+  /// [collateralAmount] (held until the items come back). Both, plus
+  /// the remaining balance, ID check and signature, must be done
+  /// before the items may leave the shop.
   String createBooking({
     required String customerName,
     required String eventName,
     required DateTime eventDate,
     required List<BookingLine> lines,
     String? notes,
+    double downPayment = 0,
+    double collateralAmount = 0,
   }) {
     if (!role.canOperateRentals) {
       _deny('create bookings');
@@ -1196,6 +1353,8 @@ class WorkspaceState extends ChangeNotifier {
       total: total,
       status: OrderStatus.confirmed,
       notes: (notes == null || notes.trim().isEmpty) ? '' : notes.trim(),
+      downPayment: downPayment.clamp(0, double.infinity),
+      collateralAmount: collateralAmount.clamp(0, double.infinity),
       lineItems: lines
           .map((l) => OrderLine(
                 itemName: l.item.name,

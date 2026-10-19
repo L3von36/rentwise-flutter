@@ -120,13 +120,24 @@ class SampleDataset {
           total: 1840,
           status: OrderStatus.preparing,
           notes:
-              'Deliver to loading dock B before 2 PM. Stage crates are labeled NORTHSTAR. Venue contact: Mia Chen.',
+              'Customer collects from the shop — stage crates are labeled NORTHSTAR. Venue contact: Mia Chen.',
           lineItems: const [
             OrderLine(itemName: 'Folding Chairs', qty: 10, unitPrice: 40),
             OrderLine(itemName: '6ft Round Tables', qty: 4, unitPrice: 90),
             OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 180),
             OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 360),
           ],
+          // Fully settled in the seed — the order is staged for pickup,
+          // which the payment policy only allows once everything clears.
+          downPayment: 900,
+          downPaymentPaidAt: now.subtract(const Duration(days: 2)),
+          remainingPaidAt: now.subtract(const Duration(days: 1)),
+          collateralAmount: 200,
+          collateralPaidAt: now.subtract(const Duration(days: 1)),
+          idVerifiedAt: now.subtract(const Duration(days: 1)),
+          signedName: 'Mia Chen',
+          signatureData: 'seeded-signature',
+          signedAt: now.subtract(const Duration(days: 1)),
         ),
         RentalOrder(
           id: 'RW-2048',
@@ -159,7 +170,7 @@ class SampleDataset {
           total: 2110,
           status: OrderStatus.needsPayment,
           notes:
-              'Balance due on delivery. Park pavilion has limited power — pack spare extension cords and the heaters.',
+              'Balance due before pickup. Park pavilion has limited power — pack spare extension cords and the heaters.',
           lineItems: const [
             OrderLine(itemName: 'Folding Chairs', qty: 36, unitPrice: 25),
             OrderLine(itemName: '6ft Round Tables', qty: 10, unitPrice: 55),
@@ -178,13 +189,24 @@ class SampleDataset {
           total: 720,
           status: OrderStatus.outForDelivery,
           notes:
-              'Narrow stairwell at the studio — carry tables flat. Call Eli on arrival for parking access.',
+              'Narrow stairwell at the studio — carry tables flat. Eli picks up and returns the items himself.',
           lineItems: const [
             OrderLine(itemName: 'Folding Chairs', qty: 6, unitPrice: 30),
             OrderLine(itemName: '6ft Round Tables', qty: 3, unitPrice: 80),
             OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 75),
             OrderLine(itemName: 'Oak Bar Set', qty: 1, unitPrice: 150),
           ],
+          // Handed over = every handover requirement was met (the gate
+          // would not have let it leave the shop otherwise).
+          downPayment: 400,
+          downPaymentPaidAt: now.subtract(const Duration(days: 5)),
+          remainingPaidAt: now.subtract(const Duration(days: 3)),
+          collateralAmount: 150,
+          collateralPaidAt: now.subtract(const Duration(days: 3)),
+          idVerifiedAt: now.subtract(const Duration(days: 3)),
+          signedName: 'Eli Marlow',
+          signatureData: 'seeded-signature',
+          signedAt: now.subtract(const Duration(days: 3)),
         ),
         RentalOrder(
           id: 'RW-2039',

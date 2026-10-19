@@ -189,7 +189,30 @@ class _BookingDialogState extends State<_BookingDialog> {
   InventoryItem? _picker;
   final List<BookingLine> _lines = [];
 
+  // Payment plan (v1.26): down payment is collected first, the rest
+  // before the customer takes the items. Empty field = use the 50%
+  // suggestion for the down payment; collateral starts at zero.
+  final _downCtrl = TextEditingController();
+  final _collateralCtrl = TextEditingController();
+  bool _downEdited = false;
+
   double get _total => _lines.fold(0, (s, l) => s + l.qty * l.item.ratePerDay);
+  double get _suggestedDown => (_total * 0.5).roundToDouble();
+
+  double get _downPayment {
+    if (!_downEdited || _downCtrl.text.trim().isEmpty) return _suggestedDown;
+    final v = double.tryParse(_downCtrl.text.trim().replaceAll(',', ''));
+    if (v == null || v < 0) return 0;
+    return v.clamp(0, _total).toDouble();
+  }
+
+  double get _collateral {
+    final v =
+        double.tryParse(_collateralCtrl.text.trim().replaceAll(',', ''));
+    if (v == null || v < 0) return 0;
+    return v;
+  }
+
   bool get _valid =>
       _customer != null &&
       _eventCtrl.text.trim().isNotEmpty &&
@@ -236,11 +259,14 @@ class _BookingDialogState extends State<_BookingDialog> {
       eventDate: _eventDate!,
       lines: List.of(_lines),
       notes: _notes,
+      downPayment: _downPayment,
+      collateralAmount: _collateral,
     );
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Booking #$id created · $_customer confirmed'),
+        content: Text('Booking #$id created · $_customer confirmed · '
+            'collect \\${_downPayment.toStringAsFixed(0)} down payment first'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -487,13 +513,97 @@ class _BookingDialogState extends State<_BookingDialog> {
                 ),
                 const SizedBox(height: 16),
 
+                // payment plan (v1.26) — agreed at booking
+                const _Label('Payment plan · collect before pickup'),
+                const SizedBox(height: 7),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: TextField(
+                        controller: _downCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        onChanged: (_) => setState(() => _downEdited = true),
+                        decoration: InputDecoration(
+                          hintText:
+                              '50% suggested · \\${_suggestedDown.toStringAsFixed(0)}',
+                          labelText: 'Down payment',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 5,
+                      child: TextField(
+                        controller: _collateralCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: const InputDecoration(
+                          hintText: '0',
+                          labelText: 'Collateral deposit',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppPalette.primarySoft.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.payments_outlined,
+                          size: 15, color: AppPalette.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Total \\${_total.toStringAsFixed(0)} · down \\${_downPayment.toStringAsFixed(0)} · '
+                              'remaining \\${(_total - _downPayment).clamp(0, double.infinity).toStringAsFixed(0)} · '
+                              'collateral \\${_collateral.toStringAsFixed(0)} — all settled before pickup',
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppPalette.ink),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.storefront_outlined,
+                        size: 15, color: AppPalette.muted),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Customer pickup — the shop does not deliver. The '
+                        'customer collects the items and returns them; '
+                        'transport is on the customer.',
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 11,
+                            height: 1.45,
+                            color: AppPalette.muted),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
                 const _Label('Notes (optional)'),
                 const SizedBox(height: 7),
                 TextField(
                   maxLines: 2,
                   onChanged: (v) => _notes = v,
                   decoration: const InputDecoration(
-                      hintText: 'Delivery instructions, venue contact…'),
+                      hintText: 'Venue contact, access notes…'),
                 ),
               ],
             ),

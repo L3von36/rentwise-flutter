@@ -442,7 +442,7 @@ void main() {
     // one per status).
     expect(find.text('All · 5'), findsOneWidget);
     expect(find.text('Preparing · 1'), findsOneWidget);
-    expect(find.text('Out for delivery · 1'), findsOneWidget);
+    expect(find.text('With customer · 1'), findsOneWidget);
     expect(find.text('Needs payment · 1'), findsOneWidget);
     expect(find.text('Returned · 1'), findsOneWidget);
 
@@ -627,13 +627,23 @@ void main() {
     await tester.tap(find.text('Northstar Product Launch'));
     await tester.pumpAndSettle();
     expect(find.text('Item manifest'), findsOneWidget);
-    expect(find.text('Delivery notes'), findsOneWidget);
+    expect(find.text('Pickup notes'), findsOneWidget);
     expect(find.text('Order RW-2051'), findsOneWidget);
     expect(find.text('Folding Chairs'), findsWidgets);
 
+    // The v1.26 payment ledger shows the five handover requirements —
+    // RW-2051 is fully settled in the seed, so the card reads READY.
+    expect(find.text('Down payment'), findsOneWidget);
+    expect(find.text('Remaining balance'), findsOneWidget);
+    expect(find.text('Collateral (refundable)'), findsOneWidget);
+    expect(find.text('Customer ID verified'), findsOneWidget);
+    expect(find.text('Rental agreement signed'), findsOneWidget);
+    expect(find.text('Ready for pickup'), findsOneWidget);
+
     // Status actions write through to the store — the button uses the
-    // action label ('Mark dispatched'), not the status label.
-    await tester.tap(find.text('Mark dispatched'));
+    // action label, not the status label. RW-2051 is fully settled in
+    // the seeded dataset, so the handover gate lets it through.
+    await tester.tap(find.text('Hand over to customer'));
     await tester.pumpAndSettle();
     final state = tester.state(find.byType(Navigator)).context
         .read<WorkspaceState>();

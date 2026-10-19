@@ -138,7 +138,7 @@ class _EmployeeDashboard extends StatelessWidget {
                       icon: Icons.local_shipping_outlined,
                       iconColor: AppPalette.blue,
                       iconBg: AppPalette.blueBg,
-                      label: 'Out for delivery',
+                      label: 'With customer',
                       value: '${state.outForDeliveryCount}',
                       subtitle: state.nextDispatch == null
                           ? 'No dispatches scheduled'
@@ -211,7 +211,7 @@ class _EmployeeDashboard extends StatelessWidget {
                       icon: Icons.local_shipping_outlined,
                       iconColor: AppPalette.blue,
                       iconBg: AppPalette.blueBg,
-                      label: 'On delivery',
+                      label: 'On rent',
                       value: '${state.outForDeliveryCount}',
                       subtitle: 'on the road',
                       trailing: const TrendChip.flat(text: 'Live'),
@@ -385,7 +385,7 @@ class _ShiftHero extends StatelessWidget {
                       tasks.isEmpty
                           ? 'You are all caught up — nothing pending today.'
                           : 'You have ${tasks.length} tasks on deck today, '
-                              'including ${state.returnsTodayCount} out for delivery.',
+                              'including ${state.returnsTodayCount} with customers.',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -651,7 +651,7 @@ class _TaskFilter {
 const List<_TaskFilter> _kTaskFilters = [
   _TaskFilter('All'),
   _TaskFilter('Prep', 'prep'),
-  _TaskFilter('Deliveries', 'delivery'),
+  _TaskFilter('On rent', 'delivery'),
   _TaskFilter('Payments', 'payment'),
 ];
 

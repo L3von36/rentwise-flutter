@@ -235,7 +235,7 @@ void main() {
       expect(kinds.where((k) => k == 'delivery'), hasLength(1));
       expect(kinds.where((k) => k == 'payment'), hasLength(1));
       expect(tasks.any((t) => t.title == 'Stage & pack'), isTrue);
-      expect(tasks.any((t) => t.title == 'Confirm delivery'), isTrue);
+      expect(tasks.any((t) => t.title == 'Expect return'), isTrue);
       expect(tasks.any((t) => t.title == 'Collect payment'), isTrue);
     });
 

@@ -113,7 +113,7 @@ class OrdersScreen extends StatelessWidget {
                     icon: Icons.local_shipping_outlined,
                     iconColor: AppPalette.purple,
                     iconBg: AppPalette.purpleBg,
-                    label: 'Out for delivery',
+                    label: 'With customer',
                     value: '${state.outForDeliveryCount}',
                     subtitle: 'On schedule',
                     trailing: const TrendChip(text: '100%', positive: true),
@@ -636,7 +636,7 @@ class _OrderMenu extends StatelessWidget {
         const PopupMenuItem(
             value: 'outForDelivery',
             height: 38,
-            child: Text('Mark out for delivery',
+            child: Text('Mark handed over (pickup)',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily, fontSize: 13))),
         const PopupMenuItem(

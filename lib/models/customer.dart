@@ -8,6 +8,13 @@ class Customer {
   final String company;
   final String email;
   final String phone;
+
+  /// Government ID captured for the payment policy (v1.26) — type
+  /// ('National ID', 'Passport', 'Driver's license', 'Other') and the
+  /// number/serial the customer presented. Shown at handover so the
+  /// operator can re-verify the same document.
+  final String idType;
+  final String idNumber;
   final int rentals;
   final double lifetimeSpend;
   final DateTime lastBooking;
@@ -19,6 +26,8 @@ class Customer {
     required this.company,
     required this.email,
     required this.phone,
+    this.idType = '',
+    this.idNumber = '',
     required this.rentals,
     required this.lifetimeSpend,
     required this.lastBooking,
@@ -39,6 +48,8 @@ class Customer {
     String? company,
     String? email,
     String? phone,
+    String? idType,
+    String? idNumber,
     int? rentals,
     double? lifetimeSpend,
     DateTime? lastBooking,
@@ -49,12 +60,24 @@ class Customer {
         company: company ?? this.company,
         email: email ?? this.email,
         phone: phone ?? this.phone,
+        idType: idType ?? this.idType,
+        idNumber: idNumber ?? this.idNumber,
         rentals: rentals ?? this.rentals,
         lifetimeSpend: lifetimeSpend ?? this.lifetimeSpend,
         lastBooking: lastBooking ?? this.lastBooking,
         avatarColor: avatarColor,
       );
 }
+
+/// ID document types the payment policy accepts, shown in the
+/// add-customer dialog and re-verified at handover.
+const List<String> kCustomerIdTypes = [
+  'National ID',
+  'Passport',
+  "Driver's license",
+  'Student ID',
+  'Other',
+];
 
 /// Palette used to cycle customer avatar colors.
 const List<Color> kAvatarPalette = [

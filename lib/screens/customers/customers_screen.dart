@@ -193,6 +193,8 @@ class CustomersScreen extends StatelessWidget {
     final companyCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final idNumberCtrl = TextEditingController();
+    String idType = 'National ID';
 
     showDialog<void>(
       context: context,
@@ -231,6 +233,25 @@ class CustomersScreen extends StatelessWidget {
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(hintText: 'Phone'),
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: idType,
+                isDense: true,
+                isExpanded: true,
+                items: [
+                  for (final t in kCustomerIdTypes)
+                    DropdownMenuItem(value: t, child: Text(t)),
+                ],
+                onChanged: (v) => idType = v ?? 'National ID',
+                decoration: const InputDecoration(
+                    labelText: 'ID type (payment policy)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: idNumberCtrl,
+                decoration: const InputDecoration(
+                    hintText: 'ID number / serial on the document'),
+              ),
             ],
           ),
         ),
@@ -258,6 +279,8 @@ class CustomersScreen extends StatelessWidget {
                 phone: phoneCtrl.text.trim().isEmpty
                     ? '—'
                     : phoneCtrl.text.trim(),
+                idType: idType,
+                idNumber: idNumberCtrl.text.trim(),
               );
               Navigator.pop(dialogCtx);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -298,8 +321,8 @@ class _Directory extends StatelessWidget {
           title: 'Customers',
           filename: 'customers.csv',
           header: const [
-            'id', 'name', 'company', 'email', 'phone', 'rentals',
-            'lifetime_spend', 'last_booking'
+            'id', 'name', 'company', 'email', 'phone', 'id_type', 'id_number',
+            'rentals', 'lifetime_spend', 'last_booking'
           ],
           rows: state.customers
               .map((c) => [
@@ -308,6 +331,8 @@ class _Directory extends StatelessWidget {
                     c.company,
                     c.email,
                     c.phone,
+                    c.idType,
+                    c.idNumber,
                     '${c.rentals}',
                     c.lifetimeSpend.toStringAsFixed(2),
                     DateFormat('yyyy-MM-dd').format(c.lastBooking),

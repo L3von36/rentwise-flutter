@@ -17,10 +17,12 @@ import '../../widgets/order_status_style.dart';
 import '../booking/new_booking_sheet.dart';
 import '../customers/customer_detail_screen.dart';
 import '../../core/palette.dart';
+import '../../data/appwrite_mappers.dart';
 
 /// Full order detail — opened by tapping any order row/card, task or
-/// dispatch run. Shows the quoted manifest, delivery notes, a payment
-/// summary and the status flow with real actions.
+/// pickup run. Shows the quoted manifest, booking notes, the v1.26
+/// payment ledger (down payment → remaining → collateral → ID →
+/// signature) and the status flow with real actions.
 class OrderDetailScreen extends StatelessWidget {
   final RentalOrder order;
   const OrderDetailScreen({super.key, required this.order});
@@ -144,7 +146,7 @@ class OrderDetailScreen extends StatelessWidget {
 
     final notesCard = SectionCard(
       icon: Icons.sticky_note_2_outlined,
-      title: 'Delivery notes',
+      title: 'Pickup notes',
       subtitle: 'Captured at booking time.',
       child: Text(
         live.notes.isEmpty
@@ -158,7 +160,7 @@ class OrderDetailScreen extends StatelessWidget {
       ),
     );
 
-    final payment = _PaymentCard(order: live);
+    final payment = _PaymentsHandoverCard(order: live);
 
     final customerCard = SectionCard(
       icon: Icons.person_outline_rounded,
@@ -364,22 +366,27 @@ class _LineRow extends StatelessWidget {
   }
 }
 
-class _PaymentCard extends StatelessWidget {
+class _PaymentsHandoverCard extends StatelessWidget {
   final RentalOrder order;
-  const _PaymentCard({required this.order});
+  const _PaymentsHandoverCard({required this.order});
 
   @override
   Widget build(BuildContext context) {
+    final state = context.read<WorkspaceState>();
     final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
-    final paid = order.status != OrderStatus.needsPayment;
+    final df = DateFormat('MMM d, HH:mm');
+    final ready = order.canHandOver;
+    final outstanding = order.outstandingTotal;
+    final customer = state.customerByName(order.customerName);
+    final accent = ready ? AppPalette.green : AppPalette.amber;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: paid ? AppPalette.greenBg : AppPalette.amberBg,
+        color: ready ? AppPalette.greenBg : AppPalette.amberBg,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
-            color: (paid ? AppPalette.green : AppPalette.amber)
-                .withOpacity(AppPalette.dark ? 0.3 : 0.22)),
+            color: accent.withOpacity(AppPalette.dark ? 0.3 : 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,43 +394,660 @@ class _PaymentCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                  paid
-                      ? Icons.check_circle_rounded
+                  ready
+                      ? Icons.verified_rounded
                       : Icons.account_balance_wallet_outlined,
                   size: 17,
-                  color: paid ? AppPalette.green : AppPalette.amber),
+                  color: accent),
               const SizedBox(width: 8),
-              Text(paid ? 'Payment settled' : 'Payment pending',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: paid ? AppPalette.green : AppPalette.amber)),
+              Expanded(
+                child: Text(
+                    ready
+                        ? 'Ready for pickup'
+                        : 'Settle before pickup',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: accent)),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(money.format(order.total),
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 26,
-                  height: 1.05,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.8,
-                  color: AppPalette.ink)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
-            paid
-                ? 'Nothing outstanding on this order.'
-                : 'Follow up with ${order.contactName} before the event date.',
+            outstanding > 0
+                ? money.format(outstanding)
+                : money.format(order.total),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
-                fontSize: 12,
-                color: AppPalette.body),
+                fontSize: 26,
+                height: 1.05,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.8,
+                color: AppPalette.ink),
           ),
+          const SizedBox(height: 2),
+          Text(
+            outstanding > 0
+                ? 'still outstanding on this order'
+                : 'fully settled · refund collateral at return',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 11.5,
+                color: AppPalette.muted),
+          ),
+          const SizedBox(height: 12),
+          _PaymentRow(
+            label: 'Down payment',
+            amount: order.downPayment,
+            paid: order.downPaymentPaid,
+            paidAt: order.downPaymentPaidAt,
+            df: df,
+            actionLabel: 'Mark received',
+            onAction: order.downPayment > 0 && order.downPaymentPaidAt == null
+                ? () => state.markDownPaymentReceived(order)
+                : null,
+          ),
+          _PaymentRow(
+            label: 'Remaining balance',
+            amount: order.remainingDue,
+            paid: order.remainingPaid,
+            paidAt: order.remainingPaidAt,
+            df: df,
+            actionLabel: 'Mark received',
+            onAction: order.remainingDue > 0 && order.remainingPaidAt == null
+                ? () => state.markRemainingReceived(order)
+                : null,
+          ),
+          _PaymentRow(
+            label: 'Collateral (refundable)',
+            amount: order.collateralAmount,
+            paid: order.collateralPaid,
+            paidAt: order.collateralPaidAt,
+            df: df,
+            actionLabel: 'Mark held',
+            onAction:
+                order.collateralAmount > 0 && order.collateralPaidAt == null
+                    ? () => state.markCollateralReceived(order)
+                    : null,
+          ),
+          _CheckRow(
+            icon: Icons.badge_outlined,
+            label: 'Customer ID verified',
+            done: order.idVerified,
+            doneAt: order.idVerifiedAt,
+            df: df,
+            detail: (customer == null ||
+                    (customer.idType.isEmpty && customer.idNumber.isEmpty))
+                ? null
+                : '· ${customer.idType.isEmpty ? 'ID' : customer.idType}'
+                    '${customer.idNumber.isEmpty ? '' : ' · ${customer.idNumber}'}',
+            actionLabel: 'Verify ID',
+            onAction:
+                order.idVerifiedAt == null ? () => state.markIdVerified(order) : null,
+          ),
+          _SignatureRow(order: order, df: df),
+          if (!ready) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppPalette.amber.withOpacity(AppPalette.dark ? 0.14 : 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final b in order.handoverBlockers)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Icon(Icons.priority_high_rounded,
+                              size: 12, color: AppPalette.amber),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(b,
+                                style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppPalette.body)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'The items stay in the shop until every step is done — '
+                    'the customer picks them up (no delivery).',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 10.5,
+                        height: 1.4,
+                        color: AppPalette.muted),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+/// One settled/unsettled money line of the payment plan.
+class _PaymentRow extends StatelessWidget {
+  final String label;
+  final double amount;
+  final bool paid;
+  final DateTime? paidAt;
+  final DateFormat df;
+  final String actionLabel;
+  final VoidCallback? onAction;
+
+  const _PaymentRow({
+    required this.label,
+    required this.amount,
+    required this.paid,
+    required this.paidAt,
+    required this.df,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(
+              amount <= 0
+                  ? Icons.remove_circle_outline_rounded
+                  : paid
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked,
+              size: 16,
+              color: amount <= 0
+                  ? AppPalette.faint
+                  : paid
+                      ? AppPalette.green
+                      : AppPalette.amber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.ink)),
+                Text(
+                  amount <= 0
+                      ? 'none on this order'
+                      : paid
+                          ? 'received '
+                              '· ${paidAt == null ? '' : df.format(paidAt!)}'
+                          : money.format(amount),
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 11,
+                      color: AppPalette.muted),
+                ),
+              ],
+            ),
+          ),
+          if (onAction != null)
+            InkWell(
+              onTap: onAction,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppPalette.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(actionLabel,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.primary)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A boolean handover requirement row (ID check).
+class _CheckRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool done;
+  final DateTime? doneAt;
+  final DateFormat df;
+  final String? detail;
+  final String actionLabel;
+  final VoidCallback? onAction;
+
+  const _CheckRow({
+    required this.icon,
+    required this.label,
+    required this.done,
+    required this.doneAt,
+    required this.df,
+    required this.actionLabel,
+    required this.onAction,
+    this.detail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(done ? Icons.check_circle_rounded : icon,
+              size: 16,
+              color: done ? AppPalette.green : AppPalette.amber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.ink)),
+                if (detail != null)
+                  Text(detail!,
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          color: AppPalette.muted)),
+              ],
+            ),
+          ),
+          if (onAction != null)
+            InkWell(
+              onTap: onAction,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppPalette.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(actionLabel,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.primary)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Signature requirement row — opens the capture pad, shows the stored
+/// signature once the agreement is signed.
+class _SignatureRow extends StatelessWidget {
+  final RentalOrder order;
+  final DateFormat df;
+  const _SignatureRow({required this.order, required this.df});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.read<WorkspaceState>();
+    final done = order.signatureCaptured;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(done ? Icons.check_circle_rounded : Icons.draw_outlined,
+              size: 16, color: done ? AppPalette.green : AppPalette.amber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Rental agreement signed',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.ink)),
+                Text(
+                  done
+                      ? 'signed by ${order.signedName} · ${df.format(order.signedAt!)}'
+                      : "capture the customer's signature on the pad",
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 11,
+                      color: AppPalette.muted),
+                ),
+              ],
+            ),
+          ),
+          if (done)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppPalette.stroke),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: SizedBox(
+                width: 84,
+                height: 34,
+                child: CustomPaint(
+                  painter: _SignaturePainter(
+                    strokes: signatureFromDoc(order.signatureData),
+                    color: const Color(0xFF1A1D2E),
+                    stroke: 2.2,
+                    gridMax: kSignatureGridMax,
+                  ),
+                ),
+              ),
+            )
+          else
+            InkWell(
+              onTap: () async {
+                final result = await showSignaturePadDialog(context, order);
+                if (result == null) return;
+                state.saveSignature(order,
+                    strokes: result.strokes, signedName: result.signedName);
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppPalette.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('Capture signature',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.primary)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Result of the signature pad.
+class SignatureCapture {
+  final List<List<Offset>> strokes; // normalized to 0..kSignatureGridMax
+  final String signedName;
+  const SignatureCapture({required this.strokes, required this.signedName});
+}
+
+Future<SignatureCapture?> showSignaturePadDialog(
+        BuildContext context, RentalOrder order) =>
+    showDialog<SignatureCapture>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (_) => _SignaturePadDialog(order: order),
+    );
+
+class _SignaturePadDialog extends StatefulWidget {
+  final RentalOrder order;
+  const _SignaturePadDialog({required this.order});
+
+  @override
+  State<_SignaturePadDialog> createState() => _SignaturePadDialogState();
+}
+
+class _SignaturePadDialogState extends State<_SignaturePadDialog> {
+  final List<List<Offset>> _strokes = [];
+  List<Offset>? _current;
+  late final TextEditingController _nameCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.order.customerName);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _hasInk =>
+      _strokes.any((s) => s.length >= 2) ||
+      (_current?.length ?? 0) >= 2;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppPalette.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.draw_outlined,
+                      size: 18, color: AppPalette.primary),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text('Sign rental agreement',
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppPalette.ink)),
+                  ),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(Icons.close_rounded,
+                          size: 18, color: AppPalette.muted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                  'Order #${widget.order.id} · ${widget.order.eventName} — '
+                  'the customer signs to accept the rental terms.',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 12,
+                      color: AppPalette.muted)),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _nameCtrl,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                    labelText: 'Printed name', hintText: 'Full name'),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppPalette.stroke),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Listener(
+                    onPointerDown: (e) =>
+                        setState(() => _current = [e.localPosition]),
+                    onPointerMove: (e) => setState(() {
+                      final c = _current;
+                      if (c == null) return;
+                      // Decimate: skip points too close to the last one.
+                      final last = c.last;
+                      if ((e.localPosition - last).distance < 3) return;
+                      c.add(e.localPosition);
+                    }),
+                    onPointerUp: (e) => setState(() {
+                      final c = _current;
+                      if (c != null && c.length >= 2) _strokes.add(c);
+                      _current = null;
+                    }),
+                    child: CustomPaint(
+                      painter: _SignaturePainter(
+                        strokes: [
+                          ..._strokes,
+                          if (_current != null) _current!,
+                        ],
+                        color: const Color(0xFF1A1D2E),
+                        stroke: 2.6,
+                      ),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed:
+                        _strokes.isEmpty ? null : () => setState(() => _strokes.clear()),
+                    child: const Text('Clear',
+                        style: TextStyle(fontFamily: AppTheme.fontFamily)),
+                  ),
+                  const Spacer(),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                        backgroundColor: _hasInk
+                            ? AppPalette.primary
+                            : AppPalette.faint),
+                    onPressed: _hasInk
+                        ? () {
+                            // Normalize from the strokes' own bounds so
+                            // the codec is pad-geometry independent.
+                            final all = [
+                              for (final s in _strokes) ...s,
+                            ];
+                            final bounds = all.fold<Rect?>(
+                              null,
+                              (r, p) => r == null
+                                  ? Rect.fromPoints(p, p)
+                                  : r.expandToInclude(Rect.fromPoints(p, p)),
+                            )!;
+                            Offset norm(Offset p) => Offset(
+                                  (((p.dx - bounds.left) /
+                                              (bounds.width == 0
+                                                  ? 1
+                                                  : bounds.width) *
+                                          kSignatureGridMax)
+                                      .roundToDouble())
+                                      .clamp(0.0,
+                                          kSignatureGridMax.toDouble()),
+                                  (((p.dy - bounds.top) /
+                                              (bounds.height == 0
+                                                  ? 1
+                                                  : bounds.height) *
+                                          kSignatureGridMax)
+                                      .roundToDouble())
+                                      .clamp(0.0,
+                                          kSignatureGridMax.toDouble()),
+                                );
+                            final scaled = _strokes
+                                .map((s) => s.map(norm).toList())
+                                .toList(growable: false);
+                            Navigator.pop(
+                              context,
+                              SignatureCapture(
+                                strokes: scaled,
+                                signedName: _nameCtrl.text,
+                              ),
+                            );
+                          }
+                        : null,
+                    child: const Text('Save signature',
+                        style: TextStyle(fontFamily: AppTheme.fontFamily)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Paints signature strokes. Coordinates are either raw local pixels
+/// (when [gridMax] is null) or normalized 0..[gridMax] (documents).
+class _SignaturePainter extends CustomPainter {
+  final List<List<Offset>> strokes;
+  final Color color;
+  final double stroke;
+  final int? gridMax;
+
+  const _SignaturePainter({
+    required this.strokes,
+    required this.color,
+    required this.stroke,
+    this.gridMax,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    for (final s in strokes) {
+      if (s.length < 2) continue;
+      final path = Path();
+      for (var i = 0; i < s.length; i++) {
+        final p = gridMax == null
+            ? s[i]
+            : Offset(
+                s[i].dx / gridMax! * size.width,
+                s[i].dy / gridMax! * size.height,
+              );
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SignaturePainter old) =>
+      old.strokes != strokes || old.color != color;
 }
 
 class _CustomerStrip extends StatelessWidget {
@@ -507,7 +1131,7 @@ class _StatusActionsCard extends StatelessWidget {
                       OrderStatus.returned =>
                         '${order.id} returned — restock items after inspection',
                       OrderStatus.outForDelivery =>
-                        '${order.id} dispatched',
+                        '${order.id} handed over — items are with the customer',
                       OrderStatus.preparing =>
                         '${order.id} staged for prep',
                       OrderStatus.needsPayment =>
@@ -517,6 +1141,18 @@ class _StatusActionsCard extends StatelessWidget {
                   ));
                 }
               },
+            ),
+          if (next.contains(OrderStatus.outForDelivery) &&
+              !order.canHandOver)
+            Text(
+              'Handover gate: ${order.handoverBlockers.length} step(s) left '
+              '— settle the payment plan, verify ID and capture the '
+                  'signature above first.',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 11.5,
+                  height: 1.45,
+                  color: AppPalette.amber),
             ),
           if (next.isEmpty)
             Text('This order is fully closed — nothing left to do.',
@@ -532,7 +1168,7 @@ class _StatusActionsCard extends StatelessWidget {
   IconData _statusIcon(OrderStatus s) => switch (s) {
         OrderStatus.confirmed => Icons.payments_outlined, // accept payment
         OrderStatus.preparing => Icons.inventory_2_outlined, // stage & pack
-        OrderStatus.outForDelivery => Icons.local_shipping_outlined,
+        OrderStatus.outForDelivery => Icons.shopping_bag_outlined, // pickup
         OrderStatus.needsPayment => Icons.request_quote_outlined,
         OrderStatus.returned => Icons.assignment_return_outlined,
       };

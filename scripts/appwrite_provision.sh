@@ -284,3 +284,60 @@ echo 'Next steps:'
 echo '  • Seed a demo dataset (optional): AW_KEY=<key> AW_SEED=1 flutter test test/seed_appwrite_test.dart'
 echo '  • Role/title editing now works IN-APP (Access & roles → Team members) — this script enabled it.'
 echo '  • Employee password reset needs the reset-password function (scripts/functions/reset_password/README.md).'
+
+# ---------------------------------------------------------------------------
+# v1.26 payment policy + customer pickup schema
+#
+# NOTE (v1.26): current Appwrite Cloud (API 2.x) REMOVED the legacy
+# /databases/*/collections/*/attributes write routes — this section adds
+# the columns through the Appwrite CLI's TablesDB service instead
+# (verified working against the live project). The CLI authenticates
+# with `appwrite login`; AW_KEY is not used here. Idempotent: existing
+# columns are skipped.
+#
+# Columns added (all optional, existing rows stay valid):
+#   orders:    downPayment        double  0
+#              downPaymentPaidAt  datetime
+#              collateralAmount   double  0
+#              collateralPaidAt   datetime
+#              remainingPaidAt    datetime
+#              idVerifiedAt       datetime
+#              signatureData      string  2800  (compact stroke codec)
+#              signedName         string  120
+#              signedAt           datetime
+#   customers: idType             string  32
+#              idNumber           string  64
+# ---------------------------------------------------------------------------
+if command -v appwrite >/dev/null 2>&1; then
+  DB="rentwise-db"
+  awcol_exists() { # table key
+    appwrite tablesdb list-columns --database-id "$DB" --table-id "$1" -R 2>/dev/null \
+      | python3 -c "import json,sys
+try:
+  [print(c['key']) for c in json.load(sys.stdin).get('columns',[])]
+except Exception: pass" | grep -qx "$2"
+  }
+  awfloat() { appwrite tablesdb create-float-column    --database-id "$DB" --table-id "$1" --key "$2" --xdefault "${3:-0}" --required=false --force >/dev/null; }
+  awdate()  { appwrite tablesdb create-datetime-column --database-id "$DB" --table-id "$1" --key "$2" --required=false --force >/dev/null; }
+  awstr()   { appwrite tablesdb create-string-column   --database-id "$DB" --table-id "$1" --key "$2" --size "$3" --xdefault "" --required=false --force >/dev/null; }
+
+  for K in downPayment downPaymentPaidAt collateralAmount collateralPaidAt remainingPaidAt idVerifiedAt signatureData signedName signedAt; do
+    awcol_exists orders "$K" && continue
+    case $K in
+      downPayment|collateralAmount) awfloat orders "$K" 0 ;;
+      signatureData)                awstr  orders "$K" 2800 ;;
+      signedName)                   awstr  orders "$K" 120 ;;
+      *)                            awdate orders "$K" ;;
+    esac
+  done
+  for K in idType idNumber; do
+    awcol_exists customers "$K" && continue
+    case $K in
+      idType)   awstr customers "$K" 32 ;;
+      idNumber) awstr customers "$K" 64 ;;
+    esac
+  done
+  echo "v1.26 payment-policy columns ensured."
+else
+  echo "v1.26 payment-policy columns SKIPPED — install the Appwrite CLI (npm i -g appwrite) and re-run." >&2
+fi

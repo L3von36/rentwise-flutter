@@ -112,6 +112,20 @@ AW_KEY=<api key with databases/users/teams scopes> bash scripts/appwrite_provisi
 - **From the Appwrite console**: Auth → Add user alone is NOT enough anymore — without a `profiles` document the account cannot sign in. Create the `profiles` document with the API key, or better: add the employee from the Owner Dashboard.
 - Customers are NOT app accounts — they are records in the `customers` collection, managed by owner/staff from the Customers screen.
 
+### Payment policy & customer pickup (v1.26)
+
+Nothing leaves the shop until the full plan is settled and the customer is verified — enforced in code, not on paper:
+
+1. **Down payment** — agreed at booking (the sheet suggests 50%), collected first. "Mark received" on the order records who/when.
+2. **Remaining balance** (total − down payment) — collected before pickup.
+3. **Collateral deposit** — agreed at booking, held until the items come back (the app reminds you to refund it on return).
+4. **Customer ID** — sighted and verified per order; the customer record stores the ID type (national ID / passport / driver's license / student ID / other) + number so the same document can be re-checked.
+5. **Signature** — the customer signs the rental agreement on the capture pad (printed name stored with it); the signature rides on the order document in a compact stroke codec.
+
+Until every step is done, the order detail shows an amber checklist and the handover action is refused — the store cannot be talked into releasing unpaid items. The status itself is customer-pickup-native: items handed over show as **With customer** (no delivery exists — transport is on the customer, they collect and return the items themselves). The dashboard/reports money-outstanding figure ("Awaiting") is computed from the live ledger: unpaid down payments + balances + collateral across open orders.
+
+Schema: the columns above are added by `scripts/appwrite_provision.sh` (v1.26 section) or directly with `appwrite tablesdb create-*-column`. Orders written from older app versions simply leave the new columns empty — no migration needed.
+
 ### Item status & maintenance
 
 Inventory rows show a derived lifecycle status: **In stock** (all units free) · **Partially out** (some units rented) · **Rented out** (every unit out) · **Maintenance** (explicit operator flag). Maintenance items are excluded from the Available/On-rent KPI pools — a broken chair is not "on rent" — and appear on the watch list. Toggle it from the edit dialog. The inventory KPI cards each open their OWN filtered view (Total → category breakdown, Available / On rent / Needs attention → status-filtered list), and status chips with live counts filter the table. Requires the `maintenance` boolean attribute on `inventory_items` (idempotent `scripts/appwrite_provision.sh` adds it; older clouds keep working — the app degrades gracefully and stock numbers still persist).

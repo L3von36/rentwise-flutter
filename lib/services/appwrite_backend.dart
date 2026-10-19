@@ -649,8 +649,37 @@ class AppwriteBackend {
           'status': statusToDoc(order.status),
           'notes': order.notes,
           'linesJson': orderLinesToDoc(order.lineItems),
+          // v1.26 payment policy + handover gate.
+          'downPayment': order.downPayment,
+          'downPaymentPaidAt':
+              order.downPaymentPaidAt == null ? null : awDate(order.downPaymentPaidAt!),
+          'collateralAmount': order.collateralAmount,
+          'collateralPaidAt':
+              order.collateralPaidAt == null ? null : awDate(order.collateralPaidAt!),
+          'remainingPaidAt':
+              order.remainingPaidAt == null ? null : awDate(order.remainingPaidAt!),
+          'idVerifiedAt':
+              order.idVerifiedAt == null ? null : awDate(order.idVerifiedAt!),
+          'signatureData': order.signatureData,
+          'signedName': order.signedName,
+          'signedAt': order.signedAt == null ? null : awDate(order.signedAt!),
         },
         isNew: isNew,
+        // Clouds provisioned before the payment-policy columns reject
+        // the new keys with 400 — retry without them so the booking
+        // itself still persists (see scripts/appwrite_provision.sh).
+        fallbackData: {
+          'eventName': order.eventName,
+          'customerName': order.customerName,
+          'contactName': order.contactName,
+          'createdAt': awDate(order.createdAt),
+          'eventDate': awDate(order.eventDate),
+          'itemCount': order.itemCount,
+          'total': order.total,
+          'status': statusToDoc(order.status),
+          'notes': order.notes,
+          'linesJson': orderLinesToDoc(order.lineItems),
+        },
       );
 
   Future<void> putCustomer(Customer customer, {bool isNew = false}) =>
@@ -666,8 +695,21 @@ class AppwriteBackend {
           'lifetimeSpend': customer.lifetimeSpend,
           'lastBooking': awDate(customer.lastBooking),
           'avatarColorIndex': avatarColorIndex(customer.avatarColor),
+          // v1.26 — government ID captured for the payment policy.
+          'idType': customer.idType,
+          'idNumber': customer.idNumber,
         },
         isNew: isNew,
+        fallbackData: {
+          'name': customer.name,
+          'company': customer.company,
+          'email': customer.email,
+          'phone': customer.phone,
+          'rentals': customer.rentals,
+          'lifetimeSpend': customer.lifetimeSpend,
+          'lastBooking': awDate(customer.lastBooking),
+          'avatarColorIndex': avatarColorIndex(customer.avatarColor),
+        },
       );
 
   Future<void> putActivity(ActivityEntry entry) => _upsert(
@@ -818,6 +860,27 @@ class AppwriteBackend {
       status: statusFromDoc((data['status'] ?? 'preparing') as String),
       notes: (data['notes'] ?? '') as String? ?? '',
       lineItems: orderLinesFromDoc((data['linesJson'] ?? '[]') as String? ?? '[]'),
+      // v1.26 payment policy + handover gate (absent on legacy docs).
+      downPayment: ((data['downPayment'] ?? 0) as num? ?? 0).toDouble(),
+      downPaymentPaidAt: data['downPaymentPaidAt'] == null
+          ? null
+          : dateFromDoc(data['downPaymentPaidAt'] as String),
+      collateralAmount:
+          ((data['collateralAmount'] ?? 0) as num? ?? 0).toDouble(),
+      collateralPaidAt: data['collateralPaidAt'] == null
+          ? null
+          : dateFromDoc(data['collateralPaidAt'] as String),
+      remainingPaidAt: data['remainingPaidAt'] == null
+          ? null
+          : dateFromDoc(data['remainingPaidAt'] as String),
+      idVerifiedAt: data['idVerifiedAt'] == null
+          ? null
+          : dateFromDoc(data['idVerifiedAt'] as String),
+      signatureData: (data['signatureData'] ?? '') as String? ?? '',
+      signedName: (data['signedName'] ?? '') as String? ?? '',
+      signedAt: data['signedAt'] == null
+          ? null
+          : dateFromDoc(data['signedAt'] as String),
     );
   }
 
@@ -834,6 +897,8 @@ class AppwriteBackend {
       lastBooking:
           dateFromDoc((data['lastBooking'] ?? awDate(DateTime.now())) as String),
       avatarColor: avatarColorFromIndex((data['avatarColorIndex'] ?? 0) as int? ?? 0),
+      idType: (data['idType'] ?? '') as String? ?? '',
+      idNumber: (data['idNumber'] ?? '') as String? ?? '',
     );
   }
 
