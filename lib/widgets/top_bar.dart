@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
 import '../core/breakpoints.dart';
+import '../core/formatters.dart';
 import '../models/account.dart';
 import '../models/activity_entry.dart';
 import '../state/workspace_state.dart';
@@ -262,7 +263,7 @@ class _SearchDialogState extends State<_SearchDialog> {
       for (final o in state.orders)
         SearchHit(
             '#${o.id} · ${o.eventName}',
-            '${o.contactName} · ${o.itemCount} items',
+            '${o.contactName} · ${Fmt.items(o.itemCount)}',
             'Order',
             Section.orders),
       for (final c in state.customers)

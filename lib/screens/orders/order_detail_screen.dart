@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
+import '../../core/formatters.dart';
 import '../../models/customer.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
@@ -30,7 +31,6 @@ class OrderDetailScreen extends StatelessWidget {
     // always read the live copy of the order
     final live = state.orderById(order.id) ?? order;
     final df = DateFormat('EEE, MMM d, yyyy');
-    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
     final wide = MediaQuery.sizeOf(context).width >= 900;
 
     final days = live.eventDate
@@ -82,7 +82,7 @@ class OrderDetailScreen extends StatelessWidget {
               _MetaFact(
                   icon: Icons.inventory_2_outlined,
                   label: 'Items',
-                  value: '${live.itemCount} items'),
+                  value: Fmt.items(live.itemCount)),
               _MetaFact(
                   icon: Icons.contact_phone_outlined,
                   label: 'Contact',
@@ -121,7 +121,7 @@ class OrderDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('TOTAL · ${live.itemCount} items',
+                      child: Text('TOTAL · ${Fmt.items(live.itemCount)}',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 11,
@@ -129,7 +129,7 @@ class OrderDetailScreen extends StatelessWidget {
                               letterSpacing: 1,
                               color: AppPalette.muted)),
                     ),
-                    Text(money.format(live.total),
+                    Text(Fmt.moneySmart(live.total),
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 16,
@@ -345,7 +345,6 @@ class _PaymentsHandoverCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<WorkspaceState>();
-    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
     final df = DateFormat('MMM d, HH:mm');
     final ready = order.canHandOver;
     final outstanding = order.outstandingTotal;
@@ -387,9 +386,12 @@ class _PaymentsHandoverCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            outstanding > 0
-                ? money.format(outstanding)
-                : money.format(order.total),
+            // While settling: what is still owed. Once settled: the
+            // only number the desk still needs — the collateral to
+            // hand back at return. Cents kept when they exist.
+            Fmt.moneySmart(outstanding > 0
+                ? outstanding
+                : order.collateralAmount),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 26,
@@ -402,7 +404,9 @@ class _PaymentsHandoverCard extends StatelessWidget {
           Text(
             outstanding > 0
                 ? 'still outstanding on this order'
-                : 'fully settled · refund collateral at return',
+                : order.collateralAmount > 0
+                    ? 'fully settled · refund this collateral at return'
+                    : 'fully settled · nothing held',
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 11.5,
@@ -531,7 +535,6 @@ class _PaymentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
@@ -565,7 +568,7 @@ class _PaymentRow extends StatelessWidget {
                       : paid
                           ? 'received '
                               '· ${paidAt == null ? '' : df.format(paidAt!)}'
-                          : money.format(amount),
+                          : Fmt.moneySmart(amount),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11,

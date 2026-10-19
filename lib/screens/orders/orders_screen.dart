@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../core/app_colors.dart'; // AppRadius
+import '../../core/formatters.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -319,7 +320,7 @@ class _OrderRow extends StatelessWidget {
           ),
           Expanded(
             flex: 2,
-            child: Text('${order.itemCount} items',
+            child: Text(Fmt.items(order.itemCount),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13,
@@ -327,7 +328,7 @@ class _OrderRow extends StatelessWidget {
           ),
           Expanded(
             flex: 2,
-            child: Text('\$${NumberFormat('#,##0').format(order.total)}',
+            child: Text(Fmt.moneySmart(order.total),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13.5,
@@ -399,7 +400,7 @@ class _OrderCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: AppPalette.ink)),
             const SizedBox(height: 3),
-            Text('${order.contactName} · ${order.itemCount} items',
+            Text('${order.contactName} · ${Fmt.items(order.itemCount)}',
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12,
@@ -416,7 +417,7 @@ class _OrderCard extends StatelessWidget {
                         fontSize: 12,
                         color: AppPalette.muted)),
                 const Spacer(),
-                Text('\$${NumberFormat('#,##0').format(order.total)}',
+                Text(Fmt.moneySmart(order.total),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 14,

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
+import '../../core/formatters.dart';
 import '../../services/csv_export.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -137,7 +138,7 @@ class CustomersScreen extends StatelessWidget {
     if (total >= 1000) {
       return '\$${(total / 1000).toStringAsFixed(1)}k';
     }
-    return '\$${total.toStringAsFixed(0)}';
+    return Fmt.moneySmart(total);
   }
 
   void _showAddDialog(BuildContext context) {

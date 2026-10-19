@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
+import '../core/formatters.dart';
 import '../models/activity_entry.dart';
 import '../models/pickup.dart';
 import 'chips.dart';
@@ -174,7 +175,7 @@ class PickupRow extends StatelessWidget {
                     color: AppPalette.ink,
                   )),
               const SizedBox(height: 2),
-              Text('${pickup.venue} · ${pickup.itemCount} items',
+              Text('${pickup.venue} · ${Fmt.items(pickup.itemCount)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

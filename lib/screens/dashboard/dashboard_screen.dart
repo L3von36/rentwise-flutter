@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_colors.dart'; // AppRadius / AppShadow
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
+import '../../core/formatters.dart';
 import '../../data/catalog.dart';
 import '../../models/inventory_item.dart';
 import '../../models/shift_task.dart';
@@ -369,8 +370,11 @@ class _ShiftHero extends StatelessWidget {
                     Text(
                       tasks.isEmpty
                           ? 'You are all caught up — nothing pending today.'
-                          : 'You have ${tasks.length} tasks on deck today, '
-                              'including ${state.returnsTodayCount} return check-ins.',
+                          : state.returnsTodayCount == 0
+                              ? 'You have ${tasks.length} tasks on deck today.'
+                              : 'You have ${tasks.length} tasks on deck today, '
+                                  'including ${state.returnsTodayCount} return '
+                                  '${state.returnsTodayCount == 1 ? 'check-in' : 'check-ins'}.',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -732,7 +736,7 @@ class _DispatchCard extends StatelessWidget {
           time: tf.format(prep.first.eventDate),
           title: prep.first.eventName,
           meta:
-              '${prep.first.itemCount} items · ${prep.first.customerName}',
+              '${Fmt.items(prep.first.itemCount)} · ${prep.first.customerName}',
           chip: 'In progress',
           chipFg: AppPalette.blue,
           chipBg: AppPalette.blueBg,
@@ -743,7 +747,7 @@ class _DispatchCard extends StatelessWidget {
           time: tf.format(prep.skip(1).first.eventDate),
           title: prep.skip(1).first.eventName,
           meta:
-              '${prep.skip(1).first.itemCount} items · ${df.format(prep.skip(1).first.eventDate)}',
+              '${Fmt.items(prep.skip(1).first.itemCount)} · ${df.format(prep.skip(1).first.eventDate)}',
           chip: 'Staging',
           chipFg: AppPalette.amber,
           chipBg: AppPalette.amberBg,
@@ -753,7 +757,7 @@ class _DispatchCard extends StatelessWidget {
         (
           time: DateFormat('EEE h:mm a').format(next.date),
           title: next.venue,
-          meta: '${next.itemCount} items · ${next.contactName}',
+          meta: '${Fmt.items(next.itemCount)} · ${next.contactName}',
           chip: 'Scheduled',
           chipFg: AppPalette.green,
           chipBg: AppPalette.greenBg,
@@ -1229,7 +1233,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     iconColor: AppPalette.red,
                     iconBg: AppPalette.redBg,
                     label: 'Awaiting payment',
-                    value: '\$${awaiting.toStringAsFixed(0)}',
+                    value: Fmt.moneySmart(awaiting),
                     subtitle:
                         '${state.needsPaymentCount} ${state.needsPaymentCount == 1 ? 'order' : 'orders'} pending',
                     onTap: () {
@@ -1937,7 +1941,7 @@ class _OwnerCompactDashboard extends StatelessWidget {
                           Icon(Icons.inventory_2_outlined,
                               size: 15, color: AppPalette.muted),
                           const SizedBox(width: 6),
-                          Text('${next.itemCount} items',
+                          Text(Fmt.items(next.itemCount),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 12,

@@ -1,3 +1,5 @@
+import '../../core/formatters.dart';
+
 /// Order lifecycle statuses shown in the Orders screen.
 enum OrderStatus { preparing, confirmed, needsPayment, outForDelivery, returned }
 
@@ -180,11 +182,11 @@ class RentalOrder {
   List<String> get handoverBlockers {
     final blockers = <String>[
       if (!downPaymentPaid)
-        'Down payment \$${downPayment.toStringAsFixed(0)} not received',
+        'Down payment ${Fmt.moneySmart(downPayment)} not received',
       if (!remainingPaid)
-        'Remaining \$${remainingDue.toStringAsFixed(0)} not received',
+        'Remaining ${Fmt.moneySmart(remainingDue)} not received',
       if (!collateralPaid)
-        'Collateral \$${collateralAmount.toStringAsFixed(0)} not received',
+        'Collateral ${Fmt.moneySmart(collateralAmount)} not received',
       if (!idVerified) 'Customer ID not verified',
       if (!signatureCaptured) 'Rental agreement not signed',
     ];

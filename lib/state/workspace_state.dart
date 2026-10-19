@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
+import '../core/formatters.dart';
 import '../core/palette.dart';
 import '../data/appwrite_mappers.dart';
 import '../data/catalog.dart';
@@ -637,7 +638,7 @@ class WorkspaceState extends ChangeNotifier {
         case OrderStatus.preparing:
           tasks.add(ShiftTask(
             title: 'Stage & pack',
-            meta: '#${o.id} · ${o.eventName} · ${o.itemCount} items',
+            meta: '#${o.id} · ${o.eventName} · ${Fmt.items(o.itemCount)}',
             chip: 'Prep',
             chipFg: AppPalette.amber,
             chipBg: AppPalette.amberBg,
@@ -657,7 +658,7 @@ class WorkspaceState extends ChangeNotifier {
         case OrderStatus.needsPayment:
           tasks.add(ShiftTask(
             title: 'Collect payment',
-            meta: '#${o.id} · ${o.eventName} · \$${o.total.toStringAsFixed(0)}',
+            meta: '#${o.id} · ${o.eventName} · ${Fmt.moneySmart(o.total)}',
             chip: 'Payment',
             chipFg: AppPalette.purple,
             chipBg: AppPalette.purpleBg,
@@ -673,7 +674,7 @@ class WorkspaceState extends ChangeNotifier {
       tasks.add(ShiftTask(
         title: 'Pull & stage',
         meta:
-            '${p.itemCount} items · ${p.venue} · #${p.id}',
+            '${Fmt.items(p.itemCount)} · ${p.venue} · #${p.id}',
         chip: 'Upcoming',
         chipFg: AppPalette.green,
         chipBg: AppPalette.greenBg,
@@ -766,7 +767,7 @@ class WorkspaceState extends ChangeNotifier {
       return;
     }
     final item = InventoryItem(
-      id: _nextId('INV'),
+      id: _nextId('INV', _inventory.map((i) => i.id)),
       name: name,
       note: 'Just added',
       category: category,
@@ -896,8 +897,21 @@ class WorkspaceState extends ChangeNotifier {
   double get awaitingPaymentTotal => outstandingMoneyTotal;
   int get outForDeliveryCount =>
       _orders.where((o) => o.status == OrderStatus.outForDelivery).length;
-  int get returnsTodayCount =>
-      _orders.where((o) => o.status == OrderStatus.outForDelivery).length;
+
+  /// With-customer orders whose event date is TODAY — the returns the
+  /// desk should actually expect back this shift. (Counting every
+  /// out-with-customer order here duplicated the "With customer" KPI
+  /// and overstated the day's workload.)
+  int get returnsTodayCount {
+    final today = DateTime.now();
+    return _orders
+        .where((o) =>
+            o.status == OrderStatus.outForDelivery &&
+            o.eventDate.year == today.year &&
+            o.eventDate.month == today.month &&
+            o.eventDate.day == today.day)
+        .length;
+  }
 
   /// Out-with-customer orders whose event date has already passed —
   /// an honest "late" count derived from live data.
@@ -1022,7 +1036,7 @@ class WorkspaceState extends ChangeNotifier {
     if (status == OrderStatus.returned) {
       _emit('Order #${order.id} returned — restock items in Inventory '
           'after count/inspection. Refund the collateral deposit '
-          '(${order.collateralAmount <= 0 ? 'none held' : '\$${order.collateralAmount.toStringAsFixed(0)}'}).');
+          '(${order.collateralAmount <= 0 ? 'none held' : Fmt.moneySmart(order.collateralAmount)}).');
     }
     notifyListeners();
     return true;
@@ -1068,7 +1082,7 @@ class WorkspaceState extends ChangeNotifier {
           (o) => o.copyWith(downPaymentPaidAt: DateTime.now()),
           type: ActivityType.payment,
           body: '**${_account?.name ?? 'Someone'}** collected the **down payment '
-              '\$${order.downPayment.toStringAsFixed(0)}** on **#${order.id} · ${order.eventName}**',
+              '${Fmt.moneySmart(order.downPayment)}** on **#${order.id} · ${order.eventName}**',
         ) !=
         null;
   }
@@ -1081,7 +1095,7 @@ class WorkspaceState extends ChangeNotifier {
           (o) => o.copyWith(remainingPaidAt: DateTime.now()),
           type: ActivityType.payment,
           body: '**${_account?.name ?? 'Someone'}** collected the **remaining '
-              '\$${order.remainingDue.toStringAsFixed(0)}** on **#${order.id} · ${order.eventName}**',
+              '${Fmt.moneySmart(order.remainingDue)}** on **#${order.id} · ${order.eventName}**',
         ) !=
         null;
   }
@@ -1096,7 +1110,7 @@ class WorkspaceState extends ChangeNotifier {
           (o) => o.copyWith(collateralPaidAt: DateTime.now()),
           type: ActivityType.payment,
           body: '**${_account?.name ?? 'Someone'}** held a **collateral deposit '
-              '\$${order.collateralAmount.toStringAsFixed(0)}** on **#${order.id} · ${order.eventName}**',
+              '${Fmt.moneySmart(order.collateralAmount)}** on **#${order.id} · ${order.eventName}**',
         ) !=
         null;
   }
@@ -1194,7 +1208,7 @@ class WorkspaceState extends ChangeNotifier {
       return;
     }
     final customer = Customer(
-      id: _nextId('CUS'),
+      id: _nextId('CUS', _customers.map((c) => c.id)),
       name: name,
       company: company,
       email: email,
@@ -1269,17 +1283,35 @@ class WorkspaceState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Unique, sortable document id — cloud-safe (no dependence on how
-  /// many rows happen to be loaded, and no collisions on replay).
-  String _nextId(String prefix) {
-    final ms = DateTime.now().microsecondsSinceEpoch;
-    return '$prefix-${ms.toRadixString(36).toUpperCase()}';
+  /// Sequential, human-readable document ids: RW-2052, INV-007, CUS-006.
+  /// The front desk reads these out loud, so they count up from the
+  /// highest existing number instead of leaking a microsecond timestamp
+  /// ("RW-HND3ZUDMG"). Still unique against everything loaded — the
+  /// workspace loads full collections, and the bump loop absorbs a
+  /// simultaneous second client.
+  String _nextId(String prefix, Iterable<String> existingIds) {
+    var max = 0;
+    var width = 3;
+    final re = RegExp('^$prefix-${r'(\d+)$'}');
+    for (final id in existingIds) {
+      final m = re.firstMatch(id);
+      if (m == null) continue;
+      final n = int.parse(m.group(1)!);
+      if (n > max) max = n;
+      if (m.group(1)!.length > width) width = m.group(1)!.length;
+    }
+    final taken = existingIds.toSet();
+    var next = max + 1;
+    while (taken.contains('$prefix-${next.toString().padLeft(width, '0')}')) {
+      next++;
+    }
+    return '$prefix-${next.toString().padLeft(width, '0')}';
   }
 
   void _log({required ActivityType type, required String body}) {
     final account = _account;
     final entry = ActivityEntry(
-      id: _nextId('ACT'),
+      id: _nextId('ACT', _activity.map((a) => a.id)),
       actor: account?.name ?? 'Someone',
       actorInitials: account?.initials ?? '??',
       actorColor: account?.role == UserRole.owner
@@ -1324,7 +1356,7 @@ class WorkspaceState extends ChangeNotifier {
       notifyListeners();
       return '';
     }
-    final id = _nextId('RW');
+    final id = _nextId('RW', _orders.map((o) => o.id));
     final total = lines.fold<double>(
         0, (sum, l) => sum + l.qty * l.item.ratePerDay);
     final itemCount = lines.fold<int>(0, (sum, l) => sum + l.qty);
@@ -1365,12 +1397,10 @@ class WorkspaceState extends ChangeNotifier {
     );
     _orders = [order, ..._orders];
 
-    final summary = lines
-        .map((l) => '${l.qty} ${l.item.name.toLowerCase()}')
-        .join(', ');
+    final summary = lines.map((l) => '${l.item.name} ×${l.qty}').join(', ');
     _log(
       type: ActivityType.newBooking,
-      body: '**${_account?.name ?? 'Someone'}** created a rental for **$itemCount items · $eventName** ($summary)',
+      body: '**${_account?.name ?? 'Someone'}** created a rental for **${Fmt.items(itemCount)} · $eventName** ($summary)',
     );
 
     // attach booking to a matching customer if present

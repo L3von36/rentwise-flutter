@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/formatters.dart';
 import '../../models/pickup.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
@@ -364,7 +365,7 @@ class _AgendaCard extends StatelessWidget {
                       iconBg: AppPalette.greenBg,
                       title: 'Pickup · ${dayPickups[i].title}',
                       meta:
-                          '${dayPickups[i].venue} · ${dayPickups[i].itemCount} items · ${dayPickups[i].contactName}',
+                          '${dayPickups[i].venue} · ${Fmt.items(dayPickups[i].itemCount)} · ${dayPickups[i].contactName}',
                     ),
                   ),
                 for (var i = 0; i < dayOrders.length; i++)
@@ -381,7 +382,7 @@ class _AgendaCard extends StatelessWidget {
                         iconBg: dayOrders[i].status.bg,
                         title: 'Event · ${dayOrders[i].eventName}',
                         meta:
-                            '#${dayOrders[i].id} · ${dayOrders[i].itemCount} items · ${dayOrders[i].status.label}',
+                            '#${dayOrders[i].id} · ${Fmt.items(dayOrders[i].itemCount)} · ${dayOrders[i].status.label}',
                       ),
                     ),
                   ),
@@ -535,7 +536,7 @@ class _RunLine extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: AppPalette.ink)),
-                Text('${pickup.venue} · ${pickup.itemCount} items · ${pickup.contactName}',
+                Text('${pickup.venue} · ${Fmt.items(pickup.itemCount)} · ${pickup.contactName}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

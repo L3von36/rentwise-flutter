@@ -15,6 +15,16 @@ class Fmt {
   static String money(num v) => _money.format(v);
   static String moneyCents(num v) => _moneyCents.format(v);
 
+  /// Honest money: whole amounts stay clean ("$1,840"), amounts that
+  /// actually carry cents keep them ("$1.50") — displaying a $1.50
+  /// rental as "$2" misstates what the front desk must collect and
+  /// makes the payment-plan pieces stop adding up.
+  static String moneySmart(num v) =>
+      v == v.roundToDouble() ? _money.format(v) : _moneyCents.format(v);
+
+  /// "$n items" with correct singular ("1 item").
+  static String items(int n) => n == 1 ? '1 item' : '$n items';
+
   static String compactMoney(num v) {
     if (v >= 1000) {
       final k = v / 1000;

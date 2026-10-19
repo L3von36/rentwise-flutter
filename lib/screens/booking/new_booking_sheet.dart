@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
+import '../../core/formatters.dart';
 import '../../models/inventory_item.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -197,7 +198,11 @@ class _BookingDialogState extends State<_BookingDialog> {
   bool _downEdited = false;
 
   double get _total => _lines.fold(0, (s, l) => s + l.qty * l.item.ratePerDay);
-  double get _suggestedDown => (_total * 0.5).roundToDouble();
+
+  /// Exactly half the total — no rounding, so the suggested down
+  /// payment plus the remaining balance always re-adds to the total
+  /// the customer saw quoted.
+  double get _suggestedDown => _total * 0.5;
 
   double get _downPayment {
     if (!_downEdited || _downCtrl.text.trim().isEmpty) return _suggestedDown;
@@ -266,7 +271,7 @@ class _BookingDialogState extends State<_BookingDialog> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Booking #$id created for $_customer · '
-            'collect \$${_downPayment.toStringAsFixed(0)} down payment at pickup'),
+            'collect ${Fmt.moneySmart(_downPayment)} down payment at pickup'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -461,7 +466,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                             DropdownMenuItem(
                               value: i,
                               child: Text(
-                                '${i.name} · ${i.available} free',
+                                '${i.name} · ${i.available} available',
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontSize: 13),
                               ),
@@ -522,7 +527,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                         onChanged: (_) => setState(() => _downEdited = true),
                         decoration: InputDecoration(
                           hintText:
-                              '50% suggested · \$${_suggestedDown.toStringAsFixed(0)}',
+                              '50% suggested · ${Fmt.moneySmart(_suggestedDown)}',
                           labelText: 'Down payment',
                         ),
                       ),
@@ -534,6 +539,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                         controller: _collateralCtrl,
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
+                        onChanged: (_) => setState(() {}),
                         decoration: const InputDecoration(
                           hintText: '0',
                           labelText: 'Collateral deposit',
@@ -556,9 +562,9 @@ class _BookingDialogState extends State<_BookingDialog> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'down \$${_downPayment.toStringAsFixed(0)} · '
-                              'remaining \$${(_total - _downPayment).clamp(0, double.infinity).toStringAsFixed(0)} · '
-                              'collateral \$${_collateral.toStringAsFixed(0)} — all settled before pickup',
+                          'down ${Fmt.moneySmart(_downPayment)} · '
+                              'remaining ${Fmt.moneySmart((_total - _downPayment).clamp(0, double.infinity))} · '
+                              'collateral ${Fmt.moneySmart(_collateral)} — all settled before pickup',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 11.5,

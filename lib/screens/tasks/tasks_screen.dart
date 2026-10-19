@@ -65,7 +65,6 @@ class _TasksScreenState extends State<TasksScreen> {
           SectionCard(
             icon: Icons.checklist_rounded,
             title: 'Tasks',
-            subtitle: filtered.isEmpty ? 'Nothing in this bucket — all clear.' : null,
             action: LinkChip(
               label: 'Open calendar',
               onTap: () => openCalendar(context),
@@ -253,16 +252,22 @@ class _TaskCard extends StatelessWidget {
   }
 
   /// The real next step this task kind can advance the order to.
+  /// (Handover stays gated — [WorkspaceState.updateOrderStatus] refuses
+  /// to move an unsettled order out of the shop.)
   OrderStatus? _nextFor(String kind, OrderStatus status) => switch (kind) {
-        'delivery' => OrderStatus.needsPayment,
-        'payment' => OrderStatus.confirmed,
+        'prep' => OrderStatus.outForDelivery, // staged → hand over at pickup
+        'delivery' => OrderStatus.needsPayment, // items back → collect balance
+        'payment' => OrderStatus.confirmed, // payment accepted
         _ => null,
       };
 
+  /// Compact-but-honest board labels — the row only has room for the
+  /// verb, the order detail screen shows the full [OrderStatusX.actionLabel].
   String _labelFor(OrderStatus next) => switch (next) {
-        OrderStatus.needsPayment => 'Returned',
-        OrderStatus.confirmed => 'Mark paid',
-        _ => 'Advance',
+        OrderStatus.needsPayment => 'Collect',
+        OrderStatus.confirmed => 'Accept payment',
+        OrderStatus.outForDelivery => 'Hand over',
+        _ => next.actionLabel,
       };
 }
 

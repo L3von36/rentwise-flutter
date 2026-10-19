@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/formatters.dart';
 import '../../models/customer.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
@@ -333,7 +334,7 @@ class _HistoryRow extends StatelessWidget {
                         color: AppPalette.ink)),
                 const SizedBox(height: 2),
                 Text(
-                    '${df.format(order.eventDate)} · ${order.itemCount} items',
+                    '${df.format(order.eventDate)} · ${Fmt.items(order.itemCount)}',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,

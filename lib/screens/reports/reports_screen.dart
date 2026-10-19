@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
+import '../../core/formatters.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/kpi_card.dart';
 import '../../widgets/indicators.dart';
@@ -83,7 +84,7 @@ class ReportsScreen extends StatelessWidget {
                       iconBg: AppPalette.amberBg,
                       label: 'Awaiting payment',
                       value:
-                          '\$${state.awaitingPaymentTotal.toStringAsFixed(0)}',
+                          Fmt.moneySmart(state.awaitingPaymentTotal),
                       subtitle: 'open receivables',
                     ),
                   ),
@@ -800,7 +801,7 @@ class _PipelinePanel extends StatelessWidget {
             bg: AppPalette.amberBg,
             label: 'Needs payment',
             sub: state.awaitingPaymentTotal > 0
-                ? '\$${state.awaitingPaymentTotal.toStringAsFixed(0)} awaiting'
+                ? '${Fmt.moneySmart(state.awaitingPaymentTotal)} awaiting'
                 : 'nothing outstanding',
             count: state.needsPaymentCount,
           ),
