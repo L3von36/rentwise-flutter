@@ -908,6 +908,22 @@ class WorkspaceState extends ChangeNotifier {
           o.eventDate.isBefore(DateTime.now()))
       .length;
 
+  /// Open orders whose event date has already passed — late returns plus
+  /// anything still stuck open past its schedule. The honest "needs
+  /// attention" signal for the workspace health card.
+  int get openOverdueCount => _orders
+      .where((o) => o.status.isOpen && o.eventDate.isBefore(DateTime.now()))
+      .length;
+
+  /// Share of open orders still on schedule (1.0 when nothing is open —
+  /// nothing is overdue either). Completion timestamps don't exist yet,
+  /// so this measures the live book rather than a fabricated history.
+  double get scheduleHealth {
+    final open = _orders.where((o) => o.status.isOpen).length;
+    if (open == 0) return 1.0;
+    return (open - openOverdueCount) / open;
+  }
+
   /// Pickups scheduled for today.
   int get pickupsDueTodayCount {
     final now = DateTime.now();

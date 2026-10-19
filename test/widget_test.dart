@@ -230,6 +230,21 @@ void main() {
     expect(find.text('Your task list'), findsNothing);
     expect(find.text('My recent actions'), findsNothing);
 
+    // Workspace health card is computed from the live book — the old
+    // hardcoded '24 active rentals / 98% on time / Just now' are gone.
+    // Fixture: 4 open orders, none past their event date, 1 awaiting
+    // payment, backend recording live.
+    expect(find.text('WORKSPACE HEALTH'), findsOneWidget); // Eyebrow uppercases
+    expect(find.text('Running smoothly'), findsOneWidget);
+    expect(find.text('4 open rentals'), findsOneWidget);
+    expect(find.text('100% on schedule'), findsOneWidget);
+    expect(find.text('1 awaiting payment'), findsOneWidget);
+    expect(find.text('Cloud sync live · Appwrite'), findsOneWidget);
+    expect(find.text('98% on time'), findsNothing);
+    expect(find.text('24 active rentals'), findsNothing);
+    expect(find.text('Just now'), findsNothing);
+    expect(find.text('Sync is up to date'), findsNothing);
+
     // Catalog management is an owner privilege.
     await tester.tap(find.descendant(
       of: find.byType(SideNav),

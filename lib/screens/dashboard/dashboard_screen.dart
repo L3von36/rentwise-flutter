@@ -2320,18 +2320,30 @@ class _RecentActivity extends StatelessWidget {
 }
 
 // -------------------------------------------------------------- health card
+/// Workspace health, computed from the live book — nothing hardcoded.
+/// Completion timestamps don't exist yet, so "health" is schedule
+/// adherence of open orders (the same rule as [returnsLateCount]),
+/// surfaced with a dynamic verdict, a real fraction bar and the actual
+/// payments + cloud-sync state.
 class _WorkspaceHealth extends StatelessWidget {
   final WorkspaceState state;
   const _WorkspaceHealth({required this.state});
 
   @override
   Widget build(BuildContext context) {
+    final overdue = state.openOverdueCount;
+    final onSchedule = state.scheduleHealth;
+    final smooth = overdue == 0;
+    final heading = smooth ? 'Running smoothly' : 'Needs attention';
+    final headingColor = smooth ? AppPalette.ink : AppPalette.amber;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppPalette.stroke),
+        border: Border.all(
+            color: smooth ? AppPalette.stroke : AppPalette.amberBg),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Column(
@@ -2342,61 +2354,97 @@ class _WorkspaceHealth extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Running smoothly',
-                    style: Theme.of(context).textTheme.headlineSmall),
+                child: Text(heading,
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(color: headingColor)),
               ),
               Container(
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                    color: AppPalette.greenBg, shape: BoxShape.circle),
-                child: Icon(Icons.check_rounded,
-                    size: 16, color: AppPalette.green),
+                    color: smooth ? AppPalette.greenBg : AppPalette.amberBg,
+                    shape: BoxShape.circle),
+                child: Icon(
+                    smooth
+                        ? Icons.check_rounded
+                        : Icons.priority_high_rounded,
+                    size: 16,
+                    color: smooth ? AppPalette.green : AppPalette.amber),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          const HealthBar(fraction: 0.98),
+          HealthBar(fraction: onSchedule),
           const SizedBox(height: 10),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('24 active rentals',
+                Text('${state.openOrdersCount} open rentals',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
                         color: AppPalette.muted)),
-                Text('98% on time',
+                const SizedBox(width: 10),
+                Text(
+                    '${(onSchedule * 100).toStringAsFixed(0)}% on schedule'
+                    '${overdue > 0 ? ' · $overdue overdue' : ''}',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: AppPalette.green)),
+                        color: smooth
+                            ? AppPalette.green
+                            : AppPalette.amber)),
               ],
             ),
           ),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 12),
+          // Real payments signal — what the orders ledger actually says.
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
               children: [
-                Dot(color: AppPalette.green),
+                Dot(
+                    color: state.needsPaymentCount > 0
+                        ? AppPalette.amber
+                        : AppPalette.green),
                 const SizedBox(width: 8),
-                Text('Sync is up to date',
+                Text(
+                    state.needsPaymentCount > 0
+                        ? '${state.needsPaymentCount} awaiting payment'
+                        : 'No payments pending',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
                         color: AppPalette.muted)),
-                const SizedBox(width: 18),
-                Text('Just now',
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Real sync signal — writes go straight through to the cloud.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              children: [
+                Dot(
+                    color: state.liveBackend
+                        ? AppPalette.green
+                        : AppPalette.red),
+                const SizedBox(width: 8),
+                Text(
+                    state.liveBackend
+                        ? 'Cloud sync live · Appwrite'
+                        : 'Cloud sync unavailable',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
-                        fontSize: 12,
-                        color: AppPalette.faint)),
+                        fontSize: 12.5,
+                        color: AppPalette.muted)),
               ],
             ),
           ),
