@@ -58,33 +58,62 @@ class _CalendarScreenState extends State<CalendarScreen> {
           }),
         ),
       ],
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _MonthGrid(
-            month: _month,
-            selected: _selected,
-            now: now,
-            pickups: pickups,
-            orders: state.orders,
-            onPrev: () => setState(() {
-              _month = DateTime(_month.year, _month.month - 1);
-            }),
-            onNext: () => setState(() {
-              _month = DateTime(_month.year, _month.month + 1);
-            }),
-            onSelect: (d) => setState(() => _selected = d),
-          ),
-          const SizedBox(height: 14),
-          _AgendaCard(
-            day: _selected,
-            pickups: pickups,
-            orders: state.orders,
-          ),
-          const SizedBox(height: 14),
-          _UpcomingRuns(state: state, now: now),
-        ],
-      ),
+      body: LayoutBuilder(builder: (context, box) {
+        // ≥960px: month grid + agenda stay left, the pickups rail moves
+        // right — instead of stretching the phone column across the
+        // whole window.
+        final wide = box.maxWidth >= 960;
+        final grid = _MonthGrid(
+          month: _month,
+          selected: _selected,
+          now: now,
+          pickups: pickups,
+          orders: state.orders,
+          onPrev: () => setState(() {
+            _month = DateTime(_month.year, _month.month - 1);
+          }),
+          onNext: () => setState(() {
+            _month = DateTime(_month.year, _month.month + 1);
+          }),
+          onSelect: (d) => setState(() => _selected = d),
+        );
+        final agenda = _AgendaCard(
+          day: _selected,
+          pickups: pickups,
+          orders: state.orders,
+        );
+        final runs = _UpcomingRuns(state: state, now: now);
+        if (!wide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              grid,
+              const SizedBox(height: 14),
+              agenda,
+              const SizedBox(height: 14),
+              runs,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 560,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  grid,
+                  const SizedBox(height: 14),
+                  agenda,
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: runs),
+          ],
+        );
+      }),
     );
   }
 }
@@ -149,12 +178,6 @@ class _MonthGrid extends StatelessWidget {
           Row(
             children: [
               _NavBtn(icon: Icons.chevron_left_rounded, onTap: onPrev),
-              const Spacer(),
-              Text('Indigo = event · green = pickup',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 10.5,
-                      color: AppPalette.faint)),
               const Spacer(),
               _NavBtn(icon: Icons.chevron_right_rounded, onTap: onNext),
             ],
@@ -330,11 +353,13 @@ class _AgendaCard extends StatelessWidget {
                   Icon(Icons.wb_sunny_outlined,
                       size: 16, color: AppPalette.amber),
                   const SizedBox(width: 8),
-                  Text('A clear day — good slot for maintenance work.',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 12.5,
-                          color: AppPalette.muted)),
+                  Expanded(
+                    child: Text('A clear day — good slot for maintenance work.',
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 12.5,
+                            color: AppPalette.muted)),
+                  ),
                 ],
               ),
             )

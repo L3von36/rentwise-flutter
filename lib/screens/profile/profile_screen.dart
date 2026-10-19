@@ -27,9 +27,15 @@ class ProfileScreen extends StatelessWidget {
       title: account?.name ?? 'Profile',
       subtitle: 'Your identity, appearance and session.',
       icon: Icons.account_circle_outlined,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      // Centered readable column on wide windows — full-width identity
+      // cards and password fields look broken at 1300px+.
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           SectionCard(
             icon: Icons.badge_outlined,
             title: 'Identity',
@@ -189,6 +195,8 @@ class ProfileScreen extends StatelessWidget {
                     color: AppPalette.faint)),
           ),
         ],
+          ),
+        ),
       ),
     );
   }

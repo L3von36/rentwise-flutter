@@ -54,9 +54,15 @@ class _TasksScreenState extends State<TasksScreen> {
       subtitle:
           '${tasks.length} on deck · ordered by priority — work top to bottom.',
       icon: Icons.checklist_rounded,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      // Wide windows get a centered readable column instead of task rows
+      // stretching edge to edge.
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           // summary strip
           Wrap(
             spacing: 8,
@@ -140,6 +146,8 @@ class _TasksScreenState extends State<TasksScreen> {
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }

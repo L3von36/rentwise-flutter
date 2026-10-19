@@ -28,6 +28,7 @@ import 'package:rentwise/models/rental_order.dart' show OrderStatus;
 import 'package:rentwise/state/shell_state.dart';
 import 'package:rentwise/state/workspace_state.dart';
 import 'package:rentwise/widgets/bottom_nav.dart';
+import 'package:rentwise/widgets/cards.dart' show SectionCard;
 import 'package:rentwise/widgets/kpi_card.dart' show KpiStrip, KpiTileMini;
 import 'package:rentwise/widgets/side_nav.dart';
 import 'helpers/recording_backend.dart';
@@ -511,6 +512,17 @@ void main() {
             matching: find.text('${state.returnsTodayCount}')),
         findsOneWidget);
 
+    // Next-dispatch card is LIVE: venue/contact/item count come from
+    // state.nextDispatch — the old baked-in stub ('3:30 PM', '12 items',
+    // 'Mia Chen' hardcoded while the wide layout used real data) is gone.
+    final next = state.nextDispatch;
+    expect(next, isNotNull);
+    expect(find.text('NEXT DISPATCH'), findsOneWidget);
+    expect(find.text('12 items'), findsNothing);
+    expect(find.text(next!.venue), findsOneWidget);
+    expect(find.text('${next.itemCount} items'), findsOneWidget);
+    expect(find.text(next.contactName), findsOneWidget);
+
     // 390px < 3 × 124px tiles + gaps: the strip becomes a horizontal
     // scroll view (fade affordance), and swiping left reveals the tail.
     final kpiStrip = find.byType(KpiStrip);
@@ -541,6 +553,59 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.text('A'), findsOneWidget);
     expect(find.text('C'), findsOneWidget);
+  });
+
+  testWidgets('calendar goes two-column on wide screens with a single legend',
+      (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await _signInUi(tester, SampleDataset.demoOwner.email, 'owner-pass');
+
+    // Wide dashboard → Business Open bar → Calendar.
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dispatch calendar'), findsOneWidget);
+
+    // The legend lives only in the month card subtitle — the duplicate
+    // nav-row copy is gone on every width.
+    expect(find.text('Indigo = event · green = pickup'), findsNothing);
+    expect(find.text('Indigo = event date · green = pickup run'),
+        findsOneWidget);
+
+    // Two-column wide layout: the pickups rail sits to the RIGHT of the
+    // agenda (phone stacks it underneath).
+    final agendaDx =
+        tester.getCenter(find.textContaining('Agenda ·')).dx;
+    final runsDx =
+        tester.getCenter(find.text('All upcoming pickups')).dx;
+    expect(runsDx, greaterThan(agendaDx + 200));
+  });
+
+  testWidgets('shift tasks board stays a readable column on wide screens',
+      (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await _signInUi(
+        tester, SampleDataset.demoEmployee.email, 'employee-pass');
+
+    await tester.tap(find.text('All tasks'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your task list'), findsOneWidget);
+
+    // The task list card is capped (~860px) instead of stretching with
+    // the window.
+    final card = tester.getSize(find.ancestor(
+        of: find.text('Your task list'), matching: find.byType(SectionCard)));
+    expect(card.width, lessThan(900));
+    expect(card.width, greaterThan(400));
   });
 
   testWidgets('tapping an order row opens its detail page', (tester) async {

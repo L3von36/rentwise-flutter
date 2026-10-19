@@ -1952,6 +1952,9 @@ class _OwnerCompactDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = state.activity.take(4).toList();
+    final next = state.nextDispatch;
+    final dispatchOverdue = next != null &&
+        next.date.isBefore(DateTime(now.year, now.month, now.day));
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
@@ -2090,97 +2093,128 @@ class _OwnerCompactDashboard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Next dispatch
-          HoverLift(
-            onTap: () => openCalendar(context),
-            radius: 14,
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppPalette.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppPalette.stroke),
-                boxShadow: AppShadow.card(opacity: 0.04),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      IconChipLite(
-                          icon: Icons.local_shipping_outlined,
-                          color: AppPalette.blue,
-                          bg: AppPalette.blueBg,
-                          size: 30),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Eyebrow('Next dispatch'),
-                            const SizedBox(height: 3),
-                            Text('Oakwood Estate',
-                                style: TextStyle(
-                                    fontFamily: AppTheme.fontFamily,
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppPalette.ink)),
-                          ],
+          // Next dispatch — LIVE from the pickup schedule (the wide
+          // dashboard's dispatch card uses the same source). A run whose
+          // date has already passed but is still on the board flips the
+          // card to an honest amber “overdue” state instead of posing as
+          // upcoming.
+          if (next != null)
+            HoverLift(
+              onTap: () => openCalendar(context),
+              radius: 14,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppPalette.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: dispatchOverdue
+                          ? AppPalette.amberBg
+                          : AppPalette.stroke),
+                  boxShadow: AppShadow.card(opacity: 0.04),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        IconChipLite(
+                            icon: Icons.local_shipping_outlined,
+                            color: dispatchOverdue
+                                ? AppPalette.amber
+                                : AppPalette.blue,
+                            bg: dispatchOverdue
+                                ? AppPalette.amberBg
+                                : AppPalette.blueBg,
+                            size: 30),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Eyebrow(dispatchOverdue
+                                  ? 'Dispatch overdue'
+                                  : 'Next dispatch'),
+                              const SizedBox(height: 3),
+                              Text(next.venue,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontFamily: AppTheme.fontFamily,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppPalette.ink)),
+                            ],
+                          ),
                         ),
-                      ),
-                      Text('3:30 PM',
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: AppPalette.primary)),
-                    ],
-                  ),
-                  const SizedBox(height: 11),
-                  const Divider(),
-                  const SizedBox(height: 10),
-                  // meta facts wrap to a second line on narrow phones
-                  Wrap(
-                    spacing: 14,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.event_outlined,
-                            size: 15, color: AppPalette.muted),
-                        const SizedBox(width: 6),
-                        Text('Sat, Oct 18',
+                        Text(
+                            dispatchOverdue
+                                ? DateFormat('EEE, MMM d').format(next.date)
+                                : DateFormat.jm().format(next.date),
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
-                                fontSize: 12,
-                                color: AppPalette.muted)),
-                      ]),
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.inventory_2_outlined,
-                            size: 15, color: AppPalette.muted),
-                        const SizedBox(width: 6),
-                        Text('12 items',
-                            style: TextStyle(
-                                fontFamily: AppTheme.fontFamily,
-                                fontSize: 12,
-                                color: AppPalette.muted)),
-                      ]),
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.person_outline,
-                            size: 15, color: AppPalette.muted),
-                        const SizedBox(width: 6),
-                        Text('Mia Chen',
-                            style: TextStyle(
-                                fontFamily: AppTheme.fontFamily,
-                                fontSize: 12,
-                                color: AppPalette.muted)),
-                      ]),
-                    ],
-                  ),
-                ],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: dispatchOverdue
+                                    ? AppPalette.amber
+                                    : AppPalette.primary)),
+                      ],
+                    ),
+                    const SizedBox(height: 11),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    // meta facts wrap to a second line on narrow phones
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.event_outlined,
+                              size: 15,
+                              color: dispatchOverdue
+                                  ? AppPalette.amber
+                                  : AppPalette.muted),
+                          const SizedBox(width: 6),
+                          Text(DateFormat('EEE, MMM d').format(next.date),
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 12,
+                                  fontWeight: dispatchOverdue
+                                      ? FontWeight.w700
+                                      : FontWeight.w400,
+                                  color: dispatchOverdue
+                                      ? AppPalette.amber
+                                      : AppPalette.muted)),
+                        ]),
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.inventory_2_outlined,
+                              size: 15, color: AppPalette.muted),
+                          const SizedBox(width: 6),
+                          Text('${next.itemCount} items',
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 12,
+                                  color: AppPalette.muted)),
+                        ]),
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.person_outline,
+                              size: 15, color: AppPalette.muted),
+                          const SizedBox(width: 6),
+                          Text(next.contactName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 12,
+                                  color: AppPalette.muted)),
+                        ]),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
