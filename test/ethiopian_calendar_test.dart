@@ -49,7 +49,7 @@ void main() {
 
     test('round-trip GC → EC → GC over a wide date range', () {
       var d = DateTime(2020, 1, 1);
-      final step = const Duration(days: 37);
+      const step = Duration(days: 37);
       while (d.isBefore(DateTime(2035, 1, 1))) {
         final ec = EthiopianCalendar.fromGregorian(d);
         final back = EthiopianCalendar.toGregorian(ec.year, ec.month, ec.day);
