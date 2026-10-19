@@ -112,6 +112,17 @@ AW_KEY=<api key with databases/users/teams scopes> bash scripts/appwrite_provisi
 - **From the Appwrite console**: Auth → Add user alone is NOT enough anymore — without a `profiles` document the account cannot sign in. Create the `profiles` document with the API key, or better: add the employee from the Owner Dashboard.
 - Customers are NOT app accounts — they are records in the `customers` collection, managed by owner/staff from the Customers screen.
 
+### Minimalism pass — every screen earns its place (v1.27)
+
+A professional audit of every screen (run live against the real workspace, desktop + phone): anything that was decorative, duplicated, or dead was removed. Screens now lead with the data.
+
+- **Orders** — the 4 dashboard-style KPI cards (with their fake `+4` / `100%` trend chips) and the All orders / Upcoming / Completed tabs are gone. The status chips with live counts are the single filter system; the list is the first thing on screen (on a phone the first order card now appears immediately instead of two screens of KPIs down). Rows dropped the `Created <date>` subline; the stale "deliveries" copy was removed (pickup-only business).
+- **Order detail** — no "Status updates write straight to the activity log" meta-line, no duplicated status in the header, no filler card subtitles, "Book similar order / View all orders" footer buttons removed (the former never prefilled anything — the real New booking action lives in the top bar). Timeline phrasing fixed (`Tomorrow` / `1 day` singular), the notes card only renders when notes exist, and the customer card is a single tappable strip.
+- **Customers** — the fake trend chips (`+12`, `+8.4%`, `14.2%`, `Due today`) are gone from the KPIs, subtitles are honest definitions (`3+ bookings`, `No booking in 30+ days`), and the decorative "Relationship pulse" panel (hardcoded `+18%`, `23 days`, fixed bars) was removed — the directory is now full-width; Customer insights carries the real numbers.
+- **Customer insights** — the fabricated 7-month "lead time" chart (the code's own comment called them design-pack numbers) and its `+18%` chip were removed; the remaining KPIs are computed live.
+- **Inventory** — hero subtitle removed, KPI subtitles shortened to what fits (`All catalog units`, `Ready to book`, `With customers now`, `In maintenance`).
+- **Dashboard / Activity / Reports** — "Owner shortcuts.", the activity hero meta-line, and the reports hero "nothing is hardcoded" commentary removed; activity day headers now read `16 updates`.
+
 ### Payment policy & customer pickup (v1.26)
 
 Nothing leaves the shop until the full plan is settled and the customer is verified — enforced in code, not on paper:

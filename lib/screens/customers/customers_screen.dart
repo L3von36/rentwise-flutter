@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
 import '../../services/csv_export.dart';
@@ -12,7 +11,6 @@ import '../../widgets/chips.dart';
 import '../../models/customer.dart';
 import '../../widgets/kpi_card.dart';
 import '../../widgets/motion.dart';
-import '../../widgets/indicators.dart';
 import 'customer_detail_screen.dart';
 import 'customer_insights_screen.dart';
 import '../booking/new_booking_sheet.dart';
@@ -33,29 +31,16 @@ class CustomersScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              IconChipLite(
-                  icon: Icons.people_outline,
-                  color: AppPalette.primary,
-                  bg: AppPalette.primarySoft,
-                  size: 40),
-              const SizedBox(width: 11),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Eyebrow('Workspace / Customers'),
-                    const SizedBox(height: 4),
-                    Text('Customers',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: Density.compact(context) ? 17 : 21,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                            color: AppPalette.ink)),
-                  ],
-                ),
+                child: Text('Customers',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: Density.compact(context) ? 17 : 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.8,
+                        color: AppPalette.ink)),
               ),
               PrimaryButton(
                 label: 'Add customer',
@@ -64,12 +49,6 @@ class CustomersScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text('Keep relationships warm and repeat bookings moving.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 14,
-                  color: AppPalette.muted)),
           const SizedBox(height: 14),
 
           LayoutBuilder(builder: (context, c) {
@@ -88,9 +67,7 @@ class CustomersScreen extends StatelessWidget {
                     iconBg: AppPalette.primarySoft,
                     label: 'Total customers',
                     value: '${state.customers.length}',
-                    subtitle: 'In the live directory',
-                    trailing: const TrendChip(
-                        text: '+12', positive: true),
+                    subtitle: 'In your directory',
                     onTap: () => _openInsights(context),
                   ),
                 ),
@@ -103,9 +80,7 @@ class CustomersScreen extends StatelessWidget {
                     label: 'Repeat customers',
                     value:
                         '${_repeatPct(state)}%',
-                    subtitle: 'Healthy retention',
-                    trailing: const TrendChip(
-                        text: '+8.4%', positive: true),
+                    subtitle: '3+ bookings',
                     onTap: () => _openInsights(context),
                   ),
                 ),
@@ -117,9 +92,7 @@ class CustomersScreen extends StatelessWidget {
                     iconBg: AppPalette.greenBg,
                     label: 'Customer value',
                     value: _totalValue(state),
-                    subtitle: 'Year to date',
-                    trailing: const TrendChip(
-                        text: '14.2%', positive: true),
+                    subtitle: 'Lifetime spend',
                     onTap: () => _openInsights(context),
                   ),
                 ),
@@ -131,9 +104,7 @@ class CustomersScreen extends StatelessWidget {
                     iconBg: AppPalette.amberBg,
                     label: 'Follow-ups',
                     value: '${state.followUpsCount}',
-                    subtitle: 'Keep the loop tight',
-                    trailing: const TrendChip(
-                        text: 'Due today', positive: false),
+                    subtitle: 'No booking in 30+ days',
                     onTap: () => _openInsights(context),
                   ),
                 ),
@@ -142,25 +113,7 @@ class CustomersScreen extends StatelessWidget {
           }),
           const SizedBox(height: 14),
 
-          // directory + pulse
-          IntrinsicHeight(
-            child: width >= 1050
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 8, child: _Directory(state: state)),
-                      const SizedBox(width: 14),
-                      const Expanded(flex: 4, child: _PulsePanel()),
-                    ],
-                  )
-                : Column(
-                    children: [
-                      _Directory(state: state),
-                      const SizedBox(height: 14),
-                      const _PulsePanel(),
-                    ],
-                  ),
-          ),
+          _Directory(state: state),
         ],
       ),
     );
@@ -312,7 +265,6 @@ class _Directory extends StatelessWidget {
     return SectionCard(
       icon: Icons.people_outline,
       title: 'Customer directory',
-      subtitle: 'Your most active rental relationships.',
       action: OutlineButton(
         label: 'Export',
         icon: Icons.file_download_outlined,
@@ -665,129 +617,6 @@ class _CustomerCardWide extends StatelessWidget {
           Icon(Icons.chevron_right_rounded, size: 16, color: AppPalette.faint),
         ],
       ),
-      ),
-    );
-  }
-}
-
-/// Purple "Relationship pulse" insight panel.
-class _PulsePanel extends StatelessWidget {
-  const _PulsePanel();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppPalette.purpleBg,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(
-            color: AppPalette.purple
-                .withOpacity(AppPalette.dark ? 0.28 : 0.16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Eyebrow('Relationship pulse', color: AppPalette.purple),
-          const SizedBox(height: 10),
-          Text('Customers are booking earlier.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 16,
-                  height: 1.25,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  color: AppPalette.ink)),
-          const SizedBox(height: 10),
-          Text(
-            'Average lead time is up to 23 days, giving the team more room to prep and upsell.',
-            style: TextStyle(
-              fontFamily: AppTheme.fontFamily,
-              fontSize: 13,
-              height: 1.55,
-              color: AppPalette.body,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('+18%',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: Density.compact(context) ? 18 : 22,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.8,
-                      color: AppPalette.purple)),
-              const SizedBox(width: 9),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text('average lead time',
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 12,
-                        color: AppPalette.muted)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 11),
-          SizedBox(
-            height: 46,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (final h in [10.0, 12.0, 15.0, 13.0, 18.0, 24.0, 30.0, 38.0, 46.0])
-                  Expanded(
-                    child: Container(
-                      height: h,
-                      margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            AppPalette.dark
-                                ? const Color(0xFF4A4394)
-                                : const Color(0xFFB7ADF4),
-                            AppPalette.dark
-                                ? const Color(0xFF8B78EC)
-                                : const Color(0xFF8B78EC).withOpacity(0.85),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => const CustomerInsightsScreen(),
-              ));
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('View customer insights',
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppPalette.purple)),
-                  const SizedBox(width: 5),
-                  Icon(Icons.north_east_rounded,
-                      size: 14, color: AppPalette.purple),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1197,7 +1197,6 @@ class _QuickActionsCard extends StatelessWidget {
     return SectionCard(
       icon: Icons.bolt_rounded,
       title: 'Quick actions',
-      subtitle: state.isOwner ? 'Owner shortcuts.' : 'One tap, straight to work.',
       child: Column(
         children: [
           Row(

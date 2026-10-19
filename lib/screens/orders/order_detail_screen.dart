@@ -4,17 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_theme.dart';
-import '../../core/density.dart';
 import '../../models/customer.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/detail_page.dart';
-import '../../widgets/filters.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/order_status_style.dart';
-import '../booking/new_booking_sheet.dart';
 import '../customers/customer_detail_screen.dart';
 import '../../core/palette.dart';
 import '../../data/appwrite_mappers.dart';
@@ -35,7 +32,6 @@ class OrderDetailScreen extends StatelessWidget {
     final df = DateFormat('EEE, MMM d, yyyy');
     final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
     final wide = MediaQuery.sizeOf(context).width >= 900;
-    final compact = Density.compact(context);
 
     final days = live.eventDate
         .difference(DateTime.now())
@@ -46,7 +42,7 @@ class OrderDetailScreen extends StatelessWidget {
     final header = SectionCard(
       icon: Icons.receipt_long_outlined,
       title: 'Order ${live.id}',
-      subtitle: 'Created ${df.format(live.createdAt)} · ${live.status.label}',
+      subtitle: 'Created ${df.format(live.createdAt)}',
       action: StatusBadge(
         label: live.status.label,
         fg: live.status.fg,
@@ -74,15 +70,19 @@ class OrderDetailScreen extends StatelessWidget {
               _MetaFact(
                   icon: Icons.schedule_rounded,
                   label: 'Timeline',
-                  value: days > 0
+                  value: days > 1
                       ? 'In $days days'
-                      : days == 0
-                          ? 'Today'
-                          : '${-days} days ago'),
+                      : days == 1
+                          ? 'Tomorrow'
+                          : days == 0
+                              ? 'Today'
+                              : -days == 1
+                                  ? 'Yesterday'
+                                  : '${-days} days ago'),
               _MetaFact(
                   icon: Icons.inventory_2_outlined,
                   label: 'Items',
-                  value: '${live.itemCount} on this order'),
+                  value: '${live.itemCount} items'),
               _MetaFact(
                   icon: Icons.contact_phone_outlined,
                   label: 'Contact',
@@ -96,9 +96,6 @@ class OrderDetailScreen extends StatelessWidget {
     final manifest = SectionCard(
       icon: Icons.list_alt_rounded,
       title: 'Item manifest',
-      subtitle: live.lineItems.isEmpty
-          ? 'No line items recorded for this order.'
-          : '${live.lineItems.length} line(s) · quoted event pricing',
       child: live.lineItems.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -144,34 +141,27 @@ class OrderDetailScreen extends StatelessWidget {
             ),
     );
 
-    final notesCard = SectionCard(
-      icon: Icons.sticky_note_2_outlined,
-      title: 'Pickup notes',
-      subtitle: 'Captured at booking time.',
-      child: Text(
-        live.notes.isEmpty
-            ? 'No notes on this order yet.'
-            : live.notes,
-        style: TextStyle(
-            fontFamily: AppTheme.fontFamily,
-            fontSize: 13,
-            height: 1.5,
-            color: live.notes.isEmpty ? AppPalette.muted : AppPalette.body),
-      ),
-    );
+    final notesCard = live.notes.isEmpty
+        ? null // no notes → no card: the section only earns its place
+                   // when there is something to read
+        : SectionCard(
+            icon: Icons.sticky_note_2_outlined,
+            title: 'Pickup notes',
+            child: Text(
+              live.notes,
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 13,
+                  height: 1.5,
+                  color: AppPalette.body),
+            ),
+          );
 
     final payment = _PaymentsHandoverCard(order: live);
 
     final customerCard = SectionCard(
       icon: Icons.person_outline_rounded,
       title: 'Customer',
-      subtitle: 'Who this booking belongs to.',
-      action: customer == null
-          ? null
-          : LinkChip(
-              label: 'View profile',
-              onTap: () => _openCustomer(context, customer),
-            ),
       child: customer == null
           ? Text(
               '${live.customerName} is not in the directory yet — added bookings will link automatically.',
@@ -202,8 +192,10 @@ class OrderDetailScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       manifest,
-                      const SizedBox(height: 14),
-                      notesCard,
+                      if (notesCard != null) ...[
+                        const SizedBox(height: 14),
+                        notesCard,
+                      ],
                     ],
                   ),
                 ),
@@ -227,33 +219,14 @@ class OrderDetailScreen extends StatelessWidget {
           manifest,
           const SizedBox(height: 14),
           payment,
-          const SizedBox(height: 14),
-          notesCard,
+          if (notesCard != null) ...[
+            const SizedBox(height: 14),
+            notesCard,
+          ],
           const SizedBox(height: 14),
           customerCard,
           const SizedBox(height: 14),
           actions,
-        ],
-        const SizedBox(height: 6),
-        if (!compact) ...[
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              OutlineButton(
-                label: 'Book similar order',
-                icon: Icons.copy_rounded,
-                onTap: () => showNewBookingSheet(context),
-              ),
-              const SizedBox(width: 10),
-              OutlineButton(
-                label: 'View all orders',
-                icon: Icons.receipt_long_outlined,
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
         ],
       ],
     );
@@ -261,7 +234,6 @@ class OrderDetailScreen extends StatelessWidget {
     return DetailPage(
       eyebrow: 'Workspace / Orders / ${live.id}',
       title: live.eventName,
-      subtitle: 'Status updates write straight to the activity log.',
       icon: Icons.receipt_long_outlined,
       body: body,
     );
@@ -1111,7 +1083,6 @@ class _StatusActionsCard extends StatelessWidget {
     return SectionCard(
       icon: Icons.bolt_rounded,
       title: 'Update status',
-      subtitle: 'Advances this order through the rental lifecycle.',
       child: Wrap(
         spacing: 8,
         runSpacing: 8,

@@ -233,16 +233,6 @@ class _PerformanceHero extends StatelessWidget {
                       fontSize: 15.5,
                       fontWeight: FontWeight.w800,
                       color: Colors.white)),
-              const SizedBox(height: 3),
-              Text(
-                'Every figure on this page is computed live from your '
-                'workspace — nothing is hardcoded.',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
-                    height: 1.35,
-                    color: Colors.white.withOpacity(0.78)),
-              ),
             ],
           ),
         ),

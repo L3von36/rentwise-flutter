@@ -5,13 +5,11 @@ import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
 import '../../core/density.dart';
 import '../../models/customer.dart';
-import '../../models/shift_task.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/detail_page.dart';
 import '../../widgets/kpi_card.dart';
-import '../../widgets/indicators.dart';
 import '../../widgets/motion.dart';
 import 'customer_detail_screen.dart';
 import '../../core/palette.dart';
@@ -37,17 +35,6 @@ class CustomerInsightsScreen extends StatelessWidget {
     final avgValue =
         customers.isEmpty ? 0.0 : totalSpend / customers.length;
 
-    // lead-time trend (design-pack numbers + live repeat mix)
-    final leadTime = <LeadTimePoint>[
-      const LeadTimePoint('Mar', 11),
-      const LeadTimePoint('Apr', 13),
-      const LeadTimePoint('May', 12),
-      const LeadTimePoint('Jun', 15),
-      const LeadTimePoint('Jul', 17),
-      const LeadTimePoint('Aug', 19),
-      const LeadTimePoint('Sep', 23),
-    ];
-
     final leaderboard = [...customers]
       ..sort((a, b) => b.lifetimeSpend.compareTo(a.lifetimeSpend));
 
@@ -67,8 +54,7 @@ class CustomerInsightsScreen extends StatelessWidget {
               iconBg: AppPalette.primarySoft,
               label: 'Active relationships',
               value: '${customers.length}',
-              subtitle: 'In the live directory',
-              trailing: const TrendChip.flat(text: 'Live'),
+              subtitle: 'In your directory',
             ),
           ),
           SizedBox(
@@ -80,8 +66,6 @@ class CustomerInsightsScreen extends StatelessWidget {
               label: 'Repeat rate',
               value: '${repeatPct.round()}%',
               subtitle: '$repeat of ${customers.length} customers',
-              trailing: const TrendChip(
-                  text: '+8.4%', positive: true),
             ),
           ),
           SizedBox(
@@ -93,8 +77,6 @@ class CustomerInsightsScreen extends StatelessWidget {
               label: 'Avg lifetime value',
               value: money.format(avgValue),
               subtitle: 'Per customer',
-              trailing: const TrendChip(
-                  text: '14.2%', positive: true),
             ),
           ),
           SizedBox(
@@ -105,106 +87,12 @@ class CustomerInsightsScreen extends StatelessWidget {
               iconBg: AppPalette.amberBg,
               label: 'Open follow-ups',
               value: '${state.followUpsCount}',
-              subtitle: 'Keep the loop tight',
-              trailing: const TrendChip(
-                  text: 'Due today', positive: false),
+              subtitle: 'No booking in 30+ days',
             ),
           ),
         ],
       );
     });
-
-    final leadTimeCard = SectionCard(
-      icon: Icons.trending_up_rounded,
-      title: 'Customers are booking earlier',
-      subtitle:
-          'Average lead time across the last 7 months — more room to prep and upsell.',
-      action: const TrendChip(text: '+18%', positive: true),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: 96,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (var i = 0; i < leadTime.length; i++)
-                  Expanded(
-                    child: StaggerIn(
-                      index: i,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text(
-                              leadTime[i].days.round().toString(),
-                              style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppPalette.muted),
-                            ),
-                            const SizedBox(height: 4),
-                            AnimatedBar(
-                              fraction:
-                                  leadTime[i].days / leadTime.last.days,
-                              height: (leadTime[i].days / leadTime.last.days *
-                                      66)
-                                  .clamp(10, 66),
-                              color: i == leadTime.length - 1
-                                  ? AppPalette.purple
-                                  : AppPalette.purple
-                                      .withOpacity(AppPalette.dark
-                                          ? 0.45
-                                          : 0.35),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              for (final p in leadTime)
-                Expanded(
-                  child: Text(p.label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 10,
-                          color: AppPalette.faint)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Divider(),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _SplitStat(
-                  label: 'Booking early',
-                  pct: 68,
-                  color: AppPalette.green,
-                ),
-              ),
-              Expanded(
-                child: _SplitStat(
-                  label: 'Standard pace',
-                  pct: 32,
-                  color: AppPalette.amber,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
 
     // Business target for repeat-rate health (app constant, not data).
     const benchmarkPct = 68.0;
@@ -312,7 +200,6 @@ class CustomerInsightsScreen extends StatelessWidget {
         children: [
           kpis,
           const SizedBox(height: 14),
-          leadTimeCard,
           const SizedBox(height: 14),
           if (compact) ...[
             retentionCard,
@@ -336,41 +223,6 @@ class CustomerInsightsScreen extends StatelessWidget {
 }
 
 // ----------------------------------------------------------------- pieces
-class _SplitStat extends StatelessWidget {
-  final String label;
-  final int pct;
-  final Color color;
-  const _SplitStat(
-      {required this.label, required this.pct, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(label,
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 12.5,
-                  color: AppPalette.body)),
-        ),
-        Text('$pct%',
-            style: TextStyle(
-                fontFamily: AppTheme.fontFamily,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: color)),
-      ],
-    );
-  }
-}
-
 class _LeaderRow extends StatelessWidget {
   final int rank;
   final Customer customer;

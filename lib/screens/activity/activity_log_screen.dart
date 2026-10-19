@@ -67,9 +67,8 @@ class ActivityLogScreen extends StatelessWidget {
               SectionCard(
                 icon: Icons.show_chart,
                 title: day,
-                subtitle:
-                    '${groups[day]!.length} update(s) — every action '
-                    'time-stamped and attributed.',
+                subtitle: '${groups[day]!.length} '
+                    '${groups[day]!.length == 1 ? 'update' : 'updates'}',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -133,27 +132,13 @@ class _ActivityHero extends StatelessWidget {
               color: Colors.white, size: 22),
         ),
         const SizedBox(width: 13),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Activity Log',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white)),
-              const SizedBox(height: 3),
-              Text(
-                'Live numbers for today, straight from the log.',
-                style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 12.5,
-                    height: 1.35,
-                    color: Colors.white.withOpacity(0.78)),
-              ),
-            ],
-          ),
+        const Expanded(
+          child: Text('Activity Log',
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white)),
         ),
         Container(
           padding:

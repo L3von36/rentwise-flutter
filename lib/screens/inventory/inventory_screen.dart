@@ -43,29 +43,16 @@ class InventoryScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              IconChipLite(
-                  icon: Icons.inventory_2_outlined,
-                  color: AppPalette.primary,
-                  bg: AppPalette.primarySoft,
-                  size: 40),
-              const SizedBox(width: 11),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Eyebrow('Workspace / Inventory'),
-                    const SizedBox(height: 4),
-                    Text('Inventory',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: Density.compact(context) ? 17 : 21,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                            color: AppPalette.ink)),
-                  ],
-                ),
+                child: Text('Inventory',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: Density.compact(context) ? 17 : 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.8,
+                        color: AppPalette.ink)),
               ),
               // Adding catalog items is a purchasing decision — owner-only.
               // Employees adjust stock counts from the table instead.
@@ -77,12 +64,6 @@ class InventoryScreen extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text('Track every piece of equipment from shelf to event site.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 14,
-                  color: AppPalette.muted)),
           const SizedBox(height: 14),
 
           // KPI grid — each card drills into ITS OWN metric, never the
@@ -103,7 +84,7 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.primarySoft,
                     label: 'Total items',
                     value: '${state.totalUnits}',
-                    subtitle: 'Every unit owned — tap for category breakdown',
+                    subtitle: 'All catalog units',
                     trailing: TrendChip.flat(
                         text: '${state.inventory.length} lines'),
                     onTap: () => _showCategoryBreakdown(
@@ -118,7 +99,7 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.greenBg,
                     label: 'Available now',
                     value: '${state.availableUnits}',
-                    subtitle: 'Bookable units — tap to see where they sit',
+                    subtitle: 'Ready to book',
                     trailing: TrendChip(
                         text: '${availablePct.toStringAsFixed(0)}%',
                         positive: true),
@@ -134,7 +115,7 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.amberBg,
                     label: 'On rent',
                     value: '${state.onRentUnits}',
-                    subtitle: 'Out with customers — tap to see what',
+                    subtitle: 'With customers now',
                     trailing: TrendChip(
                         text: '${onRentPct.toStringAsFixed(1)}%',
                         positive: false),
@@ -150,7 +131,7 @@ class InventoryScreen extends StatelessWidget {
                     iconBg: AppPalette.blueBg,
                     label: 'Needs attention',
                     value: '${state.attentionItems}',
-                    subtitle: 'Items pulled for maintenance — watch list',
+                    subtitle: 'In maintenance',
                     trailing: const TrendChip.flat(text: 'Watch list'),
                     onTap: () => _showAttentionList(context),
                   ),
@@ -164,7 +145,6 @@ class InventoryScreen extends StatelessWidget {
           SectionCard(
             icon: Icons.inventory_2_outlined,
             title: 'All inventory',
-            subtitle: 'Availability updates live as bookings are created and returned.',
             action: OutlineButton(
               label: 'Export CSV',
               icon: Icons.file_download_outlined,

@@ -3,16 +3,15 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
+import '../../core/app_colors.dart'; // AppRadius
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
-import '../../widgets/kpi_card.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/order_status_style.dart';
 import '../booking/new_booking_sheet.dart';
 import 'order_detail_screen.dart';
-import '../../widgets/indicators.dart';
 import '../../core/palette.dart';
 
 class OrdersScreen extends StatelessWidget {
@@ -31,29 +30,16 @@ class OrdersScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              IconChipLite(
-                  icon: Icons.receipt_long_outlined,
-                  color: AppPalette.primary,
-                  bg: AppPalette.primarySoft,
-                  size: 40),
-              const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Eyebrow('Workspace / Orders'),
-                    const SizedBox(height: 4),
-                    Text('Orders',
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontSize: Density.compact(context) ? 17 : 21,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                            color: AppPalette.ink)),
-                  ],
-                ),
+                child: Text('Orders',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: Density.compact(context) ? 17 : 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.8,
+                        color: AppPalette.ink)),
               ),
               PrimaryButton(
                 label: 'New rental booking',
@@ -62,106 +48,12 @@ class OrdersScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text('Coordinate upcoming events, deliveries, and returns.',
-              style: TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 14,
-                  color: AppPalette.muted)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
 
-          LayoutBuilder(builder: (context, c) {
-            final cols = width < 1100 ? 2 : 4;
-            const gap = 16.0;
-            final cardW = (c.maxWidth - gap * (cols - 1)) / cols;
-            return Wrap(
-              spacing: gap,
-              runSpacing: gap,
-              children: [
-                SizedBox(
-                  width: cardW,
-                  child: KpiCard(
-                    icon: Icons.receipt_long_outlined,
-                    iconColor: AppPalette.blue,
-                    iconBg: AppPalette.blueBg,
-                    label: 'Open orders',
-                    value: '${state.openOrdersCount}',
-                    subtitle: 'Live count of open rentals',
-                    trailing: const TrendChip(text: '+4', positive: true),
-                    onTap: () => state.setOrderStatusFilter(null),
-                  ),
-                ),
-                SizedBox(
-                  width: cardW,
-                  child: KpiCard(
-                    icon: Icons.payments_outlined,
-                    iconColor: AppPalette.amber,
-                    iconBg: AppPalette.amberBg,
-                    label: 'Awaiting payment',
-                    value: '\$${state.awaitingPaymentTotal.toStringAsFixed(0)}',
-                    subtitle: 'Tap to filter · follow up today',
-                    trailing: TrendChip(
-                        text: '${state.needsPaymentCount} orders',
-                        positive: false),
-                    onTap: () =>
-                        state.setOrderStatusFilter(OrderStatus.needsPayment),
-                  ),
-                ),
-                SizedBox(
-                  width: cardW,
-                  child: KpiCard(
-                    icon: Icons.local_shipping_outlined,
-                    iconColor: AppPalette.purple,
-                    iconBg: AppPalette.purpleBg,
-                    label: 'With customer',
-                    value: '${state.outForDeliveryCount}',
-                    subtitle: 'On schedule',
-                    trailing: const TrendChip(text: '100%', positive: true),
-                    onTap: () =>
-                        state.setOrderStatusFilter(OrderStatus.outForDelivery),
-                  ),
-                ),
-                SizedBox(
-                  width: cardW,
-                  child: KpiCard(
-                    icon: Icons.schedule_rounded,
-                    iconColor: AppPalette.amber,
-                    iconBg: AppPalette.amberBg,
-                    label: 'Returns today',
-                    value: '${state.returnsTodayCount}',
-                    subtitle: 'Needs attention',
-                    trailing: state.returnsLateCount > 0
-                        ? TrendChip(
-                            text: '${state.returnsLateCount} late',
-                            positive: false)
-                        : const TrendChip.flat(text: 'On time'),
-                    onTap: () =>
-                        state.setOrderStatusFilter(OrderStatus.returned),
-                  ),
-                ),
-              ],
-            );
-          }),
-          const SizedBox(height: 20),
-
-          SectionCard(
-            icon: Icons.receipt_long_outlined,
-            title: 'Rental orders',
-            subtitle: 'One view for the full order lifecycle.',
+          _ListCard(
             child: Column(
               children: [
-                // tabs
-                Row(
-                  children: [
-                    _OrderTabs(
-                      tabs: const ['All orders', 'Upcoming', 'Completed'],
-                      selected: state.orderTab,
-                      onChanged: state.setOrderTab,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // status filters — tab-scoped, live counts
+                // status filters — the one filter system, live counts
                 _StatusFilterRow(state: state),
                 const SizedBox(height: 12),
                 if (compactList)
@@ -192,6 +84,26 @@ class OrdersScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Plain list surface — the page title + status chips are the header.
+class _ListCard extends StatelessWidget {
+  final Widget child;
+  const _ListCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(Density.compact(context) ? 14 : 16),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppPalette.stroke),
+      ),
+      child: child,
     );
   }
 }
@@ -302,64 +214,6 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-class _OrderTabs extends StatelessWidget {
-  final List<String> tabs;
-  final String selected;
-  final ValueChanged<String> onChanged;
-  const _OrderTabs({
-    required this.tabs,
-    required this.selected,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppPalette.fill,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final tab in tabs)
-            GestureDetector(
-              onTap: () => onChanged(tab),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: tab == selected ? AppPalette.raise : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: tab == selected
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 5,
-                            offset: const Offset(0, 1),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(tab,
-                    style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: tab == selected
-                          ? AppPalette.ink
-                          : AppPalette.muted,
-                    )),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _OrderHeader extends StatelessWidget {
   static const _flexes = [3, 4, 3, 2, 2, 3, 1];
 
@@ -428,12 +282,6 @@ class _OrderRow extends StatelessWidget {
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: AppPalette.primary)),
-                const SizedBox(height: 2),
-                Text('Created ${df.format(order.createdAt)}',
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 11.5,
-                        color: AppPalette.faint)),
               ],
             ),
           ),

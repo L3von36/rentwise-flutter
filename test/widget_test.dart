@@ -453,16 +453,8 @@ void main() {
     expect(find.text('Northstar Product Launch'), findsNothing);
     expect(find.text('The Harper Wedding'), findsNothing);
 
-    // Filters compose with tabs: Completed + needsPayment = empty.
-    await tester.tap(find.text('Completed'));
-    await tester.pumpAndSettle();
-    expect(find.text('No orders in this view.'), findsOneWidget);
-
-    // Back to All orders keeps the status chip; clearing via All restores.
-    await tester.tap(find.text('All orders'));
-    await tester.pumpAndSettle();
-    expect(find.text('Monroe Family Reunion'), findsOneWidget);
-    await tester.tap(find.text('All · 5'));
+    // Tapping the active chip again clears the filter.
+    await tester.tap(find.text('Needs payment · 1'));
     await tester.pumpAndSettle();
     expect(find.text('Northstar Product Launch'), findsOneWidget);
     expect(find.text('Brighton Arts Gala'), findsOneWidget);
@@ -669,8 +661,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // The purple pulse panel's link now has a real destination.
-    await tester.tap(find.text('View customer insights'));
+    // The Total-customers KPI card opens the insights page.
+    await tester.tap(find.text('Total customers'));
     await tester.pumpAndSettle();
     expect(find.text('Customer insights'), findsOneWidget);
     expect(find.text('Top customers'), findsOneWidget);
@@ -737,7 +729,7 @@ void main() {
     expect(state.workspace, SampleDataset.workspaceName);
   });
 
-  testWidgets('orders KPI cards apply their matching status filter',
+  testWidgets('orders screen stays minimal — no KPI row, no tabs',
       (tester) async {
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1.0;
@@ -753,10 +745,13 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // The awaiting-payment KPI card filters the list to that bucket.
-    await tester.tap(find.text('Awaiting payment'));
-    await tester.pumpAndSettle();
-    expect(find.text('Monroe Family Reunion'), findsOneWidget);
-    expect(find.text('Northstar Product Launch'), findsNothing);
+    // The dashboard-level KPI cards and the All/Upcoming/Completed tabs
+    // were removed in the minimalism pass — the status chips are the
+    // single filter system and the list is the first thing on screen.
+    expect(find.text('Open orders'), findsNothing);
+    expect(find.text('Awaiting payment'), findsNothing);
+    expect(find.text('Completed'), findsNothing);
+    expect(find.text('Upcoming'), findsNothing);
+    expect(find.text('Needs payment · 1'), findsOneWidget);
   });
 }
