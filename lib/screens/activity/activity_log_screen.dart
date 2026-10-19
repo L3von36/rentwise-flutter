@@ -101,7 +101,7 @@ class ActivityLogScreen extends StatelessWidget {
 // ---------------------------------------------------------------- hero
 
 /// Gradient hero — same language as Reports / Access / Notifications:
-/// glass icon tile, white headline, LIVE pulse and translucent stats.
+/// glass icon tile, white headline and translucent stats.
 class _ActivityHero extends StatelessWidget {
   final int today;
   final int rentals;
@@ -139,34 +139,6 @@ class _ActivityHero extends StatelessWidget {
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
                   color: Colors.white)),
-        ),
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.16),
-            borderRadius: BorderRadius.circular(99),
-            border:
-                Border.all(color: Colors.white.withOpacity(0.25)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                    color: AppPalette.greenBar, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 5),
-              const Text('LIVE',
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: Colors.white)),
-            ],
-          ),
         ),
       ],
     );
@@ -234,12 +206,17 @@ class _HeroStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value,
-              style: const TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white)),
+          // Safety net: values scale down instead of wrapping.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value,
+                maxLines: 1,
+                style: const TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white)),
+          ),
           const SizedBox(height: 1),
           Text(label.toUpperCase(),
               maxLines: 1,

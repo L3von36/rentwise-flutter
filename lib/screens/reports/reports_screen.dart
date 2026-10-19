@@ -276,12 +276,18 @@ class _HeroStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value,
-              style: const TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white)),
+          // Safety net: values scale down instead of wrapping ('+12.5%'
+          // used to break onto two lines at narrow hero widths).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value,
+                maxLines: 1,
+                style: const TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white)),
+          ),
           const SizedBox(height: 1),
           // Safety net: labels scale down instead of ellipsizing at any
           // width or system text scale (e.g. 'UTILIZATION' on the 270px

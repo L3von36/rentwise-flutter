@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:rentwise/models/account.dart';
 import 'package:rentwise/models/activity_entry.dart';
@@ -6,6 +8,7 @@ import 'package:rentwise/models/inventory_item.dart';
 import 'package:rentwise/models/pickup.dart';
 import 'package:rentwise/models/rental_order.dart';
 import 'package:rentwise/core/app_colors.dart';
+import 'package:rentwise/data/appwrite_mappers.dart';
 
 /// Test-only sample dataset (the "Riverside Events" workspace) matching
 /// the RentWise design pack. Lives under test/ — the shipped app bundles
@@ -15,6 +18,32 @@ class SampleDataset {
   SampleDataset._();
 
   static const String workspaceName = 'Riverside Events';
+
+  /// A real [signatureToDoc]-encoded cursive squiggle, so seeded orders
+  /// render an actual signature thumbnail instead of a blank white box
+  /// (the decoder honestly turns garbage like 'seeded-signature' into
+  /// zero strokes).
+  static String seededSignature() {
+    List<Offset> curve(double x0, double y0, double x1, double y1,
+        {double amp = 0.04, double waves = 3, int steps = 30}) {
+      final pts = <Offset>[];
+      for (var i = 0; i <= steps; i++) {
+        final t = i / steps;
+        final x = x0 + (x1 - x0) * t;
+        final y = y0 + (y1 - y0) * t + amp * math.sin(t * math.pi * waves);
+        pts.add(Offset(x * kSignatureGridMax, y * kSignatureGridMax));
+      }
+      return pts;
+    }
+
+    return signatureToDoc([
+      // "M" rise, cursive middle, tail — plus an underline swoosh.
+      curve(0.06, 0.64, 0.30, 0.36, amp: -0.10, waves: 4),
+      curve(0.30, 0.40, 0.55, 0.56, amp: 0.10, waves: 5),
+      curve(0.55, 0.56, 0.88, 0.38, amp: -0.08, waves: 3),
+      curve(0.10, 0.80, 0.92, 0.70, amp: 0.03, waves: 1),
+    ]);
+  }
 
   static Account demoEmployee = const Account(
     name: 'Jordan Miller',
@@ -136,7 +165,7 @@ class SampleDataset {
           collateralPaidAt: now.subtract(const Duration(days: 1)),
           idVerifiedAt: now.subtract(const Duration(days: 1)),
           signedName: 'Mia Chen',
-          signatureData: 'seeded-signature',
+          signatureData: seededSignature(),
           signedAt: now.subtract(const Duration(days: 1)),
         ),
         RentalOrder(
@@ -205,7 +234,7 @@ class SampleDataset {
           collateralPaidAt: now.subtract(const Duration(days: 3)),
           idVerifiedAt: now.subtract(const Duration(days: 3)),
           signedName: 'Eli Marlow',
-          signatureData: 'seeded-signature',
+          signatureData: seededSignature(),
           signedAt: now.subtract(const Duration(days: 3)),
         ),
         RentalOrder(
@@ -231,63 +260,81 @@ class SampleDataset {
       ];
 
   // ---------------------------------------------------------------- customers
-  static List<Customer> customers(DateTime now) => [
-        Customer(
-          id: 'CUS-001',
-          name: 'Avery Harper',
-          company: 'The Harper Wedding',
-          email: 'avery@harperwed.com',
-          phone: '(555) 201-4477',
-          rentals: 8,
-          lifetimeSpend: 8420,
-          lastBooking: now.subtract(const Duration(days: 5)),
-          avatarColor: AppColors.avatarGreen,
-        ),
-        Customer(
-          id: 'CUS-002',
-          name: 'Mia Chen',
-          company: 'Northstar Events',
-          email: 'mia@northstar.events',
-          phone: '(555) 883-2014',
-          rentals: 5,
-          lifetimeSpend: 5180,
-          lastBooking: now.subtract(const Duration(days: 16)),
-          avatarColor: AppColors.avatarTeal,
-        ),
-        Customer(
-          id: 'CUS-003',
-          name: 'Tara Monroe',
-          company: 'Monroe Family',
-          email: 'tara.monroe@gmail.com',
-          phone: '(555) 340-9982',
-          rentals: 4,
-          lifetimeSpend: 4920,
-          lastBooking: now.subtract(const Duration(days: 28)),
-          avatarColor: AppColors.avatarOrange,
-        ),
-        Customer(
-          id: 'CUS-004',
-          name: 'Eli Marlow',
-          company: 'Marlow Studio',
-          email: 'eli@marlow.studio',
-          phone: '(555) 771-6620',
-          rentals: 3,
-          lifetimeSpend: 2280,
-          lastBooking: now.subtract(const Duration(days: 45)),
-          avatarColor: AppColors.avatarPurple,
-        ),
-        Customer(
-          id: 'CUS-005',
-          name: 'Lena Ortiz',
-          company: 'Brighton Arts',
-          email: 'lena@brightonarts.org',
-          phone: '(555) 418-2231',
-          rentals: 3,
-          lifetimeSpend: 6110,
-          lastBooking: now.subtract(const Duration(days: 2)),
-          avatarColor: AppColors.avatarBlue,
-        ),
-      ];
+  /// Contact book for the workspace. Rentals / lifetime spend / last
+  /// booking are DERIVED from the seeded orders so every screen tells
+  /// the same story (a customer's history can never contradict the
+  /// order list).
+  static List<Customer> customers(DateTime now) {
+    final os = orders(now);
+    Customer contact({
+      required String id,
+      required String name,
+      required String company,
+      required String email,
+      required String phone,
+      required Color avatarColor,
+    }) {
+      final mine = os.where((o) => o.customerName == name).toList();
+      final spend = mine.fold<double>(0, (s, o) => s + o.total);
+      final last = mine.isEmpty
+          ? now
+          : mine.map((o) => o.createdAt).reduce((a, b) => a.isAfter(b) ? a : b);
+      return Customer(
+        id: id,
+        name: name,
+        company: company,
+        email: email,
+        phone: phone,
+        rentals: mine.length,
+        lifetimeSpend: spend,
+        lastBooking: last,
+        avatarColor: avatarColor,
+      );
+    }
+
+    return [
+      contact(
+        id: 'CUS-001',
+        name: 'Avery Harper',
+        company: 'The Harper Wedding',
+        email: 'avery@harperwed.com',
+        phone: '(555) 201-4477',
+        avatarColor: AppColors.avatarGreen,
+      ),
+      contact(
+        id: 'CUS-002',
+        name: 'Mia Chen',
+        company: 'Northstar Events',
+        email: 'mia@northstar.events',
+        phone: '(555) 883-2014',
+        avatarColor: AppColors.avatarTeal,
+      ),
+      contact(
+        id: 'CUS-003',
+        name: 'Tara Monroe',
+        company: 'Monroe Family',
+        email: 'tara.monroe@gmail.com',
+        phone: '(555) 340-9982',
+        avatarColor: AppColors.avatarOrange,
+      ),
+      contact(
+        id: 'CUS-004',
+        name: 'Eli Marlow',
+        company: 'Marlow Studio',
+        email: 'eli@marlow.studio',
+        phone: '(555) 771-6620',
+        avatarColor: AppColors.avatarPurple,
+      ),
+      contact(
+        id: 'CUS-005',
+        name: 'Lena Ortiz',
+        company: 'Brighton Arts',
+        email: 'lena@brightonarts.org',
+        phone: '(555) 418-2231',
+        avatarColor: AppColors.avatarBlue,
+      ),
+    ];
+  }
 
   // ----------------------------------------------------------------- activity
   static List<ActivityEntry> activity(DateTime now) {

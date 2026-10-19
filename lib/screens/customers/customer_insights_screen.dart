@@ -274,7 +274,7 @@ class _LeaderRow extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: AppPalette.ink)),
                 Text(
-                    '${customer.rentals} rentals · ${customer.isRepeat ? 'repeat' : 'new-ish'}',
+                    '${customer.rentals} ${customer.rentals == 1 ? 'rental' : 'rentals'} · ${customer.isRepeat ? 'repeat' : 'new'}',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11,

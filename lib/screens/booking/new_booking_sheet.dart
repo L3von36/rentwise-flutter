@@ -266,7 +266,7 @@ class _BookingDialogState extends State<_BookingDialog> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Booking #$id created for $_customer · '
-            'collect \\${_downPayment.toStringAsFixed(0)} down payment at pickup'),
+            'collect \$${_downPayment.toStringAsFixed(0)} down payment at pickup'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -522,7 +522,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                         onChanged: (_) => setState(() => _downEdited = true),
                         decoration: InputDecoration(
                           hintText:
-                              '50% suggested · \\${_suggestedDown.toStringAsFixed(0)}',
+                              '50% suggested · \$${_suggestedDown.toStringAsFixed(0)}',
                           labelText: 'Down payment',
                         ),
                       ),
@@ -556,9 +556,9 @@ class _BookingDialogState extends State<_BookingDialog> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'down \\${_downPayment.toStringAsFixed(0)} · '
-                              'remaining \\${(_total - _downPayment).clamp(0, double.infinity).toStringAsFixed(0)} · '
-                              'collateral \\${_collateral.toStringAsFixed(0)} — all settled before pickup',
+                          'down \$${_downPayment.toStringAsFixed(0)} · '
+                              'remaining \$${(_total - _downPayment).clamp(0, double.infinity).toStringAsFixed(0)} · '
+                              'collateral \$${_collateral.toStringAsFixed(0)} — all settled before pickup',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 11.5,

@@ -606,7 +606,7 @@ class _CustomerCardWide extends StatelessWidget {
                       color: AppPalette.ink)),
               const SizedBox(height: 2),
               Text(
-                  '${cust.rentals} rentals · ${df.format(cust.lastBooking)}',
+                  '${cust.rentals} ${cust.rentals == 1 ? 'rental' : 'rentals'} · ${df.format(cust.lastBooking)}',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11.5,

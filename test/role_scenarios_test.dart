@@ -118,8 +118,8 @@ void main() {
 
       // …and the customer stat line moved too.
       final avery = state.customerByName('Avery Harper')!;
-      expect(avery.rentals, 9); // 8 in the cloud + this booking
-      expect(avery.lifetimeSpend, closeTo(8420 + qty * 1.50, 0.01));
+      expect(avery.rentals, 2); // 1 seeded order + this booking
+      expect(avery.lifetimeSpend, closeTo(3240 + qty * 1.50, 0.01));
 
       // Write-through: order (new) + inventory (update) + customer
       // (update) + activity (new).
@@ -370,8 +370,11 @@ void main() {
           state.inventory.firstWhere((i) => i.id == lights.id).available,
           availableBefore - 6);
 
-      // Recent customers are not on the follow-up shortlist.
-      expect(state.followUpsCount, isNot(equals(0)));
+      // Every seeded customer booked within the last month, so the
+      // follow-up shortlist stays empty — and certainly never suggests
+      // a customer who just booked.
+      expect(state.followUpsCount, 0,
+          reason: 'all seeded customers booked within the last 30 days');
       final followUps = state.customers
           .where((c) =>
               c.lastBooking

@@ -1051,7 +1051,8 @@ class _CustomerStrip extends StatelessWidget {
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
                         color: AppPalette.ink)),
-                Text('${customer.company} · ${customer.rentals} rentals',
+                Text(
+                    '${customer.company} · ${customer.rentals} ${customer.rentals == 1 ? 'rental' : 'rentals'}',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
