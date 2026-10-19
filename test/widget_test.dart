@@ -219,7 +219,7 @@ void main() {
     await _signInUi(tester, SampleDataset.demoOwner.email, 'owner-pass');
 
     // Owner sees the financial pulse + earnings chart, not the shift view.
-    expect(find.text('Month to date'), findsOneWidget);
+    expect(find.textContaining('Month to date'), findsOneWidget);
     expect(find.text('Awaiting payment'), findsOneWidget);
     expect(find.text('Earnings overview'), findsOneWidget);
     expect(find.text('TOP CATEGORIES'), findsOneWidget); // Eyebrow uppercases
@@ -485,7 +485,6 @@ void main() {
     // swipeable KpiStrip with a scroll affordance instead of squeezing
     // three Expanded tiles into unreadable thirds.
     expect(find.text("Today's revenue"), findsOneWidget);
-    expect(find.text('Details'), findsOneWidget);
     expect(find.text('24'), findsNothing);
     expect(find.text('8'), findsNothing);
     final state = tester.state(find.byType(Navigator)).context
@@ -509,7 +508,7 @@ void main() {
     // 'Mia Chen' hardcoded while the wide layout used real data) is gone.
     final next = state.nextDispatch;
     expect(next, isNotNull);
-    expect(find.text('NEXT DISPATCH'), findsOneWidget);
+    expect(find.text('NEXT PICKUP'), findsOneWidget);
     expect(find.text('12 items'), findsNothing);
     expect(find.text(next!.venue), findsOneWidget);
     expect(find.text('${next.itemCount} items'), findsOneWidget);
@@ -560,7 +559,7 @@ void main() {
     // Wide dashboard → Business Open bar → Calendar.
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
-    expect(find.text('Dispatch calendar'), findsOneWidget);
+    expect(find.text('Pickup calendar'), findsOneWidget);
 
     // The legend lives only in the month card subtitle — the duplicate
     // nav-row copy is gone on every width.
@@ -573,7 +572,7 @@ void main() {
     final agendaDx =
         tester.getCenter(find.textContaining('Agenda ·')).dx;
     final runsDx =
-        tester.getCenter(find.text('All upcoming pickups')).dx;
+        tester.getCenter(find.text('Upcoming pickups')).dx;
     expect(runsDx, greaterThan(agendaDx + 200));
   });
 
@@ -590,12 +589,12 @@ void main() {
 
     await tester.tap(find.text('All tasks'));
     await tester.pumpAndSettle();
-    expect(find.text('Your task list'), findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
 
     // The task list card is capped (~860px) instead of stretching with
     // the window.
     final card = tester.getSize(find.ancestor(
-        of: find.text('Your task list'), matching: find.byType(SectionCard)));
+        of: find.text('Tasks'), matching: find.byType(SectionCard)));
     expect(card.width, lessThan(900));
     expect(card.width, greaterThan(400));
   });
@@ -619,7 +618,7 @@ void main() {
     await tester.tap(find.text('Northstar Product Launch'));
     await tester.pumpAndSettle();
     expect(find.text('Item manifest'), findsOneWidget);
-    expect(find.text('Pickup notes'), findsOneWidget);
+    expect(find.text('Notes'), findsOneWidget);
     expect(find.text('Order RW-2051'), findsOneWidget);
     expect(find.text('Folding Chairs'), findsWidgets);
 

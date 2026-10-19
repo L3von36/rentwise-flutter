@@ -146,7 +146,7 @@ class OrderDetailScreen extends StatelessWidget {
                    // when there is something to read
         : SectionCard(
             icon: Icons.sticky_note_2_outlined,
-            title: 'Pickup notes',
+            title: 'Notes',
             child: Text(
               live.notes,
               style: TextStyle(
@@ -232,7 +232,7 @@ class OrderDetailScreen extends StatelessWidget {
     );
 
     return DetailPage(
-      eyebrow: 'Workspace / Orders / ${live.id}',
+      eyebrow: 'Orders / ${live.id}',
       title: live.eventName,
       icon: Icons.receipt_long_outlined,
       body: body,
@@ -492,8 +492,7 @@ class _PaymentsHandoverCard extends StatelessWidget {
                     ),
                   const SizedBox(height: 4),
                   Text(
-                    'The items stay in the shop until every step is done — '
-                    'the customer picks them up (no delivery).',
+                    'Nothing leaves the shop until every step above is done.',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 10.5,
@@ -1116,9 +1115,7 @@ class _StatusActionsCard extends StatelessWidget {
           if (next.contains(OrderStatus.outForDelivery) &&
               !order.canHandOver)
             Text(
-              'Handover gate: ${order.handoverBlockers.length} step(s) left '
-              '— settle the payment plan, verify ID and capture the '
-                  'signature above first.',
+              'Handover blocked — finish the checklist above first.',
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 11.5,

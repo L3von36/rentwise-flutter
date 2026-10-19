@@ -189,7 +189,7 @@ class CustomerInsightsScreen extends StatelessWidget {
     );
 
     return DetailPage(
-      eyebrow: 'Workspace / Customers / Insights',
+      eyebrow: 'Customers / Insights',
       title: 'Customer insights',
       subtitle: 'Retention, lead time and lifetime value — live.',
       icon: Icons.insights_outlined,
