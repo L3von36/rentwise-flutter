@@ -1,27 +1,59 @@
+import '../../core/app_locale.dart';
 import '../../core/formatters.dart';
 
 /// Order lifecycle statuses shown in the Orders screen.
 enum OrderStatus { preparing, confirmed, needsPayment, outForDelivery, returned }
 
+/// How money actually arrived — the Ethiopian payment rails a rental
+/// desk sees daily. Brand names stay Latin in every language; only Cash
+/// and Card localize.
+enum PaymentMethod { cash, telebirr, cbeBirr, mpesa, chapa, card }
+
+extension PaymentMethodX on PaymentMethod {
+  String get label => switch (this) {
+        PaymentMethod.cash => AppLocale.t('Cash'),
+        PaymentMethod.telebirr => 'Telebirr',
+        PaymentMethod.cbeBirr => 'CBE Birr',
+        PaymentMethod.mpesa => 'M-Pesa',
+        PaymentMethod.chapa => 'Chapa',
+        PaymentMethod.card => AppLocale.t('Card'),
+      };
+
+  /// Short chip label — ጥሩ ገንዘብ is too long for a tight row chip.
+  String get chip => switch (this) {
+        PaymentMethod.cash => AppLocale.isAmharic ? 'ጥሩ' : 'Cash',
+        _ => label,
+      };
+
+  String get docName => name;
+
+  static PaymentMethod? fromDoc(String? raw) {
+    for (final m in PaymentMethod.values) {
+      if (m.name == raw) return m;
+    }
+    return null;
+  }
+}
+
 extension OrderStatusX on OrderStatus {
   String get label => switch (this) {
-        OrderStatus.preparing => 'Preparing',
-        OrderStatus.confirmed => 'Confirmed',
-        OrderStatus.needsPayment => 'Needs payment',
+        OrderStatus.preparing => AppLocale.t('Preparing'),
+        OrderStatus.confirmed => AppLocale.t('Confirmed'),
+        OrderStatus.needsPayment => AppLocale.t('Needs payment'),
         // Customer-pickup business: items handed over to the customer,
         // never delivered by the shop (transport is on the customer).
-        OrderStatus.outForDelivery => 'With customer',
-        OrderStatus.returned => 'Returned',
+        OrderStatus.outForDelivery => AppLocale.t('With customer'),
+        OrderStatus.returned => AppLocale.t('Returned'),
       };
 
   /// Human action label for ADVANCING an order into this status —
   /// the button text the operator actually wants to press.
   String get actionLabel => switch (this) {
-        OrderStatus.preparing => 'Stage & pack',
-        OrderStatus.confirmed => 'Accept payment', // needsPayment → confirmed
-        OrderStatus.needsPayment => 'Request payment',
-        OrderStatus.outForDelivery => 'Hand over to customer',
-        OrderStatus.returned => 'Mark returned',
+        OrderStatus.preparing => AppLocale.t('Stage & pack'),
+        OrderStatus.confirmed => AppLocale.t('Accept payment'),
+        OrderStatus.needsPayment => AppLocale.t('Request payment'),
+        OrderStatus.outForDelivery => AppLocale.t('Hand over to customer'),
+        OrderStatus.returned => AppLocale.t('Mark returned'),
       };
 
   bool get isOpen => this != OrderStatus.returned;
@@ -113,14 +145,23 @@ class RentalOrder {
   /// When the down payment was actually received (null = not yet).
   final DateTime? downPaymentPaidAt;
 
+  /// How the down payment arrived (Telebirr / CBE Birr / cash / …).
+  final PaymentMethod? downPaymentMethod;
+
   /// Refundable collateral deposit, held until the items come back.
   final double collateralAmount;
 
   /// When the collateral was received (null = not yet).
   final DateTime? collateralPaidAt;
 
+  /// How the collateral was received.
+  final PaymentMethod? collateralMethod;
+
   /// When the remaining balance (total − downPayment) was received.
   final DateTime? remainingPaidAt;
+
+  /// How the remaining balance arrived.
+  final PaymentMethod? remainingMethod;
 
   // -- customer verification at handover --
 
@@ -147,9 +188,12 @@ class RentalOrder {
     this.notes = '',
     this.downPayment = 0,
     this.downPaymentPaidAt,
+    this.downPaymentMethod,
     this.collateralAmount = 0,
     this.collateralPaidAt,
+    this.collateralMethod,
     this.remainingPaidAt,
+    this.remainingMethod,
     this.idVerifiedAt,
     this.signatureData = '',
     this.signedName = '',
@@ -180,15 +224,19 @@ class RentalOrder {
   /// Human-readable list of everything blocking handover. Empty = the
   /// items may leave the shop.
   List<String> get handoverBlockers {
+    const t = AppLocale.t;
     final blockers = <String>[
       if (!downPaymentPaid)
-        'Down payment ${Fmt.moneySmart(downPayment)} not received',
+        '${t('Down payment')} ${Fmt.moneySmart(downPayment)} '
+            '${t('not received')}',
       if (!remainingPaid)
-        'Remaining ${Fmt.moneySmart(remainingDue)} not received',
+        '${t('Remaining')} ${Fmt.moneySmart(remainingDue)} '
+            '${t('not received')}',
       if (!collateralPaid)
-        'Collateral ${Fmt.moneySmart(collateralAmount)} not received',
-      if (!idVerified) 'Customer ID not verified',
-      if (!signatureCaptured) 'Rental agreement not signed',
+        '${t('Collateral')} ${Fmt.moneySmart(collateralAmount)} '
+            '${t('not received')}',
+      if (!idVerified) t('Customer ID not verified'),
+      if (!signatureCaptured) t('Rental agreement not signed'),
     ];
     return blockers;
   }
@@ -203,9 +251,12 @@ class RentalOrder {
     String? notes,
     double? downPayment,
     DateTime? downPaymentPaidAt,
+    PaymentMethod? downPaymentMethod,
     double? collateralAmount,
     DateTime? collateralPaidAt,
+    PaymentMethod? collateralMethod,
     DateTime? remainingPaidAt,
+    PaymentMethod? remainingMethod,
     DateTime? idVerifiedAt,
     String? signatureData,
     String? signedName,
@@ -225,9 +276,12 @@ class RentalOrder {
         notes: notes ?? this.notes,
         downPayment: downPayment ?? this.downPayment,
         downPaymentPaidAt: downPaymentPaidAt ?? this.downPaymentPaidAt,
+        downPaymentMethod: downPaymentMethod ?? this.downPaymentMethod,
         collateralAmount: collateralAmount ?? this.collateralAmount,
         collateralPaidAt: collateralPaidAt ?? this.collateralPaidAt,
+        collateralMethod: collateralMethod ?? this.collateralMethod,
         remainingPaidAt: remainingPaidAt ?? this.remainingPaidAt,
+        remainingMethod: remainingMethod ?? this.remainingMethod,
         idVerifiedAt: idVerifiedAt ?? this.idVerifiedAt,
         signatureData: signatureData ?? this.signatureData,
         signedName: signedName ?? this.signedName,

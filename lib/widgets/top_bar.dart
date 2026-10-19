@@ -16,6 +16,7 @@ import 'cards.dart';
 import 'motion.dart';
 import 'desktop.dart';
 import '../core/palette.dart';
+import '../core/app_locale.dart';
 
 /// Global search result payload.
 class SearchHit {
@@ -212,7 +213,7 @@ class _SearchField extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Search items, orders, or customers',
+                AppLocale.t('Search items, orders, or customers'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -259,15 +260,15 @@ class _SearchDialogState extends State<_SearchDialog> {
     final hits = <SearchHit>[
       for (final i in state.inventory)
         SearchHit(i.name, '${i.category} · ${i.available} of ${i.totalStock} available',
-            'Item', Section.inventory),
+            AppLocale.t('Item'), Section.inventory),
       for (final o in state.orders)
         SearchHit(
             '#${o.id} · ${o.eventName}',
             '${o.contactName} · ${Fmt.items(o.itemCount)}',
-            'Order',
+            AppLocale.t('Order'),
             Section.orders),
       for (final c in state.customers)
-        SearchHit(c.name, c.company, 'Customer', Section.customers),
+        SearchHit(c.name, c.company, AppLocale.t('Customer'), Section.customers),
     ];
     if (_query.trim().isEmpty) return hits.take(6).toList();
     final q = _query.trim().toLowerCase();
@@ -293,7 +294,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                 autofocus: true,
                 onChanged: (v) => setState(() => _query = v),
                 decoration: InputDecoration(
-                  hintText: 'Search items, orders, or customers…',
+                  hintText: AppLocale.t('Search items, orders, or customers…'),
                   prefixIcon: Icon(Icons.search_rounded,
                       size: 20, color: AppPalette.muted),
                   fillColor: AppPalette.fill,
@@ -319,9 +320,9 @@ class _SearchDialogState extends State<_SearchDialog> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                       leading: IconChipLite(
-                        icon: hit.type == 'Item'
+                        icon: hit.type == AppLocale.t('Item')
                             ? Icons.inventory_2_outlined
-                            : hit.type == 'Order'
+                            : hit.type == AppLocale.t('Order')
                                 ? Icons.receipt_long_outlined
                                 : Icons.person_outline,
                         color: AppPalette.primary,
@@ -364,7 +365,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Center(
-                        child: Text('No matches found',
+                        child: Text(AppLocale.t('No matches found'),
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 color: AppPalette.muted,
@@ -383,20 +384,20 @@ class _SearchDialogState extends State<_SearchDialog> {
                       top: BorderSide(color: AppPalette.stroke)),
                 ),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                child: const Row(
+                child: Row(
                   children: [
                     Expanded(
                       child: ShortcutHint(
-                          keys: ['Ctrl B'], action: 'New booking'),
+                          keys: const ['Ctrl B'], action: AppLocale.t('New booking')),
                     ),
                     Expanded(
                       child: ShortcutHint(
-                          keys: ['Ctrl 1–5'], action: 'Sections'),
+                          keys: const ['Ctrl 1–5'], action: AppLocale.t('Sections')),
                     ),
                     Expanded(
                       child: ShortcutHint(
-                          keys: ['Ctrl /'],
-                          action: 'All shortcuts'),
+                          keys: const ['Ctrl /'],
+                          action: AppLocale.t('All shortcuts')),
                     ),
                   ],
                 ),
@@ -430,7 +431,7 @@ class _ThemeToggleButton extends StatelessWidget {
             border: Border.all(color: AppPalette.stroke),
           ),
           child: Tooltip(
-            message: shell.isDark ? 'Switch to light mode' : 'Switch to dark mode',
+            message: shell.isDark ? AppLocale.t('Switch to light mode') : AppLocale.t('Switch to dark mode'),
             child: Icon(
               shell.isDark
                   ? Icons.light_mode_rounded
@@ -521,9 +522,9 @@ class _BellButton extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
                   child: Row(
                     children: [
-                      const Expanded(
-                        child: Text('Notifications',
-                            style: TextStyle(
+                      Expanded(
+                        child: Text(AppLocale.t('Notifications'),
+                            style: const TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700)),
@@ -539,7 +540,7 @@ class _BellButton extends StatelessWidget {
                           Navigator.of(dialogCtx).pop();
                           openNotifications(context);
                         },
-                        child: Text('View all',
+                        child: Text(AppLocale.t('View all'),
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 12,
@@ -551,7 +552,7 @@ class _BellButton extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
-                  child: Text('Latest employee actions in the workspace.',
+                  child: Text(AppLocale.t('Latest employee actions in the workspace.'),
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12,
@@ -652,7 +653,7 @@ class _UserChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      tooltip: 'Account',
+      tooltip: AppLocale.t('Account'),
       offset: const Offset(0, 46),
       color: AppPalette.surface,
       shape: RoundedRectangleBorder(
@@ -694,7 +695,7 @@ class _UserChip extends StatelessWidget {
               Icon(Icons.account_circle_outlined,
                   size: 17, color: AppPalette.body),
               const SizedBox(width: 8),
-              Text('View profile',
+              Text(AppLocale.t('View profile'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13,
@@ -709,7 +710,7 @@ class _UserChip extends StatelessWidget {
             children: [
               Icon(Icons.logout, size: 17, color: AppPalette.red),
               const SizedBox(width: 8),
-              Text('Sign out',
+              Text(AppLocale.t('Sign out'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13,

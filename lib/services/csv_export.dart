@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../core/app_theme.dart';
 import '../core/palette.dart';
+import '../core/app_locale.dart';
 
 /// Real CSV export: builds the file text from live rows, previews it and
 /// copies it to the clipboard (paste straight into Excel / Numbers /
@@ -25,7 +26,7 @@ void showCsvExport(
     context: context,
     barrierColor: Colors.black.withOpacity(0.35),
     builder: (dialogCtx) => AlertDialog(
-      title: Text('Export — $title',
+      title: Text(AppLocale.tf('Export — {n}', {'n': title}),
           style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 15,
@@ -37,7 +38,7 @@ void showCsvExport(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '$filename · ${rows.length} data row(s) + header',
+              AppLocale.tf('{n} · {m} data row(s) + header', {'n': filename, 'm': rows.length}),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 12,
@@ -97,7 +98,8 @@ void showCsvExport(
             ),
             const SizedBox(height: 10),
             Text(
-              'Copy places the full CSV on your clipboard — paste it into any spreadsheet.',
+              AppLocale.t(
+                  'Copy places the full CSV on your clipboard — paste it into any spreadsheet.'),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 11.5,
@@ -110,7 +112,7 @@ void showCsvExport(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogCtx),
-          child: Text('Close',
+          child: Text(AppLocale.t('Close'),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily, color: AppPalette.body)),
         ),
@@ -118,14 +120,14 @@ void showCsvExport(
           style:
               FilledButton.styleFrom(backgroundColor: AppPalette.primary),
           icon: const Icon(Icons.copy_rounded, size: 15),
-          label: const Text('Copy CSV',
-              style: TextStyle(fontFamily: AppTheme.fontFamily)),
+          label: Text(AppLocale.t('Copy CSV'),
+              style: const TextStyle(fontFamily: AppTheme.fontFamily)),
           onPressed: () {
             Clipboard.setData(ClipboardData(text: csv));
             Navigator.pop(dialogCtx);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(
-                  '$title exported — $filename copied to clipboard (${rows.length} rows)'),
+                  AppLocale.tf('{n} exported — {m} copied to clipboard ({k} rows)', {'n': title, 'm': filename, 'k': rows.length})),
               behavior: SnackBarBehavior.floating,
             ));
           },

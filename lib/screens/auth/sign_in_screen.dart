@@ -5,6 +5,7 @@ import '../../state/workspace_state.dart';
 import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Sign-in screen — email/password against Appwrite Cloud.
 ///
@@ -72,15 +73,15 @@ class _SignInViewState extends State<SignInView> {
                     bg: AppPalette.primarySoft,
                     size: 42),
                 const SizedBox(height: 16),
-                Text('Welcome back',
+                Text(AppLocale.t('Welcome back'),
                     style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 6),
-                Text('Sign in to continue to your workspace.',
+                Text(AppLocale.t('Sign in to continue to your workspace.'),
                     style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 20),
 
                 // Email
-                const _FieldLabel('Work email'),
+                _FieldLabel(AppLocale.t('Work email')),
                 const SizedBox(height: 7),
                 TextField(
                   controller: _emailCtrl,
@@ -96,7 +97,7 @@ class _SignInViewState extends State<SignInView> {
                 const SizedBox(height: 14),
 
                 // Password
-                const _FieldLabel('Password'),
+                _FieldLabel(AppLocale.t('Password')),
                 const SizedBox(height: 7),
                 TextField(
                   controller: _passwordCtrl,
@@ -130,7 +131,7 @@ class _SignInViewState extends State<SignInView> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: Text('Forgot password?',
+                      child: Text(AppLocale.t('Forgot password?'),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
@@ -194,15 +195,15 @@ class _SignInViewState extends State<SignInView> {
                                       Colors.white),
                                 ),
                               )
-                            : const Row(
+                            : Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.login_rounded,
+                                  const Icon(Icons.login_rounded,
                                       size: 18, color: Colors.white),
-                                  SizedBox(width: 9),
+                                  const SizedBox(width: 9),
                                   Text(
-                                    'Sign in',
-                                    style: TextStyle(
+                                    AppLocale.t('Sign in'),
+                                    style: const TextStyle(
                                       fontFamily: AppTheme.fontFamily,
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
@@ -220,7 +221,7 @@ class _SignInViewState extends State<SignInView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Flexible(
-                      child: Text('New to RentWise?',
+                      child: Text(AppLocale.t('New to RentWise?'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -235,7 +236,7 @@ class _SignInViewState extends State<SignInView> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: Text('Create an account',
+                      child: Text(AppLocale.t('Create an account'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -247,7 +248,7 @@ class _SignInViewState extends State<SignInView> {
                   ],
                 ),
                 Text(
-                  'Workspace access is managed by your company owner.',
+                  AppLocale.t('Workspace access is managed by your company owner.'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: AppTheme.fontFamily,

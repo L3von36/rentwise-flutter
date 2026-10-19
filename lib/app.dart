@@ -14,16 +14,20 @@ class RentWiseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Re-key on theme changes so the whole tree rebuilds and custom
-    // painted chrome re-reads AppPalette at its new brightness.
+    // Re-key on theme AND locale changes so the whole tree rebuilds and
+    // custom painted chrome re-reads AppPalette, and every t() call and
+    // Fmt date re-resolves in the new language / calendar system.
     final shell = context.watch<ShellState>();
     return MaterialApp(
-      key: ValueKey('rentwise-${shell.themeSetting.name}'),
+      key: ValueKey(
+          'rentwise-${shell.themeSetting.name}-${shell.language.name}-'
+          '${shell.calendarSystem.name}'),
       title: 'RentWise — Event Rentals',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: shell.themeMode,
+      locale: const Locale('en'), // framework widgets; app strings use t()
       builder: (context, child) {
         // Compact app: tighten the whole text scale on narrow screens,
         // then apply the global trim so every breakpoint reads a touch

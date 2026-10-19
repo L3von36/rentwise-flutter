@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart' show windowManager;
 
+import '../core/app_locale.dart';
 import '../core/palette.dart';
 import '../services/tray_service.dart';
 import '../widgets/desktop.dart';
@@ -15,6 +16,9 @@ enum AppThemeSetting { system, light, dark }
 ///
 ///  * theme mode (system / light / dark) — persisted to SharedPreferences
 ///    so the desktop app reopens with the user's choice;
+///  * language (English / አማርኛ) and calendar system (Ethiopian /
+///    Gregorian) — persisted, mirrored into [AppLocale] so formatters and
+///    model labels can localize without a BuildContext;
 ///  * the global [AppPalette.brightness] mirror that custom-painted chrome
 ///    resolves against (single writer: [setThemeMode]);
 ///  * the native desktop bridge: tray quick actions, close-to-tray and the
@@ -22,15 +26,26 @@ enum AppThemeSetting { system, light, dark }
 class ShellState extends ChangeNotifier {
   ShellState({SharedPreferences? prefs}) : _prefs = prefs {
     _themeMode = _restore();
+    // Locale mirror must be set BEFORE the first build so every static
+    // Fmt/label call renders in the restored language + calendar.
+    AppLocale.set(
+      language: _restoreLanguage(),
+      calendarSystem: _restoreCalendar(),
+    );
     AppPalette.brightness = _resolvedBrightness();
   }
 
   static const String _prefKey = 'rentwise.theme';
+  static const String _prefLang = 'rentwise.lang';
+  static const String _prefCalendar = 'rentwise.calendar';
 
   final SharedPreferences? _prefs;
   AppThemeSetting _themeMode = AppThemeSetting.system;
 
   AppThemeSetting get themeSetting => _themeMode;
+
+  AppLanguage get language => AppLocale.language;
+  CalendarSystem get calendarSystem => AppLocale.calendarSystem;
   ThemeMode get themeMode => switch (_themeMode) {
         AppThemeSetting.system => ThemeMode.system,
         AppThemeSetting.light => ThemeMode.light,
@@ -55,6 +70,48 @@ class ShellState extends ChangeNotifier {
   void toggleTheme() =>
       setThemeSetting(isDark ? AppThemeSetting.light : AppThemeSetting.dark);
 
+  // --------------------------------------------------- language + calendar
+
+  /// Switches the UI language (English ⇄ አማርኛ). Updates the [AppLocale]
+  /// mirror first, then notifies — the MaterialApp re-keys on the new
+  /// setting so the whole tree rebuilds localized.
+  Future<void> setLanguage(AppLanguage lang) async {
+    if (lang == AppLocale.language) return;
+    AppLocale.set(language: lang);
+    notifyListeners();
+    try {
+      await _prefs?.setString(_prefLang, lang.name);
+    } catch (_) {
+      // Persistence is best-effort.
+    }
+  }
+
+  /// Switches the calendar the whole app renders dates with (Ethiopian
+  /// 13-month ⇄ Gregorian). Business data stays Gregorian — display only.
+  Future<void> setCalendarSystem(CalendarSystem system) async {
+    if (system == AppLocale.calendarSystem) return;
+    AppLocale.set(calendarSystem: system);
+    notifyListeners();
+    try {
+      await _prefs?.setString(_prefCalendar, system.name);
+    } catch (_) {
+      // Persistence is best-effort.
+    }
+  }
+
+  AppLanguage _restoreLanguage() => switch (_prefs?.getString(_prefLang)) {
+        'am' => AppLanguage.am,
+        'en' => AppLanguage.en,
+        _ => AppLanguage.en,
+      };
+
+  CalendarSystem _restoreCalendar() =>
+      switch (_prefs?.getString(_prefCalendar)) {
+        'ethiopic' => CalendarSystem.ethiopic,
+        'gregorian' => CalendarSystem.gregorian,
+        _ => CalendarSystem.gregorian,
+      };
+
   Brightness _resolvedBrightness() {
     switch (_themeMode) {
       case AppThemeSetting.light:
@@ -68,7 +125,7 @@ class ShellState extends ChangeNotifier {
   }
 
   AppThemeSetting _restore() {
-    final raw = _prefs?.getString(_prefKey);
+    final raw = _prefs?.getString(_prefKey); // 'rentwise.theme'
     return switch (raw) {
       'light' => AppThemeSetting.light,
       'dark' => AppThemeSetting.dark,

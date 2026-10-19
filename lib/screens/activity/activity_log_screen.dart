@@ -10,18 +10,19 @@ import '../../widgets/motion.dart';
 import '../../widgets/top_bar.dart' show RichActivityText;
 import '../../models/activity_entry.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 class ActivityLogScreen extends StatelessWidget {
   const ActivityLogScreen({super.key});
 
-  static const List<String> _filters = [
-    'All',
-    'Rental',
-    'Payment',
-    'Order update',
-    'Return',
-    'Note',
-    'New booking',
+  static List<String> get _filters => [
+    AppLocale.t('All'),
+    AppLocale.t('Rental'),
+    AppLocale.t('Payment'),
+    AppLocale.t('Order update'),
+    AppLocale.t('Return'),
+    AppLocale.t('Note'),
+    AppLocale.t('New booking'),
   ];
 
   @override
@@ -132,9 +133,9 @@ class _ActivityHero extends StatelessWidget {
               color: Colors.white, size: 22),
         ),
         const SizedBox(width: 13),
-        const Expanded(
-          child: Text('Activity Log',
-              style: TextStyle(
+        Expanded(
+          child: Text(AppLocale.t('Activity Log'),
+              style: const TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
@@ -149,10 +150,10 @@ class _ActivityHero extends StatelessWidget {
             child: _HeroStat(value: '$today', label: 'Actions')),
         const SizedBox(width: 10),
         Expanded(
-            child: _HeroStat(value: '$rentals', label: 'Rentals')),
+            child: _HeroStat(value: '$rentals', label: AppLocale.t('Rentals'))),
         const SizedBox(width: 10),
         Expanded(
-            child: _HeroStat(value: '$payments', label: 'Payments')),
+            child: _HeroStat(value: '$payments', label: AppLocale.t('Payments'))),
       ],
     );
 
@@ -391,8 +392,8 @@ String _dayLabel(DateTime at) {
   final today = DateTime(now.year, now.month, now.day);
   final that = DateTime(at.year, at.month, at.day);
   final diff = today.difference(that).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
+  if (diff == 0) return AppLocale.t('Today');
+  if (diff == 1) return AppLocale.t('Yesterday');
   const months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -407,13 +408,13 @@ class _EmptyTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = filter != 'All';
+    final filtered = filter != AppLocale.t('All');
     return SectionCard(
       icon: Icons.show_chart,
-      title: filtered ? 'Nothing matches "$filter"' : 'No activity yet',
+      title: filtered ? 'Nothing matches "$filter"' : AppLocale.t('No activity yet'),
       subtitle: filtered
-          ? 'Try another filter or clear it to see the full log.'
-          : 'Actions will appear here as your team works.',
+          ? AppLocale.t('Try another filter or clear it to see the full log.')
+          : AppLocale.t('Actions will appear here as your team works.'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 26),
         child: Center(

@@ -13,6 +13,7 @@ import '../../widgets/chips.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/restricted.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// OWNER CONSOLE — Access & roles.
 ///
@@ -25,16 +26,16 @@ import '../../core/palette.dart';
 class AccessRolesScreen extends StatelessWidget {
   const AccessRolesScreen({super.key});
 
-  static const List<_Capability> _matrix = [
-    _Capability('View dashboard & activity', employee: true, owner: true),
-    _Capability('Create and edit bookings', employee: true, owner: true),
-    _Capability('Record payments', employee: true, owner: true),
-    _Capability('Adjust stock on hand', employee: true, owner: true),
-    _Capability('Add inventory items', employee: false, owner: true),
-    _Capability('View financial reports', employee: false, owner: true),
-    _Capability('Create employee accounts', employee: false, owner: true),
-    _Capability('Manage team access', employee: false, owner: true),
-    _Capability('Change workspace settings', employee: false, owner: true),
+  static List<_Capability> get _matrix => [
+    _Capability(AppLocale.t('View dashboard & activity'), employee: true, owner: true),
+    _Capability(AppLocale.t('Create and edit bookings'), employee: true, owner: true),
+    _Capability(AppLocale.t('Record payments'), employee: true, owner: true),
+    _Capability(AppLocale.t('Adjust stock on hand'), employee: true, owner: true),
+    _Capability(AppLocale.t('Add inventory items'), employee: false, owner: true),
+    _Capability(AppLocale.t('View financial reports'), employee: false, owner: true),
+    _Capability(AppLocale.t('Create employee accounts'), employee: false, owner: true),
+    _Capability(AppLocale.t('Manage team access'), employee: false, owner: true),
+    _Capability(AppLocale.t('Change workspace settings'), employee: false, owner: true),
   ];
 
   @override
@@ -50,7 +51,7 @@ class AccessRolesScreen extends StatelessWidget {
       return Padding(
         padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
             Density.pagePad(context), 24),
-        child: const RestrictedPanel(area: 'Access & roles'),
+        child: RestrictedPanel(area: AppLocale.t('Access & roles')),
       );
     }
 
@@ -78,7 +79,7 @@ class AccessRolesScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Access & roles',
+                    Text(AppLocale.t('Access & roles'),
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: compact ? 17 : 21,
@@ -116,7 +117,7 @@ class AccessRolesScreen extends StatelessWidget {
             index: 2,
             child: SectionCard(
               icon: Icons.swap_horiz_rounded,
-              title: 'Role preview',
+              title: AppLocale.t('Role preview'),
               child: LayoutBuilder(builder: (context, box) {
                 final employeeCard = _RoleCard(
                   icon: Icons.person_outline,
@@ -159,7 +160,7 @@ class AccessRolesScreen extends StatelessWidget {
             index: 3,
             child: SectionCard(
               icon: Icons.contrast_rounded,
-              title: 'Appearance',
+              title: AppLocale.t('Appearance'),
               child: Builder(builder: (context) {
                 final pills = Row(
                   mainAxisSize: MainAxisSize.min,
@@ -175,7 +176,7 @@ class AccessRolesScreen extends StatelessWidget {
                     ],
                   ],
                 );
-                final hint = Text('Remembered on this device',
+                final hint = Text(AppLocale.t('Remembered on this device'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
@@ -201,7 +202,7 @@ class AccessRolesScreen extends StatelessWidget {
             index: 4,
             child: SectionCard(
               icon: Icons.key_outlined,
-              title: 'Permission matrix',
+              title: AppLocale.t('Permission matrix'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -215,7 +216,7 @@ class AccessRolesScreen extends StatelessWidget {
                         Expanded(
                           flex: 3,
                           child: _MatrixHeader(
-                            label: 'Employee',
+                            label: AppLocale.t('Employee'),
                             icon: Icons.person_outline,
                             color: AppPalette.green,
                           ),
@@ -223,7 +224,7 @@ class AccessRolesScreen extends StatelessWidget {
                         Expanded(
                           flex: 3,
                           child: _MatrixHeader(
-                            label: 'Owner',
+                            label: AppLocale.t('Owner'),
                             icon: Icons.shield_outlined,
                             color: AppPalette.primary,
                           ),
@@ -231,10 +232,10 @@ class AccessRolesScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const _GroupLabel('Shared with every role'),
+                  _GroupLabel(AppLocale.t('Shared with every role')),
                   for (final cap in _matrix.where((c) => c.employee))
                     _MatrixRow(capability: cap.label, employee: true, owner: true),
-                  const _GroupLabel('Owner-only'),
+                  _GroupLabel(AppLocale.t('Owner-only')),
                   for (final cap in _matrix.where((c) => !c.employee))
                     _MatrixRow(
                         capability: cap.label, employee: false, owner: true),
@@ -298,8 +299,8 @@ class _SecurityHero extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Role-based access is active',
-                  style: TextStyle(
+              Text(AppLocale.t('Role-based access is active'),
+                  style: const TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 15.5,
                       fontWeight: FontWeight.w800,
@@ -501,9 +502,9 @@ class _TeamCardState extends State<_TeamCard> {
         context, (_) => const _AddEmployeeDialog());
     if (created == true && mounted) {
       setState(() => _query = '');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
-            'Employee account created — share the credentials securely.'),
+            AppLocale.t('Employee account created — share the credentials securely.')),
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -546,18 +547,18 @@ class _TeamCardState extends State<_TeamCard> {
 
     return SectionCard(
       icon: Icons.groups_rounded,
-      title: 'Team members',
+      title: AppLocale.t('Team members'),
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           OutlineButton(
-            label: 'Refresh',
+            label: AppLocale.t('Refresh'),
             icon: Icons.refresh_rounded,
             onTap: state.loadingTeam ? null : () => state.loadTeam(),
           ),
           const SizedBox(width: 8),
           PrimaryButton(
-            label: 'Add employee',
+            label: AppLocale.t('Add employee'),
             icon: Icons.person_add_alt_rounded,
             height: 36,
             fontSize: 12.5,
@@ -620,10 +621,10 @@ class _TeamCardState extends State<_TeamCard> {
                         Expanded(
                           child: Text(
                             q.isEmpty
-                                ? 'No team profiles loaded yet — tap Refresh. '
-                                    'Create employee accounts with “Add employee”.'
-                                : 'No members match “$_query”. Try another name, '
-                                    'email or title.',
+                                ? AppLocale.t(
+                                        'No team profiles loaded yet — tap Refresh. Create employee accounts with “Add employee”.')
+                                : AppLocale.t(
+                                        'No members match “$_query”. Try another name, email or title.'),
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 12.5,
@@ -666,7 +667,7 @@ class _TeamSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     String text;
     if (count == 0) {
-      text = 'No members loaded';
+      text = AppLocale.t('No members loaded');
     } else {
       final employees = count - owners;
       text = '$count ${count == 1 ? 'member' : 'members'}'
@@ -697,7 +698,7 @@ class _TeamSearchField extends StatelessWidget {
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         isDense: true,
-        hintText: 'Search name, email or title',
+        hintText: AppLocale.t('Search name, email or title'),
         prefixIcon: Icon(Icons.search_rounded,
             size: 17, color: AppPalette.muted),
         prefixIconConstraints:
@@ -824,14 +825,14 @@ class _MemberRowState extends State<_MemberRow> {
               const SizedBox(width: 6),
               if (widget.onEdit != null)
                 IconButton(
-                  tooltip: 'Role & title',
+                  tooltip: AppLocale.t('Role & title'),
                   icon: Icon(Icons.edit_outlined,
                       size: 17, color: AppPalette.muted),
                   onPressed: widget.onEdit,
                 ),
               if (widget.onReset != null)
                 IconButton(
-                  tooltip: 'Reset password',
+                  tooltip: AppLocale.t('Reset password'),
                   icon:
                       Icon(Icons.key_rounded, size: 17, color: AppPalette.muted),
                   onPressed: widget.onReset,
@@ -899,7 +900,7 @@ class _YouBadge extends StatelessWidget {
         color: AppPalette.blueBg,
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
-      child: Text('You',
+      child: Text(AppLocale.t('You'),
           style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 9.5,
@@ -950,7 +951,7 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
       email: _emailCtrl.text,
       password: _passwordCtrl.text,
       title: _titleCtrl.text.trim().isEmpty
-          ? 'Team member'
+          ? AppLocale.t('Team member')
           : _titleCtrl.text.trim(),
     );
     if (!mounted) return;
@@ -981,16 +982,16 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
               color: AppPalette.body),
         ),
         const SizedBox(height: 14),
-        const _FieldLabel('Full name'),
+        _FieldLabel(AppLocale.t('Full name')),
         const SizedBox(height: 6),
         TextField(
           controller: _nameCtrl,
           autofocus: !compact,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(hintText: 'Sam Staff'),
+          decoration: InputDecoration(hintText: AppLocale.t('Sam Staff')),
         ),
         const SizedBox(height: 12),
-        const _FieldLabel('Work email'),
+        _FieldLabel(AppLocale.t('Work email')),
         const SizedBox(height: 6),
         TextField(
           controller: _emailCtrl,
@@ -999,23 +1000,23 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
               const InputDecoration(hintText: 'sam@company.com'),
         ),
         const SizedBox(height: 12),
-        const _FieldLabel('Job title (optional)'),
+        _FieldLabel(AppLocale.t('Job title (optional)')),
         const SizedBox(height: 6),
         TextField(
           controller: _titleCtrl,
           textCapitalization: TextCapitalization.words,
           decoration:
-              const InputDecoration(hintText: 'Warehouse lead'),
+              InputDecoration(hintText: AppLocale.t('Warehouse lead')),
         ),
         const SizedBox(height: 12),
-        const _FieldLabel('Temporary password'),
+        _FieldLabel(AppLocale.t('Temporary password')),
         const SizedBox(height: 6),
         TextField(
           controller: _passwordCtrl,
           obscureText: _obscure,
           onSubmitted: (_) => _submit(),
           decoration: InputDecoration(
-            hintText: 'At least 8 characters',
+            hintText: AppLocale.t('At least 8 characters'),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscure
@@ -1038,7 +1039,7 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
       TextButton(
         onPressed:
             _submitting ? null : () => Navigator.pop(context, false),
-        child: Text('Cancel',
+        child: Text(AppLocale.t('Cancel'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 color: AppPalette.body)),
@@ -1050,17 +1051,17 @@ class _AddEmployeeDialogState extends State<_AddEmployeeDialog> {
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2.2))
-            : const Text('Create account',
-                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+            : Text(AppLocale.t('Create account'),
+                style: const TextStyle(fontFamily: AppTheme.fontFamily)),
       ),
     ];
     if (compact) {
       return _SheetScaffold(
-            title: 'Add employee', actions: actions, child: fields);
+            title: AppLocale.t('Add employee'), actions: actions, child: fields);
     }
     return AlertDialog(
-      title: const Text('Add employee',
-          style: TextStyle(
+      title: Text(AppLocale.t('Add employee'),
+          style: const TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 15,
               fontWeight: FontWeight.w800)),
@@ -1093,9 +1094,9 @@ class _SessionCard extends StatelessWidget {
 
     return SectionCard(
       icon: Icons.account_circle_outlined,
-      title: 'Current session',
+      title: AppLocale.t('Current session'),
       action: OutlineButton(
-        label: 'Sign out',
+        label: AppLocale.t('Sign out'),
         icon: Icons.logout_rounded,
         fg: AppPalette.red,
         onTap: () => state.signOut(),
@@ -1275,7 +1276,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Role',
+        Text(AppLocale.t('Role'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 12.5,
@@ -1290,7 +1291,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
               : (v) => setState(() => _role = v!),
           dense: true,
           contentPadding: EdgeInsets.zero,
-          title: Text('Employee — day-to-day operations',
+          title: Text(AppLocale.t('Employee — day-to-day operations'),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13,
@@ -1298,7 +1299,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
                       ? AppPalette.faint
                       : AppPalette.body)),
           subtitle: widget.lockDemote
-              ? Text('Last owner — promote someone else first',
+              ? Text(AppLocale.t('Last owner — promote someone else first'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11,
@@ -1313,7 +1314,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
               : (v) => setState(() => _role = v!),
           dense: true,
           contentPadding: EdgeInsets.zero,
-          title: Text('Owner — full business visibility',
+          title: Text(AppLocale.t('Owner — full business visibility'),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13,
@@ -1321,7 +1322,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
                       ? AppPalette.faint
                       : AppPalette.body)),
           subtitle: widget.isSelf
-              ? Text('You cannot change your own role',
+              ? Text(AppLocale.t('You cannot change your own role'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11,
@@ -1329,7 +1330,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
               : null,
         ),
         const SizedBox(height: 8),
-        Text('Job title',
+        Text(AppLocale.t('Job title'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 12.5,
@@ -1339,8 +1340,8 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
         TextField(
           controller: _titleCtrl,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-              hintText: 'Warehouse lead'),
+          decoration: InputDecoration(
+              hintText: AppLocale.t('Warehouse lead')),
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -1352,7 +1353,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
       TextButton(
         onPressed:
             _submitting ? null : () => Navigator.pop(context),
-        child: Text('Cancel',
+        child: Text(AppLocale.t('Cancel'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 color: AppPalette.body)),
@@ -1364,8 +1365,8 @@ class _EditMemberDialogState extends State<_EditMemberDialog> {
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2.2))
-            : const Text('Save changes',
-                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+            : Text(AppLocale.t('Save changes'),
+                style: const TextStyle(fontFamily: AppTheme.fontFamily)),
       ),
     ];
     if (compact) {
@@ -1426,7 +1427,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
   Future<void> _submit() async {
     setState(() => _error = null);
     if (_passwordCtrl.text != _confirmCtrl.text) {
-      setState(() => _error = 'Passwords do not match.');
+      setState(() => _error = AppLocale.t('Passwords do not match.'));
       return;
     }
     setState(() => _submitting = true);
@@ -1452,8 +1453,8 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Sets a new password for ${widget.member.email} right away. '
-          'Share it securely.',
+          AppLocale.t(
+              'Sets a new password for ${widget.member.email} right away. Share it securely.'),
           style: TextStyle(
               fontFamily: AppTheme.fontFamily,
               fontSize: 12,
@@ -1464,7 +1465,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
         Align(
           alignment: Alignment.centerRight,
           child: OutlineButton(
-            label: 'Suggest strong password',
+            label: AppLocale.t('Suggest strong password'),
             icon: Icons.auto_awesome_outlined,
             onTap: _suggest,
           ),
@@ -1474,7 +1475,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
           controller: _passwordCtrl,
           obscureText: _obscure,
           decoration: InputDecoration(
-            hintText: 'At least 8 characters',
+            hintText: AppLocale.t('At least 8 characters'),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscure
@@ -1493,7 +1494,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
           obscureText: _obscure,
           onSubmitted: (_) => _submit(),
           decoration:
-              const InputDecoration(hintText: 'Repeat password'),
+              InputDecoration(hintText: AppLocale.t('Repeat password')),
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -1505,7 +1506,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
       TextButton(
         onPressed:
             _submitting ? null : () => Navigator.pop(context),
-        child: Text('Cancel',
+        child: Text(AppLocale.t('Cancel'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 color: AppPalette.body)),
@@ -1517,8 +1518,8 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2.2))
-            : const Text('Reset password',
-                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+            : Text(AppLocale.t('Reset password'),
+                style: const TextStyle(fontFamily: AppTheme.fontFamily)),
       ),
     ];
     if (compact) {
@@ -1577,7 +1578,7 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
           ),
           const SizedBox(height: 10),
           Text(
-            'There is no undo. Type RESET to confirm.',
+            AppLocale.t('There is no undo. Type RESET to confirm.'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 12,
@@ -1595,7 +1596,7 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
       final actions = [
         TextButton(
           onPressed: () => Navigator.pop(dialogCtx, false),
-          child: Text('Cancel',
+          child: Text(AppLocale.t('Cancel'),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   color: AppPalette.body)),
@@ -1606,19 +1607,19 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
           ),
           onPressed: () =>
               Navigator.pop(dialogCtx, ctrl.text.trim() == 'RESET'),
-          child: const Text('Delete everything',
-              style: TextStyle(fontFamily: AppTheme.fontFamily)),
+          child: Text(AppLocale.t('Delete everything'),
+              style: const TextStyle(fontFamily: AppTheme.fontFamily)),
         ),
       ];
       if (compact) {
         return _SheetScaffold(
-            title: 'Reset workspace data?',
+            title: AppLocale.t('Reset workspace data?'),
             actions: actions,
             child: fields);
       }
       return AlertDialog(
-        title: const Text('Reset workspace data?',
-            style: TextStyle(
+        title: Text(AppLocale.t('Reset workspace data?'),
+            style: const TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 15,
                 fontWeight: FontWeight.w800)),
@@ -1633,8 +1634,8 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
     try {
       await state.resetWorkspaceData();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Workspace data deleted — you are starting fresh.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocale.t('Workspace data deleted — you are starting fresh.')),
         behavior: SnackBarBehavior.floating,
       ));
     } catch (e) {
@@ -1653,9 +1654,9 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
     final state = context.watch<WorkspaceState>();
     return SectionCard(
       icon: Icons.warning_amber_rounded,
-      title: 'Danger zone',
+      title: AppLocale.t('Danger zone'),
       subtitle:
-          'Remove the sample dataset (or everything) and start fresh.',
+          AppLocale.t('Remove the sample dataset (or everything) and start fresh.'),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -1669,7 +1670,7 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Reset workspace data',
+                Text(AppLocale.t('Reset workspace data'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13.5,
@@ -1680,7 +1681,7 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
                   'Deletes ${state.inventory.length} inventory lines, '
                       '${state.orders.length} orders, ${state.customers.length} '
                       'customers and the full activity log from Appwrite. '
-                      'Cannot be undone.',
+                      '${AppLocale.t('Cannot be undone.')}',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11.5,
@@ -1713,8 +1714,8 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
                                   Colors.white),
                             ),
                           )
-                        : const Text('Reset data',
-                            style: TextStyle(
+                        : Text(AppLocale.t('Reset data'),
+                            style: const TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w800,
@@ -1946,9 +1947,9 @@ class _ThemeChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, label) = switch (mode) {
-      AppThemeSetting.system => (Icons.brightness_auto_outlined, 'System'),
-      AppThemeSetting.light => (Icons.light_mode_outlined, 'Light'),
-      AppThemeSetting.dark => (Icons.dark_mode_outlined, 'Dark'),
+      AppThemeSetting.system => (Icons.brightness_auto_outlined, AppLocale.t('System')),
+      AppThemeSetting.light => (Icons.light_mode_outlined, AppLocale.t('Light')),
+      AppThemeSetting.dark => (Icons.dark_mode_outlined, AppLocale.t('Dark')),
     };
     return GestureDetector(
       onTap: onTap,

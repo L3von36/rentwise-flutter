@@ -7,6 +7,7 @@ import '../state/workspace_state.dart';
 import 'cards.dart';
 import 'chips.dart';
 import '../core/palette.dart';
+import '../core/app_locale.dart';
 
 /// Defensive guard rendered when an owner-only screen is somehow reached
 /// without the owner role. Navigation already hides and blocks these
@@ -27,9 +28,9 @@ class RestrictedPanel extends StatelessWidget {
             icon: Icons.lock_outline_rounded,
             title: '$area is owner-only',
             subtitle:
-                'Employees do not have permission to open this area.',
+                AppLocale.t('Employees do not have permission to open this area.'),
             action: OutlineButton(
-              label: 'Back to dashboard',
+              label: AppLocale.t('Back to dashboard'),
               icon: Icons.arrow_back_rounded,
               onTap: () => context
                   .read<WorkspaceState>()
@@ -51,7 +52,7 @@ class RestrictedPanel extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Owner access required',
+                          Text(AppLocale.t('Owner access required'),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 14.5,
@@ -104,7 +105,7 @@ class RestrictedPanel extends StatelessWidget {
                         ),
                       ),
                       StatusBadge.custom(
-                        label: 'Restricted',
+                        label: AppLocale.t('Restricted'),
                         fg: AppPalette.red,
                         bg: AppPalette.redBg,
                         fontSize: 10.5,

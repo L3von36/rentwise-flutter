@@ -70,7 +70,7 @@ class SampleDataset {
           category: 'Seating',
           totalStock: 240,
           available: 190,
-          ratePerDay: 1.50,
+          ratePerDay: 20,
           icon: Icons.event_seat,
         ),
         const InventoryItem(
@@ -80,7 +80,7 @@ class SampleDataset {
           category: 'Tables',
           totalStock: 48,
           available: 12,
-          ratePerDay: 6.00,
+          ratePerDay: 80,
           icon: Icons.table_bar,
         ),
         const InventoryItem(
@@ -90,7 +90,7 @@ class SampleDataset {
           category: 'Lighting',
           totalStock: 64,
           available: 64,
-          ratePerDay: 12.00,
+          ratePerDay: 100,
           icon: Icons.lightbulb_outline,
         ),
         const InventoryItem(
@@ -101,7 +101,7 @@ class SampleDataset {
           totalStock: 120,
           available: 0,
           maintenance: true,
-          ratePerDay: 2.25,
+          ratePerDay: 30,
           icon: Icons.dry_cleaning_outlined,
         ),
         const InventoryItem(
@@ -111,7 +111,7 @@ class SampleDataset {
           category: 'Furniture',
           totalStock: 8,
           available: 3,
-          ratePerDay: 45.00,
+          ratePerDay: 300,
           icon: Icons.local_bar_outlined,
         ),
         const InventoryItem(
@@ -121,7 +121,7 @@ class SampleDataset {
           category: 'Outdoor',
           totalStock: 16,
           available: 6,
-          ratePerDay: 8.00,
+          ratePerDay: 120,
           icon: Icons.heat_pump_outlined,
         ),
       ];
@@ -137,6 +137,10 @@ class SampleDataset {
   ];
 
   // ------------------------------------------------------------------- orders
+  // Prices are Ethiopian Birr, scaled to the Addis Ababa event-rental
+  // market (folding chair ~Br 50/event, round table ~Br 250, bar set
+  // ~Br 950). Every total still equals the sum of its lines, and the
+  // down payment is exactly half — the payment plan re-adds on screen.
   static List<RentalOrder> orders(DateTime now) => [
         RentalOrder(
           id: 'RW-2051',
@@ -146,23 +150,26 @@ class SampleDataset {
           createdAt: now.subtract(const Duration(days: 2)),
           eventDate: now.add(const Duration(days: 5)),
           itemCount: 18,
-          total: 1840,
+          total: 4100,
           status: OrderStatus.preparing,
           notes:
               'Customer collects from the shop — stage crates are labeled NORTHSTAR. Venue contact: Mia Chen.',
           lineItems: const [
-            OrderLine(itemName: 'Folding Chairs', qty: 10, unitPrice: 40),
-            OrderLine(itemName: '6ft Round Tables', qty: 4, unitPrice: 90),
-            OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 180),
-            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 360),
+            OrderLine(itemName: 'Folding Chairs', qty: 10, unitPrice: 50),
+            OrderLine(itemName: '6ft Round Tables', qty: 4, unitPrice: 250),
+            OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 350),
+            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 950),
           ],
           // Fully settled in the seed — the order is staged for pickup,
           // which the payment policy only allows once everything clears.
-          downPayment: 900,
+          downPayment: 2050,
           downPaymentPaidAt: now.subtract(const Duration(days: 2)),
+          downPaymentMethod: PaymentMethod.telebirr,
           remainingPaidAt: now.subtract(const Duration(days: 1)),
-          collateralAmount: 200,
+          remainingMethod: PaymentMethod.cbeBirr,
+          collateralAmount: 500,
           collateralPaidAt: now.subtract(const Duration(days: 1)),
+          collateralMethod: PaymentMethod.cash,
           idVerifiedAt: now.subtract(const Duration(days: 1)),
           signedName: 'Mia Chen',
           signatureData: seededSignature(),
@@ -176,16 +183,16 @@ class SampleDataset {
           createdAt: now.subtract(const Duration(days: 2)),
           eventDate: now.add(const Duration(days: 4)),
           itemCount: 42,
-          total: 3240,
+          total: 7720,
           status: OrderStatus.confirmed,
           notes:
               'Ceremony setup complete by 10 AM — linens pressed white-on-white. Oak bar set backs the cake table.',
           lineItems: const [
-            OrderLine(itemName: 'Folding Chairs', qty: 20, unitPrice: 40),
-            OrderLine(itemName: '6ft Round Tables', qty: 8, unitPrice: 90),
-            OrderLine(itemName: 'String Lights', qty: 6, unitPrice: 120),
-            OrderLine(itemName: 'White Linen 90"', qty: 6, unitPrice: 90),
-            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 230),
+            OrderLine(itemName: 'Folding Chairs', qty: 20, unitPrice: 50),
+            OrderLine(itemName: '6ft Round Tables', qty: 8, unitPrice: 250),
+            OrderLine(itemName: 'String Lights', qty: 6, unitPrice: 350),
+            OrderLine(itemName: 'White Linen 90"', qty: 6, unitPrice: 120),
+            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 950),
           ],
         ),
         RentalOrder(
@@ -196,15 +203,15 @@ class SampleDataset {
           createdAt: now.subtract(const Duration(days: 3)),
           eventDate: now.add(const Duration(days: 7)),
           itemCount: 64,
-          total: 2110,
+          total: 7780,
           status: OrderStatus.needsPayment,
           notes:
               'Balance due before pickup. Park pavilion has limited power — pack spare extension cords and the heaters.',
           lineItems: const [
-            OrderLine(itemName: 'Folding Chairs', qty: 36, unitPrice: 25),
-            OrderLine(itemName: '6ft Round Tables', qty: 10, unitPrice: 55),
-            OrderLine(itemName: 'White Linen 90"', qty: 14, unitPrice: 30),
-            OrderLine(itemName: 'Bistro Heaters', qty: 4, unitPrice: 60),
+            OrderLine(itemName: 'Folding Chairs', qty: 36, unitPrice: 50),
+            OrderLine(itemName: '6ft Round Tables', qty: 10, unitPrice: 250),
+            OrderLine(itemName: 'White Linen 90"', qty: 14, unitPrice: 120),
+            OrderLine(itemName: 'Bistro Heaters', qty: 4, unitPrice: 450),
           ],
         ),
         RentalOrder(
@@ -215,23 +222,26 @@ class SampleDataset {
           createdAt: now.subtract(const Duration(days: 5)),
           eventDate: now.add(const Duration(days: 2)),
           itemCount: 12,
-          total: 720,
+          total: 2700,
           status: OrderStatus.outForDelivery,
           notes:
               'Narrow stairwell at the studio — carry tables flat. Eli picks up and returns the items himself.',
           lineItems: const [
-            OrderLine(itemName: 'Folding Chairs', qty: 6, unitPrice: 30),
-            OrderLine(itemName: '6ft Round Tables', qty: 3, unitPrice: 80),
-            OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 75),
-            OrderLine(itemName: 'Oak Bar Set', qty: 1, unitPrice: 150),
+            OrderLine(itemName: 'Folding Chairs', qty: 6, unitPrice: 50),
+            OrderLine(itemName: '6ft Round Tables', qty: 3, unitPrice: 250),
+            OrderLine(itemName: 'String Lights', qty: 2, unitPrice: 350),
+            OrderLine(itemName: 'Oak Bar Set', qty: 1, unitPrice: 950),
           ],
           // Handed over = every handover requirement was met (the gate
           // would not have let it leave the shop otherwise).
-          downPayment: 400,
+          downPayment: 1350,
           downPaymentPaidAt: now.subtract(const Duration(days: 5)),
+          downPaymentMethod: PaymentMethod.cash,
           remainingPaidAt: now.subtract(const Duration(days: 3)),
-          collateralAmount: 150,
+          remainingMethod: PaymentMethod.telebirr,
+          collateralAmount: 600,
           collateralPaidAt: now.subtract(const Duration(days: 3)),
+          collateralMethod: PaymentMethod.cash,
           idVerifiedAt: now.subtract(const Duration(days: 3)),
           signedName: 'Eli Marlow',
           signatureData: seededSignature(),
@@ -245,17 +255,26 @@ class SampleDataset {
           createdAt: now.subtract(const Duration(days: 8)),
           eventDate: now.subtract(const Duration(days: 2)),
           itemCount: 31,
-          total: 2680,
+          total: 6330,
           status: OrderStatus.returned,
           notes:
               'Teardown happened the same night. Confirm glassware count against the manifest before restocking.',
           lineItems: const [
-            OrderLine(itemName: 'Folding Chairs', qty: 14, unitPrice: 35),
-            OrderLine(itemName: '6ft Round Tables', qty: 6, unitPrice: 100),
-            OrderLine(itemName: 'String Lights', qty: 5, unitPrice: 150),
-            OrderLine(itemName: 'White Linen 90"', qty: 4, unitPrice: 75),
-            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 270),
+            OrderLine(itemName: 'Folding Chairs', qty: 14, unitPrice: 50),
+            OrderLine(itemName: '6ft Round Tables', qty: 6, unitPrice: 250),
+            OrderLine(itemName: 'String Lights', qty: 5, unitPrice: 350),
+            OrderLine(itemName: 'White Linen 90"', qty: 4, unitPrice: 120),
+            OrderLine(itemName: 'Oak Bar Set', qty: 2, unitPrice: 950),
           ],
+          // Returned orders passed the handover gate — every line settled.
+          downPayment: 3165,
+          downPaymentPaidAt: now.subtract(const Duration(days: 8)),
+          downPaymentMethod: PaymentMethod.cbeBirr,
+          remainingPaidAt: now.subtract(const Duration(days: 4)),
+          remainingMethod: PaymentMethod.cbeBirr,
+          collateralAmount: 800,
+          collateralPaidAt: now.subtract(const Duration(days: 4)),
+          collateralMethod: PaymentMethod.cash,
         ),
       ];
 
@@ -298,7 +317,7 @@ class SampleDataset {
         name: 'Avery Harper',
         company: 'The Harper Wedding',
         email: 'avery@harperwed.com',
-        phone: '(555) 201-4477',
+        phone: '+251 911 201 447',
         avatarColor: AppColors.avatarGreen,
       ),
       contact(
@@ -306,7 +325,7 @@ class SampleDataset {
         name: 'Mia Chen',
         company: 'Northstar Events',
         email: 'mia@northstar.events',
-        phone: '(555) 883-2014',
+        phone: '+251 912 883 201',
         avatarColor: AppColors.avatarTeal,
       ),
       contact(
@@ -314,7 +333,7 @@ class SampleDataset {
         name: 'Tara Monroe',
         company: 'Monroe Family',
         email: 'tara.monroe@gmail.com',
-        phone: '(555) 340-9982',
+        phone: '+251 913 340 998',
         avatarColor: AppColors.avatarOrange,
       ),
       contact(
@@ -322,7 +341,7 @@ class SampleDataset {
         name: 'Eli Marlow',
         company: 'Marlow Studio',
         email: 'eli@marlow.studio',
-        phone: '(555) 771-6620',
+        phone: '+251 914 771 662',
         avatarColor: AppColors.avatarPurple,
       ),
       contact(
@@ -330,7 +349,7 @@ class SampleDataset {
         name: 'Lena Ortiz',
         company: 'Brighton Arts',
         email: 'lena@brightonarts.org',
-        phone: '(555) 418-2231',
+        phone: '+251 915 418 223',
         avatarColor: AppColors.avatarBlue,
       ),
     ];
@@ -357,7 +376,7 @@ class SampleDataset {
         actorColor: AppColors.avatarPurple,
         at: DateTime(now.year, now.month, now.day, 11, 15),
         type: ActivityType.payment,
-        body: '**${jm.name}** recorded cash payment of **\$200.00**',
+        body: '**${jm.name}** recorded Telebirr payment of **Br 2,050**',
       ),
       ActivityEntry(
         id: 'ACT-1003',
@@ -427,8 +446,11 @@ class SampleDataset {
       ];
 
   // ------------------------------------------------------------------ reports
+  // Revenue figures are Ethiopian Birr. The 5 seeded orders sum to
+  // Br 28,630; the month-scale trend lines sit at ~10× that so the
+  // charts and KPIs tell one consistent story.
   static List<RevenuePoint> revenueTrend(DateTime now) {
-    final values = [1.9, 2.6, 2.2, 3.1, 2.8, 3.4, 4.1];
+    final values = [19.0, 26.0, 22.0, 31.0, 28.0, 34.0, 41.0];
     return List.generate(
       values.length,
       (i) => RevenuePoint(
@@ -439,10 +461,10 @@ class SampleDataset {
   }
 
   /// Daily gross bookings for the owner earnings chart (last 12 days,
-  /// in $k). Sums to the month-to-date figure (28.9k).
+  /// in Br k). Sums to the month-to-date figure (289k).
   static List<RevenuePoint> earningsDaily(DateTime now) {
     final values = [
-      1.9, 2.3, 2.1, 2.6, 2.2, 2.8, 2.4, 2.9, 2.0, 2.6, 2.4, 2.7,
+      19.0, 23.0, 21.0, 26.0, 22.0, 28.0, 24.0, 29.0, 20.0, 26.0, 24.0, 27.0,
     ];
     return List.generate(
       values.length,
@@ -453,17 +475,22 @@ class SampleDataset {
     );
   }
 
+  /// Category revenue for the month — derived from the seeded order
+  /// lines ×10 (the month has ~10× the five seeded bookings). Sums to
+  /// 286,300 ≈ [grossRevenueMonth].
   static const List<CategoryRevenue> categoryRevenue = [
-    CategoryRevenue(category: 'Seating', amount: 8420),
-    CategoryRevenue(category: 'Tables', amount: 5120),
-    CategoryRevenue(category: 'Lighting', amount: 3860),
-    CategoryRevenue(category: 'Linens', amount: 2940),
+    CategoryRevenue(category: 'Seating', amount: 43000),
+    CategoryRevenue(category: 'Tables', amount: 77500),
+    CategoryRevenue(category: 'Lighting', amount: 52500),
+    CategoryRevenue(category: 'Linens', amount: 28800),
+    CategoryRevenue(category: 'Furniture', amount: 66500),
+    CategoryRevenue(category: 'Outdoor', amount: 18000),
   ];
 
   // ---------------------------------------------------------------- dashboard
-  static const double todaysRevenue = 2480;
-  static const double yesterdaysRevenue = 2200;
-  static const double revenueTrendPct = 12.8;
+  static const double todaysRevenue = 24800;
+  static const double yesterdaysRevenue = 19800;
+  static const double revenueTrendPct = 25.3;
   static const int activeRentals = 24;
   static const double activeTrendPct = 4.2;
   static const int pendingReturns = 8;
@@ -476,12 +503,12 @@ class SampleDataset {
   static const int newCustomersDelta = 12;
   static const double repeatCustomerPct = 68;
   static const double repeatTrendPct = 8.4;
-  static const double customerValueK = 42.8;
+  static const double customerValueK = 5.7;
   static const double valueTrendPct = 14.2;
   static const int followUps = 7;
 
   static const double leadTimeGainPct = 18;
-  static const double grossRevenueMonth = 28.9; // $k
+  static const double grossRevenueMonth = 289.0; // Br k
   static const double grossRevenueTrend = 18.4;
   static const double utilizationPct = 72.8;
   static const double utilizationTrend = 6.2;
@@ -498,7 +525,9 @@ class SampleDataset {
 
   static const int openOrders = 24;
   static const int openOrdersDelta = 4;
-  static const double awaitingPayment = 4910;
+  // RW-2048 (7,720) + RW-2046 (7,780) — the two seeded open orders that
+  // have not settled anything yet.
+  static const double awaitingPayment = 15500;
   static const int awaitingPaymentOrders = 3;
   static const int outForDelivery = 6;
   static const int returnsToday = 8;

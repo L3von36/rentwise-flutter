@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../widgets/brand_logo.dart';
 import '../../widgets/chips.dart';
 import '../../core/app_colors.dart';
+import '../../core/app_theme.dart';
+import '../../state/shell_state.dart';
 import 'sign_in_screen.dart';
 import 'sign_up_screen.dart';
 import 'password_recovery_screen.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Routes between sign-in, sign-up and password recovery without a
 /// Navigator.
@@ -86,9 +91,19 @@ class AuthScaffold extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                       wide ? 48 : 20, wide ? 22 : 16, 24, 0),
-                  child: const Align(
-                    alignment: Alignment.centerLeft,
-                    child: BrandLockup(markSize: 24, fontSize: 16),
+                  child: const Row(
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: BrandLockup(markSize: 24, fontSize: 16),
+                        ),
+                      ),
+                      // Language is reachable BEFORE signing in — an
+                      // Amharic-first user should never need an English
+                      // screen to find the switch.
+                      _AuthLanguageToggle(),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -162,10 +177,10 @@ class _Hero extends StatelessWidget {
           TextSpan(
             children: [
               TextSpan(
-                  text: 'Run every rental\n',
+                  text: AppLocale.t('Run every rental\n'),
                   style: TextStyle(color: AppPalette.ink)),
               TextSpan(
-                  text: 'with confidence.',
+                  text: AppLocale.t('with confidence.'),
                   style: TextStyle(color: AppPalette.primary)),
             ],
           ),
@@ -181,7 +196,7 @@ class _Hero extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 430),
           child: Text(
-            'One calm, connected place for inventory, orders, customers, and the people who keep your events moving.',
+            AppLocale.t('One calm, connected place for inventory, orders, customers, and the people who keep your events moving.'),
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 14.5,
@@ -218,7 +233,7 @@ class _Hero extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Trusted by the whole team',
+                Text(AppLocale.t('Trusted by the whole team'),
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -226,7 +241,7 @@ class _Hero extends StatelessWidget {
                       color: AppPalette.ink,
                     )),
                 const SizedBox(height: 2),
-                Text('Secure access for every shift.',
+                Text(AppLocale.t('Secure access for every shift.'),
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 11.5,
@@ -302,7 +317,7 @@ class _Footer extends StatelessWidget {
             size: 14, color: AppPalette.muted),
         const SizedBox(width: 6),
         Flexible(
-          child: Text('Enterprise-grade workspace security',
+          child: Text(AppLocale.t('Enterprise-grade workspace security'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -313,7 +328,7 @@ class _Footer extends StatelessWidget {
         ),
       ],
     );
-    final help = Text('Need help? support@rentwise.app',
+    final help = Text(AppLocale.t('Need help? support@rentwise.app'),
         style: TextStyle(
           fontFamily: 'Inter',
           fontSize: 12,
@@ -344,4 +359,70 @@ class AuthFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const _Footer(wide: false);
+}
+
+
+/// EN | አማርኛ pill shown on every auth screen — the language switch is
+/// available before sign-in, persisted, and restyles the screen live.
+class _AuthLanguageToggle extends StatelessWidget {
+  const _AuthLanguageToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    final shell = context.watch<ShellState>();
+    final am = shell.language == AppLanguage.am;
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppPalette.fill,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppPalette.stroke),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _AuthLangChip(
+            label: 'EN',
+            active: !am,
+            onTap: () => shell.setLanguage(AppLanguage.en),
+          ),
+          _AuthLangChip(
+            label: 'አማ',
+            active: am,
+            onTap: () => shell.setLanguage(AppLanguage.am),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthLangChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _AuthLangChip(
+      {required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(7),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: active ? AppPalette.raise : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 11,
+                fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                color: active ? AppPalette.primary : AppPalette.muted)),
+      ),
+    );
+  }
 }

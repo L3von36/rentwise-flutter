@@ -96,12 +96,7 @@ class ActivityRow extends StatelessWidget {
   }
 }
 
-String _timeLabel(DateTime at) {
-  final h = at.hour % 12 == 0 ? 12 : at.hour % 12;
-  final ampm = at.hour >= 12 ? 'PM' : 'AM';
-  final m = at.minute.toString().padLeft(2, '0');
-  return '$h:$m $ampm';
-}
+String _timeLabel(DateTime at) => Fmt.timeOfDay(at);
 
 /// "18 OCT" date block + title + venue + "In N days" (upcoming pickups).
 /// With [onTap] set the whole row opens its target (the calendar).
@@ -122,10 +117,7 @@ class PickupRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String inDays;
-    final diff = DateTime(pickup.date.year, pickup.date.month, pickup.date.day)
-        .difference(DateTime(now.year, now.month, now.day))
-        .inDays;
-    inDays = diff <= 0 ? 'Today' : 'In $diff days';
+    inDays = Fmt.inDays(pickup.date, now);
 
     final content = Row(
       children: [
@@ -139,7 +131,7 @@ class PickupRow extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Text('${pickup.date.day}',
+              Text(Fmt.dayNumber(pickup.date),
                   style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13.5,
@@ -148,7 +140,7 @@ class PickupRow extends StatelessWidget {
                     height: 1.1,
                   )),
               Text(
-                _monthUpper(pickup.date),
+                Fmt.monthUpper(pickup.date),
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 9.5,
@@ -218,10 +210,3 @@ class PickupRow extends StatelessWidget {
   }
 }
 
-String _monthUpper(DateTime d) {
-  const months = [
-    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
-  ];
-  return months[d.month - 1];
-}

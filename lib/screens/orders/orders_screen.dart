@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/density.dart';
 import '../../core/app_theme.dart';
@@ -14,6 +13,7 @@ import '../../widgets/order_status_style.dart';
 import '../booking/new_booking_sheet.dart';
 import 'order_detail_screen.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
@@ -34,7 +34,7 @@ class OrdersScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text('Orders',
+                child: Text(AppLocale.t('Orders'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: Density.compact(context) ? 17 : 21,
@@ -43,7 +43,7 @@ class OrdersScreen extends StatelessWidget {
                         color: AppPalette.ink)),
               ),
               PrimaryButton(
-                label: 'New rental booking',
+                label: AppLocale.t('New rental booking'),
                 icon: Icons.add_rounded,
                 onTap: () => showNewBookingSheet(context),
               ),
@@ -74,7 +74,7 @@ class OrdersScreen extends StatelessWidget {
                 if (state.filteredOrders.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 36),
-                    child: Text('No orders in this view.',
+                    child: Text(AppLocale.t('No orders in this view.'),
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13.5,
@@ -147,7 +147,7 @@ class _StatusFilterRow extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: _StatusChip(
-                label: 'All',
+                label: AppLocale.t('All'),
                 count: tabOrders.length,
                 fg: AppPalette.primary,
                 bg: AppPalette.primarySoft,
@@ -218,13 +218,13 @@ class _StatusChip extends StatelessWidget {
 class _OrderHeader extends StatelessWidget {
   static const _flexes = [3, 4, 3, 2, 2, 3, 1];
 
-  static const _labels = [
-    'Order',
-    'Customer',
-    'Event date',
-    'Items',
-    'Total',
-    'Status',
+  static List<String> get _labels => [
+    AppLocale.t('Order'),
+    AppLocale.t('Customer'),
+    AppLocale.t('Event date'),
+    AppLocale.t('Items'),
+    AppLocale.t('Total'),
+    AppLocale.t('Status'),
     '',
   ];
 
@@ -261,8 +261,7 @@ class _OrderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final df = DateFormat('MMM d, yyyy');
-    return HoverFill(
+        return HoverFill(
       onTap: () => openOrderDetail(context, order),
       radius: 10,
       child: Container(
@@ -312,7 +311,7 @@ class _OrderRow extends StatelessWidget {
           ),
           Expanded(
             flex: 3,
-            child: Text(df.format(order.eventDate),
+            child: Text(Fmt.shortDate(order.eventDate),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13,
@@ -364,8 +363,7 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final df = DateFormat('MMM d, yyyy');
-    return HoverFill(
+        return HoverFill(
       onTap: () => openOrderDetail(context, order),
       radius: 10,
       child: Container(
@@ -411,7 +409,7 @@ class _OrderCard extends StatelessWidget {
                 Icon(Icons.event_outlined,
                     size: 14, color: AppPalette.muted),
                 const SizedBox(width: 5),
-                Text(df.format(order.eventDate),
+                Text(Fmt.shortDate(order.eventDate),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12,
@@ -442,7 +440,7 @@ class _OrderMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      tooltip: 'Order actions',
+      tooltip: AppLocale.t('Order actions'),
       color: AppPalette.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(11),
@@ -464,41 +462,41 @@ class _OrderMenu extends StatelessWidget {
       },
       offset: const Offset(0, 8),
       itemBuilder: (_) => [
-        const PopupMenuItem(
+        PopupMenuItem(
             value: 'details',
             height: 38,
             child: Row(
               children: [
-                Icon(Icons.open_in_new_rounded, size: 15),
-                SizedBox(width: 8),
-                Text('View details',
-                    style: TextStyle(
+                const Icon(Icons.open_in_new_rounded, size: 15),
+                const SizedBox(width: 8),
+                Text(AppLocale.t('View details'),
+                    style: const TextStyle(
                         fontFamily: AppTheme.fontFamily, fontSize: 13)),
               ],
             )),
-        const PopupMenuItem(
+        PopupMenuItem(
             value: 'confirmed',
             height: 38,
-            child: Text('Mark confirmed',
-                style: TextStyle(
+            child: Text(AppLocale.t('Mark confirmed'),
+                style: const TextStyle(
                     fontFamily: AppTheme.fontFamily, fontSize: 13))),
-        const PopupMenuItem(
+        PopupMenuItem(
             value: 'outForDelivery',
             height: 38,
-            child: Text('Mark handed over (pickup)',
-                style: TextStyle(
+            child: Text(AppLocale.t('Mark handed over (pickup)'),
+                style: const TextStyle(
                     fontFamily: AppTheme.fontFamily, fontSize: 13))),
-        const PopupMenuItem(
+        PopupMenuItem(
             value: 'returned',
             height: 38,
-            child: Text('Mark returned',
-                style: TextStyle(
+            child: Text(AppLocale.t('Mark returned'),
+                style: const TextStyle(
                     fontFamily: AppTheme.fontFamily, fontSize: 13))),
-        const PopupMenuItem(
+        PopupMenuItem(
             value: 'needsPayment',
             height: 38,
-            child: Text('Flag needs payment',
-                style: TextStyle(
+            child: Text(AppLocale.t('Flag needs payment'),
+                style: const TextStyle(
                     fontFamily: AppTheme.fontFamily, fontSize: 13))),
       ],
       child: Container(

@@ -12,29 +12,30 @@ import '../models/pickup.dart';
 import '../models/rental_order.dart';
 import '../models/shift_task.dart';
 import '../services/appwrite_backend.dart';
+import '../core/app_locale.dart';
 
 /// Workspace sections (sidebar / drawer destinations).
 enum Section { dashboard, inventory, orders, customers, activity, access, reports }
 
 extension SectionX on Section {
   String get label => switch (this) {
-        Section.dashboard => 'Dashboard',
-        Section.inventory => 'Inventory',
-        Section.orders => 'Orders',
-        Section.customers => 'Customers',
-        Section.activity => 'Activity Log',
-        Section.access => 'Access & roles',
-        Section.reports => 'Reports',
+        Section.dashboard => AppLocale.t('Dashboard'),
+        Section.inventory => AppLocale.t('Inventory'),
+        Section.orders => AppLocale.t('Orders'),
+        Section.customers => AppLocale.t('Customers'),
+        Section.activity => AppLocale.t('Activity Log'),
+        Section.access => AppLocale.t('Access & roles'),
+        Section.reports => AppLocale.t('Reports'),
       };
 
   String get breadcrumb => switch (this) {
-        Section.dashboard => 'Operations overview',
-        Section.inventory => 'Inventory',
-        Section.orders => 'Orders',
-        Section.customers => 'Customers',
-        Section.activity => 'Activity Log',
-        Section.access => 'Access & roles',
-        Section.reports => 'Reports',
+        Section.dashboard => AppLocale.t('Operations overview'),
+        Section.inventory => AppLocale.t('Inventory'),
+        Section.orders => AppLocale.t('Orders'),
+        Section.customers => AppLocale.t('Customers'),
+        Section.activity => AppLocale.t('Activity Log'),
+        Section.access => AppLocale.t('Access & roles'),
+        Section.reports => AppLocale.t('Reports'),
       };
 }
 
@@ -1075,42 +1076,53 @@ class WorkspaceState extends ChangeNotifier {
   }
 
   /// Records the DOWN PAYMENT as received (always the first collection).
-  bool markDownPaymentReceived(RentalOrder order) {
+  /// [method] captures the Ethiopian payment rail the money arrived on.
+  bool markDownPaymentReceived(RentalOrder order,
+      {PaymentMethod? method}) {
     if (order.downPayment <= 0 || order.downPaymentPaidAt != null) return false;
     return _applyOrderPatch(
           order,
-          (o) => o.copyWith(downPaymentPaidAt: DateTime.now()),
+          (o) => o.copyWith(
+              downPaymentPaidAt: DateTime.now(), downPaymentMethod: method),
           type: ActivityType.payment,
           body: '**${_account?.name ?? 'Someone'}** collected the **down payment '
-              '${Fmt.moneySmart(order.downPayment)}** on **#${order.id} · ${order.eventName}**',
+              '${Fmt.moneySmart(order.downPayment)}**'
+              '${method == null ? '' : ' via ${method.label}'}'
+              ' on **#${order.id} · ${order.eventName}**',
         ) !=
         null;
   }
 
   /// Records the REMAINING balance (total − down payment) as received.
-  bool markRemainingReceived(RentalOrder order) {
+  bool markRemainingReceived(RentalOrder order, {PaymentMethod? method}) {
     if (order.remainingDue <= 0 || order.remainingPaidAt != null) return false;
     return _applyOrderPatch(
           order,
-          (o) => o.copyWith(remainingPaidAt: DateTime.now()),
+          (o) => o.copyWith(
+              remainingPaidAt: DateTime.now(), remainingMethod: method),
           type: ActivityType.payment,
           body: '**${_account?.name ?? 'Someone'}** collected the **remaining '
-              '${Fmt.moneySmart(order.remainingDue)}** on **#${order.id} · ${order.eventName}**',
+              '${Fmt.moneySmart(order.remainingDue)}**'
+              '${method == null ? '' : ' via ${method.label}'}'
+              ' on **#${order.id} · ${order.eventName}**',
         ) !=
         null;
   }
 
   /// Records the COLLATERAL deposit as received (refunded at return).
-  bool markCollateralReceived(RentalOrder order) {
+  bool markCollateralReceived(RentalOrder order, {PaymentMethod? method}) {
     if (order.collateralAmount <= 0 || order.collateralPaidAt != null) {
       return false;
     }
     return _applyOrderPatch(
           order,
-          (o) => o.copyWith(collateralPaidAt: DateTime.now()),
+          (o) => o.copyWith(
+              collateralPaidAt: DateTime.now(), collateralMethod: method),
           type: ActivityType.payment,
           body: '**${_account?.name ?? 'Someone'}** held a **collateral deposit '
-              '${Fmt.moneySmart(order.collateralAmount)}** on **#${order.id} · ${order.eventName}**',
+              '${Fmt.moneySmart(order.collateralAmount)}**'
+              '${method == null ? '' : ' via ${method.label}'}'
+              ' on **#${order.id} · ${order.eventName}**',
         ) !=
         null;
   }

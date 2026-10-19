@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
@@ -18,6 +17,7 @@ import '../../widgets/order_status_style.dart';
 import '../booking/new_booking_sheet.dart';
 import '../orders/order_detail_screen.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Customer 360 — profile, contact actions, spend stats and every order
 /// they have ever placed (tap one to open its detail).
@@ -29,9 +29,7 @@ class CustomerDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceState>();
     final wide = MediaQuery.sizeOf(context).width >= 900;
-    final df = DateFormat('MMM d, yyyy');
-    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
-
+        
     // live copy + their order history
     final live = state.customers.firstWhere(
       (c) => c.id == customer.id,
@@ -42,10 +40,10 @@ class CustomerDetailScreen extends StatelessWidget {
 
     final profile = SectionCard(
       icon: Icons.person_outline_rounded,
-      title: 'Profile',
-      subtitle: '${live.company} · last booking ${df.format(live.lastBooking)}',
+      title: AppLocale.t('Profile'),
+      subtitle: '${live.company} · last booking ${Fmt.shortDate(live.lastBooking)}',
       action: LinkChip(
-        label: 'New booking',
+        label: AppLocale.t('New booking'),
         onTap: () => showNewBookingSheet(context, prefillCustomer: live.name),
       ),
       child: Column(
@@ -78,7 +76,7 @@ class CustomerDetailScreen extends StatelessWidget {
                         if (live.isRepeat) ...[
                           const SizedBox(width: 8),
                           StatusBadge.custom(
-                            label: 'Repeat',
+                            label: AppLocale.t('Repeat'),
                             fg: AppPalette.green,
                             bg: AppPalette.greenBg,
                             dot: true,
@@ -101,15 +99,15 @@ class CustomerDetailScreen extends StatelessWidget {
           _ContactRow(
             icon: Icons.mail_outline_rounded,
             label: live.email,
-            tapLabel: 'Copy email',
-            onTap: () => _copy(context, live.email, 'Email copied'),
+            tapLabel: AppLocale.t('Copy email'),
+            onTap: () => _copy(context, live.email, AppLocale.t('Email copied')),
           ),
           const SizedBox(height: 8),
           _ContactRow(
             icon: Icons.phone_outlined,
             label: live.phone,
-            tapLabel: 'Copy phone',
-            onTap: () => _copy(context, live.phone, 'Phone number copied'),
+            tapLabel: AppLocale.t('Copy phone'),
+            onTap: () => _copy(context, live.phone, AppLocale.t('Phone number copied')),
           ),
         ],
       ),
@@ -129,7 +127,7 @@ class CustomerDetailScreen extends StatelessWidget {
               icon: Icons.repeat_rounded,
               iconColor: AppPalette.primary,
               iconBg: AppPalette.primarySoft,
-              label: 'Rentals',
+              label: AppLocale.t('Rentals'),
               value: '${live.rentals}',
               subtitle: '$openOrders open right now',
             ),
@@ -140,8 +138,8 @@ class CustomerDetailScreen extends StatelessWidget {
               icon: Icons.payments_outlined,
               iconColor: AppPalette.green,
               iconBg: AppPalette.greenBg,
-              label: 'Lifetime spend',
-              value: money.format(live.lifetimeSpend),
+              label: AppLocale.t('Lifetime spend'),
+              value: Fmt.money(live.lifetimeSpend),
               subtitle: 'total to date',
             ),
           ),
@@ -151,10 +149,10 @@ class CustomerDetailScreen extends StatelessWidget {
               icon: Icons.event_available_outlined,
               iconColor: AppPalette.purple,
               iconBg: AppPalette.purpleBg,
-              label: 'Avg per booking',
+              label: AppLocale.t('Avg per booking'),
               value: live.rentals == 0
                   ? '—'
-                  : money.format(live.lifetimeSpend / live.rentals),
+                  : Fmt.money(live.lifetimeSpend / live.rentals),
               subtitle: 'realized value',
             ),
           ),
@@ -164,8 +162,8 @@ class CustomerDetailScreen extends StatelessWidget {
               icon: Icons.schedule_rounded,
               iconColor: AppPalette.amber,
               iconBg: AppPalette.amberBg,
-              label: 'Last booking',
-              value: df.format(live.lastBooking),
+              label: AppLocale.t('Last booking'),
+              value: Fmt.shortDate(live.lastBooking),
               subtitle: 'most recent',
             ),
           ),
@@ -175,15 +173,15 @@ class CustomerDetailScreen extends StatelessWidget {
 
     final history = SectionCard(
       icon: Icons.receipt_long_outlined,
-      title: 'Order history',
+      title: AppLocale.t('Order history'),
       subtitle: orders.isEmpty
-          ? 'No orders yet — their first booking will show up here.'
+          ? AppLocale.t('No orders yet — their first booking will show up here.')
           : '${orders.length} ${orders.length == 1 ? 'booking' : 'bookings'} · newest first',
       child: orders.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                  'No orders yet.',
+                  AppLocale.t('No orders yet.'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -206,7 +204,7 @@ class CustomerDetailScreen extends StatelessWidget {
     final insights = _MiniInsights(orders: orders);
 
     return DetailPage(
-      eyebrow: 'Customers / ${live.name}',
+      eyebrow: '${AppLocale.t('Customers')} / ${live.name}',
       title: live.name,
       icon: Icons.person_outline_rounded,
       iconColor: live.avatarColor,
@@ -314,9 +312,7 @@ class _HistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final df = DateFormat('MMM d, yyyy');
-    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
-    return Container(
+            return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
       child: Row(
         children: [
@@ -334,7 +330,7 @@ class _HistoryRow extends StatelessWidget {
                         color: AppPalette.ink)),
                 const SizedBox(height: 2),
                 Text(
-                    '${df.format(order.eventDate)} · ${Fmt.items(order.itemCount)}',
+                    '${Fmt.shortDate(order.eventDate)} · ${Fmt.items(order.itemCount)}',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
@@ -343,7 +339,7 @@ class _HistoryRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Text(money.format(order.total),
+          Text(Fmt.money(order.total),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13.5,
@@ -379,17 +375,17 @@ class _MiniInsights extends StatelessWidget {
 
     return SectionCard(
       icon: Icons.insights_outlined,
-      title: 'Quick insights',
+      title: AppLocale.t('Quick insights'),
       child: Row(
         children: [
           Expanded(
             child: _FactTile(
-                label: 'Items rented',
+                label: AppLocale.t('Items rented'),
                 value: '$items'),
           ),
           Expanded(
             child: _FactTile(
-                label: 'Completed',
+                label: AppLocale.t('Completed'),
                 value: orders.isEmpty
                     ? '—'
                     : '${(closed / orders.length * 100).round()}%'),

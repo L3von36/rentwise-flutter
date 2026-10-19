@@ -32,7 +32,7 @@ class AppTheme {
       visualDensity: VisualDensity.compact,
     );
 
-    return _decorate(
+    return _withEthiopicFallback(_decorate(
       base,
       scheme: scheme,
       background: AppColors.background,
@@ -47,7 +47,7 @@ class AppTheme {
       primarySoft: AppColors.primarySoft,
       red: AppColors.red,
       textScaleShadow: AppColors.textDark,
-    );
+    ));
   }
 
   static ThemeData dark() {
@@ -68,7 +68,7 @@ class AppTheme {
       visualDensity: VisualDensity.compact,
     );
 
-    return _decorate(
+    return _withEthiopicFallback(_decorate(
       base,
       scheme: scheme,
       background: DarkTokens.background,
@@ -83,7 +83,7 @@ class AppTheme {
       primarySoft: DarkTokens.primarySoft,
       red: DarkTokens.red,
       textScaleShadow: DarkTokens.textDark,
-    );
+    ));
   }
 
   /// Shared theme decoration for both brightnesses — identical structure,
@@ -251,6 +251,15 @@ class AppTheme {
       ),
     );
   }
+
+  /// Amharic UI: Ge'ez glyphs are missing from Inter, so every themed
+  /// text style falls back to the bundled Noto Sans Ethiopic (per-widget
+  /// explicit TextStyles get the same engine-level fallback).
+  static const List<String> ethiopicFallback = ['Noto Sans Ethiopic'];
+
+  static ThemeData _withEthiopicFallback(ThemeData t) => t.copyWith(
+        textTheme: t.textTheme.apply(fontFamilyFallback: ethiopicFallback),
+      );
 
   static OutlineInputBorder _inputBorder(Color color, {double width = 1}) =>
       OutlineInputBorder(

@@ -48,7 +48,7 @@ void main() {
       expect(state.canAccess(Section.access), isTrue);
 
       // Metrics came from the cloud metrics document, not local defaults.
-      expect(state.monthGrossRevenueK, 28.9);
+      expect(state.monthGrossRevenueK, 289.0);
       expect(state.utilization, 72.8);
       expect(state.earnings, isNotEmpty);
       expect(state.categorySeries, isNotEmpty);
@@ -111,7 +111,7 @@ void main() {
       // Local reactions are instant and consistent…
       expect(state.orderById(orderId), isNotNull);
       expect(state.orderById(orderId)!.status, OrderStatus.confirmed);
-      expect(state.orderById(orderId)!.total, closeTo(qty * 1.50, 0.01));
+      expect(state.orderById(orderId)!.total, closeTo(qty * 20.0, 0.01)); // Br rates
       expect(
           state.inventory.firstWhere((i) => i.id == chairs.id).available,
           availableBefore - qty);
@@ -119,7 +119,7 @@ void main() {
       // …and the customer stat line moved too.
       final avery = state.customerByName('Avery Harper')!;
       expect(avery.rentals, 2); // 1 seeded order + this booking
-      expect(avery.lifetimeSpend, closeTo(3240 + qty * 1.50, 0.01));
+      expect(avery.lifetimeSpend, closeTo(7720 + qty * 20.0, 0.01)); // Br
 
       // Write-through: order (new) + inventory (update) + customer
       // (update) + activity (new).
@@ -301,7 +301,7 @@ void main() {
       expect(state.customerByName('Nova Reyes')!.rentals, 1);
       expect(
           state.customerByName('Nova Reyes')!.lifetimeSpend,
-          closeTo(4 * 8.00, 0.01));
+          closeTo(4 * 120.0, 0.01)); // Br rates
       expect(
           state.inventory.firstWhere((i) => i.id == heaters.id).available,
           availableBefore - 4);
@@ -346,7 +346,7 @@ void main() {
       expect(state.ordersForCustomer('Nova Reyes'), hasLength(1));
       final nova1 = state.customerByName('Nova Reyes')!;
       expect(nova1.rentals, 1);
-      expect(nova1.lifetimeSpend, closeTo(6 * 12.00, 0.01));
+      expect(nova1.lifetimeSpend, closeTo(6 * 100.0, 0.01)); // Br rates
       expect(nova1.lastBooking.day, DateTime.now().day);
 
       // --- Rental 2 (a returning customer)
@@ -361,7 +361,7 @@ void main() {
 
       final nova2 = state.customerByName('Nova Reyes')!;
       expect(nova2.rentals, 2);
-      expect(nova2.lifetimeSpend, closeTo(6 * 12.00 + 3 * 6.00, 0.01));
+      expect(nova2.lifetimeSpend, closeTo(6 * 100.0 + 3 * 80.0, 0.01)); // Br
       expect(state.ordersForCustomer('Nova Reyes'), hasLength(2));
       expect({id1, id2}.length, 2, reason: 'order ids must be unique');
 

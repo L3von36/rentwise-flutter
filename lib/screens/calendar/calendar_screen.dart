@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/app_locale.dart';
 import '../../core/app_theme.dart';
+import '../../core/ethiopian_calendar.dart';
 import '../../core/formatters.dart';
 import '../../models/pickup.dart';
 import '../../models/rental_order.dart';
@@ -17,6 +18,10 @@ import '../../core/palette.dart';
 
 /// The dispatch calendar — a month grid with dots for pickups and event
 /// dates, plus a per-day agenda. Opened via “Open calendar”.
+///
+/// Renders in the ACTIVE calendar system: the Ethiopian 13-month grid
+/// (መስከረም…ጳጉሜ) or the Gregorian grid — same dots, same agenda, the
+/// month the operator thinks in. Weeks open on እሑድ (Sunday).
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -25,15 +30,59 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  late DateTime _month;
-  DateTime? _selected;
+  // Visible month in the ACTIVE calendar system.
+  int? _ecYear, _ecMonth;
+  int? _gcYear, _gcMonth;
+  DateTime? _selected; // always a Gregorian date
 
   @override
   void initState() {
     super.initState();
+    _syncToday();
+  }
+
+  void _syncToday() {
     final now = DateTime.now();
-    _month = DateTime(now.year, now.month);
-    _selected = DateTime(now.year, now.month, now.day);
+    final today = DateTime(now.year, now.month, now.day);
+    _selected = today;
+    if (AppLocale.isEthiopic) {
+      final ec = EthiopianCalendar.fromGregorian(today);
+      _ecYear = ec.year;
+      _ecMonth = ec.month;
+      _gcYear = null;
+      _gcMonth = null;
+    } else {
+      _gcYear = now.year;
+      _gcMonth = now.month;
+      _ecYear = null;
+      _ecMonth = null;
+    }
+  }
+
+  void _stepMonth(int dir) {
+    setState(() {
+      if (AppLocale.isEthiopic) {
+        _ecMonth = _ecMonth! + dir;
+        if (_ecMonth! > 13) {
+          _ecMonth = 1;
+          _ecYear = _ecYear! + 1;
+        }
+        if (_ecMonth! < 1) {
+          _ecMonth = 13;
+          _ecYear = _ecYear! - 1;
+        }
+      } else {
+        _gcMonth = _gcMonth! + dir;
+        if (_gcMonth! > 12) {
+          _gcMonth = 1;
+          _gcYear = _gcYear! + 1;
+        }
+        if (_gcMonth! < 1) {
+          _gcMonth = 12;
+          _gcYear = _gcYear! - 1;
+        }
+      }
+    });
   }
 
   @override
@@ -43,19 +92,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final pickups = state.pickups;
 
     return DetailPage(
-      eyebrow: 'Calendar',
-      title: 'Pickup calendar',
-      subtitle: 'Pickups and event dates',
+      eyebrow: AppLocale.t('Calendar'),
+      title: AppLocale.t('Pickup calendar'),
+      subtitle: AppLocale.t('Pickups and event dates'),
       icon: Icons.calendar_month_outlined,
       actions: [
         OutlineButton(
-          label: 'Today',
+          label: AppLocale.t('Today'),
           icon: Icons.today_outlined,
-          onTap: () => setState(() {
-            final t = DateTime(now.year, now.month, now.day);
-            _month = DateTime(now.year, now.month);
-            _selected = t;
-          }),
+          onTap: () => setState(_syncToday),
         ),
       ],
       body: LayoutBuilder(builder: (context, box) {
@@ -64,17 +109,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         // whole window.
         final wide = box.maxWidth >= 960;
         final grid = _MonthGrid(
-          month: _month,
+          ecYear: _ecYear,
+          ecMonth: _ecMonth,
+          gcYear: _gcYear,
+          gcMonth: _gcMonth,
           selected: _selected,
           now: now,
           pickups: pickups,
           orders: state.orders,
-          onPrev: () => setState(() {
-            _month = DateTime(_month.year, _month.month - 1);
-          }),
-          onNext: () => setState(() {
-            _month = DateTime(_month.year, _month.month + 1);
-          }),
+          onPrev: () => _stepMonth(-1),
+          onNext: () => _stepMonth(1),
           onSelect: (d) => setState(() => _selected = d),
         );
         final agenda = _AgendaCard(
@@ -120,7 +164,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
 // ---------------------------------------------------------------- month grid
 class _MonthGrid extends StatelessWidget {
-  final DateTime month;
+  final int? ecYear, ecMonth;
+  final int? gcYear, gcMonth;
   final DateTime? selected;
   final DateTime now;
   final List<Pickup> pickups;
@@ -130,7 +175,10 @@ class _MonthGrid extends StatelessWidget {
   final ValueChanged<DateTime> onSelect;
 
   const _MonthGrid({
-    required this.month,
+    required this.ecYear,
+    required this.ecMonth,
+    required this.gcYear,
+    required this.gcMonth,
     required this.selected,
     required this.now,
     required this.pickups,
@@ -140,39 +188,73 @@ class _MonthGrid extends StatelessWidget {
     required this.onSelect,
   });
 
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+  Set<int> get _pickupDays {
+    if (AppLocale.isEthiopic) {
+      return pickups
+          .map((p) => EthiopianCalendar.fromGregorian(p.date))
+          .where((ec) => ec.year == ecYear && ec.month == ecMonth)
+          .map((ec) => ec.day)
+          .toSet();
+    }
+    return pickups
+        .where((p) =>
+            p.date.year == gcYear && p.date.month == gcMonth)
+        .map((p) => p.date.day)
+        .toSet();
+  }
 
-  Set<int> get _pickupDays => pickups
-      .where((p) => p.date.year == month.year && p.date.month == month.month)
-      .map((p) => p.date.day)
-      .toSet();
+  Set<int> get _eventDays {
+    if (AppLocale.isEthiopic) {
+      return orders
+          .map((o) => EthiopianCalendar.fromGregorian(o.eventDate))
+          .where((ec) => ec.year == ecYear && ec.month == ecMonth)
+          .map((ec) => ec.day)
+          .toSet();
+    }
+    return orders
+        .where((o) => o.eventDate.year == gcYear && o.eventDate.month == gcMonth)
+        .map((o) => o.eventDate.day)
+        .toSet();
+  }
 
-  Set<int> get _eventDays => orders
-      .where((o) =>
-          o.eventDate.year == month.year && o.eventDate.month == month.month)
-      .map((o) => o.eventDate.day)
-      .toSet();
-
-  @override
-  Widget build(BuildContext context) {
-    final first = DateTime(month.year, month.month, 1);
-    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final leading = (first.weekday - DateTime.monday) % 7;
-    final monthName = DateFormat('MMMM yyyy').format(month);
-
-    final cells = <int?>[
+  /// (dayNumber, gcDate) cells, null = blank.
+  List<(int, DateTime)?> get _cells {
+    if (AppLocale.isEthiopic) {
+      return [
+        for (final c in EthiopianCalendar.monthCells(ecYear!, ecMonth!))
+          c == null ? null : (c, EthiopianCalendar.toGregorian(ecYear!, ecMonth!, c)),
+      ];
+    }
+    final first = DateTime(gcYear!, gcMonth!, 1);
+    final days = DateTime(gcYear!, gcMonth! + 1, 0).day;
+    final leading = first.weekday % 7; // Sunday-first
+    final cells = <(int, DateTime)?>[
       for (var i = 0; i < leading; i++) null,
-      for (var d = 1; d <= daysInMonth; d++) d,
+      for (var d = 1; d <= days; d++) (d, DateTime(gcYear!, gcMonth!, d)),
     ];
     while (cells.length % 7 != 0) {
       cells.add(null);
     }
+    return cells;
+  }
+
+  String get _title {
+    if (AppLocale.isEthiopic) {
+      return '${EthiopianCalendar.monthName(ecMonth!, AppLocale.language)} '
+          '$ecYear ${EthiopianCalendar.era(AppLocale.language)}';
+    }
+    return '${AppLocale.gcMonthOf(gcMonth!)} $gcYear';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cells = _cells;
+    final headers = Fmt.weekdayHeaders();
 
     return SectionCard(
       icon: Icons.calendar_month_outlined,
-      title: monthName,
-      subtitle: 'Indigo = event date · green = pickup run',
+      title: _title,
+      subtitle: AppLocale.t('Indigo = event date · green = pickup run'),
       child: Column(
         children: [
           Row(
@@ -185,7 +267,7 @@ class _MonthGrid extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              for (final wd in const ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+              for (final wd in headers)
                 Expanded(
                   child: Text(wd,
                       textAlign: TextAlign.center,
@@ -210,13 +292,14 @@ class _MonthGrid extends StatelessWidget {
     );
   }
 
-  Widget _cellFor(int? day) {
-    if (day == null) return const SizedBox(height: 40);
-    final date = DateTime(month.year, month.month, day);
+  Widget _cellFor((int, DateTime)? cell) {
+    if (cell == null) return const SizedBox(height: 40);
+    final (day, date) = cell;
     final hasPickup = _pickupDays.contains(day);
     final hasEvent = _eventDays.contains(day);
-    final isSelected = selected != null && _sameDay(selected!, date);
-    final isToday = _sameDay(now, date);
+    final isSelected =
+        selected != null && EthiopianCalendar.sameDay(selected!, date);
+    final isToday = EthiopianCalendar.sameDay(now, date);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -327,17 +410,17 @@ class _AgendaCard extends StatelessWidget {
     final state = context.read<WorkspaceState>();
     final dayPickups = day == null
         ? <Pickup>[]
-        : pickups.where((p) => _sameDay(p.date, day!)).toList();
+        : pickups.where((p) => EthiopianCalendar.sameDay(p.date, day!)).toList();
     final dayOrders = day == null
         ? <RentalOrder>[]
-        : orders.where((o) => _sameDay(o.eventDate, day!)).toList();
+        : orders.where((o) => EthiopianCalendar.sameDay(o.eventDate, day!)).toList();
     final empty = dayPickups.isEmpty && dayOrders.isEmpty;
 
     return SectionCard(
       icon: Icons.event_note_outlined,
       title: day == null
-          ? 'Agenda'
-          : 'Agenda · ${DateFormat('EEE, MMM d').format(day!)}',
+          ? AppLocale.t('Agenda')
+          : '${AppLocale.t('Agenda')} · ${Fmt.dayMonth(day!)}',
       child: empty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -346,7 +429,7 @@ class _AgendaCard extends StatelessWidget {
                   Icon(Icons.event_busy_outlined,
                       size: 16, color: AppPalette.faint),
                   const SizedBox(width: 8),
-                  Text('Nothing scheduled for this day.',
+                  Text(AppLocale.t('Nothing scheduled for this day.'),
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
@@ -363,7 +446,8 @@ class _AgendaCard extends StatelessWidget {
                       icon: Icons.local_shipping_outlined,
                       iconColor: AppPalette.green,
                       iconBg: AppPalette.greenBg,
-                      title: 'Pickup · ${dayPickups[i].title}',
+                      title:
+                          AppLocale.t('Pickup · {n}').replaceFirst('{n}', dayPickups[i].title),
                       meta:
                           '${dayPickups[i].venue} · ${Fmt.items(dayPickups[i].itemCount)} · ${dayPickups[i].contactName}',
                     ),
@@ -380,7 +464,8 @@ class _AgendaCard extends StatelessWidget {
                         icon: Icons.event_outlined,
                         iconColor: dayOrders[i].status.fg,
                         iconBg: dayOrders[i].status.bg,
-                        title: 'Event · ${dayOrders[i].eventName}',
+                        title:
+                            AppLocale.t('Event · {n}').replaceFirst('{n}', dayOrders[i].eventName),
                         meta:
                             '#${dayOrders[i].id} · ${Fmt.items(dayOrders[i].itemCount)} · ${dayOrders[i].status.label}',
                       ),
@@ -390,9 +475,6 @@ class _AgendaCard extends StatelessWidget {
             ),
     );
   }
-
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
 class _AgendaRow extends StatelessWidget {
@@ -466,7 +548,7 @@ class _UpcomingRuns extends StatelessWidget {
       ..sort((a, b) => a.date.compareTo(b.date));
     return SectionCard(
       icon: Icons.local_shipping_outlined,
-      title: 'Upcoming pickups',
+      title: AppLocale.t('Upcoming pickups'),
       child: Column(
         children: [
           for (var i = 0; i < upcoming.length; i++)
@@ -498,7 +580,7 @@ class _RunLine extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 44,
+            width: 52,
             padding: const EdgeInsets.symmetric(vertical: 5),
             decoration: BoxDecoration(
               color: AppPalette.fill,
@@ -507,18 +589,20 @@ class _RunLine extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Text('${pickup.date.day}',
+                Text(Fmt.dayNumber(pickup.date),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
                         color: AppPalette.ink)),
-                Text(DateFormat('MMM').format(pickup.date).toUpperCase(),
+                Text(Fmt.monthUpper(pickup.date),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
+                        letterSpacing: 0.4,
                         color: AppPalette.muted)),
               ],
             ),
@@ -548,11 +632,7 @@ class _RunLine extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           StatusBadge.custom(
-            label: diff == 0
-                ? 'Today'
-                : diff == 1
-                    ? 'Tomorrow'
-                    : 'In $diff days',
+            label: Fmt.inDays(pickup.date, now),
             fg: diff <= 1 ? AppPalette.amber : AppPalette.green,
             bg: diff <= 1 ? AppPalette.amberBg : AppPalette.greenBg,
           ),

@@ -9,6 +9,8 @@ import '../../widgets/cards.dart';
 import '../../widgets/chips.dart';
 import '../../widgets/detail_page.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
+import '../../core/formatters.dart';
 
 /// Personal profile — identity card, appearance switcher (same engine as
 /// the top-bar toggle, persisted), and account actions. Every role can
@@ -23,8 +25,8 @@ class ProfileScreen extends StatelessWidget {
     final account = state.account;
 
     return DetailPage(
-      eyebrow: 'Profile',
-      title: account?.name ?? 'Profile',
+      eyebrow: AppLocale.t('Profile'),
+      title: account?.name ?? AppLocale.t('Profile'),
       icon: Icons.account_circle_outlined,
       // Centered readable column on wide windows — full-width identity
       // cards and password fields look broken at 1300px+.
@@ -37,7 +39,7 @@ class ProfileScreen extends StatelessWidget {
             children: [
           SectionCard(
             icon: Icons.badge_outlined,
-            title: 'Identity',
+            title: AppLocale.t('Identity'),
             child: Column(
               children: [
                 Row(
@@ -74,7 +76,7 @@ class ProfileScreen extends StatelessWidget {
                             runSpacing: 6,
                             children: [
                               StatusBadge.custom(
-                                label: state.isOwner ? 'Owner' : 'Employee',
+                                label: state.isOwner ? AppLocale.t('Owner') : AppLocale.t('Employee'),
                                 fg: state.isOwner
                                     ? AppPalette.primary
                                     : AppPalette.green,
@@ -100,29 +102,38 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 _InfoLine(
                     icon: Icons.mail_outline_rounded,
-                    label: 'Email',
+                    label: AppLocale.t('Email'),
                     value: account?.email ?? '—'),
                 _InfoLine(
                     icon: Icons.storefront_outlined,
-                    label: 'Workspace',
+                    label: AppLocale.t('Workspace'),
                     value: state.workspace),
                 _InfoLine(
                     icon: Icons.verified_user_outlined,
-                    label: 'Permissions',
+                    label: AppLocale.t('Permissions'),
                     value: state.isOwner
-                        ? 'Full access — business + team'
-                        : 'Operations — dashboard, inventory, orders, customers, activity'),
+                        ? AppLocale.t('Full access — business + team')
+                        : AppLocale.t('Operations — dashboard, inventory, orders, customers, activity')),
               ],
             ),
           ),
           const SizedBox(height: 14),
           SectionCard(
             icon: Icons.dark_mode_rounded,
-            title: 'Appearance',
+            title: AppLocale.t('Appearance'),
             child: SegmentedThemePicker(
               current: shell.themeSetting,
               onChanged: shell.setThemeSetting,
             ),
+          ),
+          const SizedBox(height: 14),
+          // Ethiopian context: UI language (English / አማርኛ) and the
+          // calendar the whole app renders dates with. Both persist on
+          // this device and apply instantly.
+          SectionCard(
+            icon: Icons.public_rounded,
+            title: AppLocale.t('Region & language'),
+            child: _RegionAndLanguage(shell: shell),
           ),
           const SizedBox(height: 14),
           // self-service password rotation — every role. Owners reset
@@ -131,12 +142,12 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 14),
           SectionCard(
             icon: Icons.settings_outlined,
-            title: 'Session',
+            title: AppLocale.t('Session'),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 OutlineButton(
-                  label: 'Sign out',
+                  label: AppLocale.t('Sign out'),
                   icon: Icons.logout_rounded,
                   fg: AppPalette.red,
                   onTap: () {
@@ -158,6 +169,157 @@ class ProfileScreen extends StatelessWidget {
         ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Language + calendar pickers with a live dual-calendar preview — the
+/// same segment style as [SegmentedThemePicker] so the screen reads as
+/// one family of settings.
+class _RegionAndLanguage extends StatelessWidget {
+  final ShellState shell;
+  const _RegionAndLanguage({required this.shell});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppLocale.t('Language'),
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppPalette.muted)),
+        const SizedBox(height: 7),
+        _Segmented<AppLanguage>(
+          current: shell.language,
+          options: const [
+            (AppLanguage.en, 'English'),
+            (AppLanguage.am, 'አማርኛ'),
+          ],
+          onChanged: shell.setLanguage,
+        ),
+        const SizedBox(height: 14),
+        Text(AppLocale.t('Calendar system'),
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppPalette.muted)),
+        const SizedBox(height: 7),
+        _Segmented<CalendarSystem>(
+          current: shell.calendarSystem,
+          options: [
+            (CalendarSystem.ethiopic,
+                AppLocale.isAmharic ? 'ዓ.ም' : AppLocale.t('Ethiopian')),
+            (CalendarSystem.gregorian,
+                AppLocale.isAmharic ? 'እ.ኤ.አ' : AppLocale.t('Gregorian')),
+          ],
+          onChanged: shell.setCalendarSystem,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            color: AppPalette.fill,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppPalette.stroke),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(AppLocale.t('Today'),
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: AppPalette.faint)),
+              const SizedBox(height: 3),
+              Text(Fmt.longDate(now),
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppPalette.ink)),
+              const SizedBox(height: 2),
+              Text(AppLocale.otherSystemDate(now),
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 11.5,
+                      color: AppPalette.muted)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Generic two-option segmented control (same look as the theme one).
+class _Segmented<T> extends StatelessWidget {
+  final T current;
+  final List<(T, String)> options;
+  final ValueChanged<T> onChanged;
+
+  const _Segmented({
+    required this.current,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppPalette.fill,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        children: [
+          for (final (value, label) in options)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(value),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: current == value
+                        ? AppPalette.raise
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: current == value
+                        ? [
+                            BoxShadow(
+                              color: Colors.black
+                                  .withOpacity(AppPalette.dark ? 0.4 : 0.06),
+                              blurRadius: 5,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(label,
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12.5,
+                          fontWeight: current == value
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          color: current == value
+                              ? AppPalette.ink
+                              : AppPalette.muted)),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -192,7 +354,7 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
     final state = context.read<WorkspaceState>();
     setState(() => _error = null);
     if (_newCtrl.text != _confirmCtrl.text) {
-      setState(() => _error = 'New passwords do not match.');
+      setState(() => _error = AppLocale.t('Passwords do not match.'));
       return;
     }
     setState(() => _submitting = true);
@@ -216,17 +378,17 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
   Widget build(BuildContext context) {
     return SectionCard(
       icon: Icons.password_rounded,
-      title: 'Password',
+      title: AppLocale.t('Password'),
       subtitle:
-          'Update your password',
+          AppLocale.t('Update your password'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             controller: _currentCtrl,
             obscureText: _obscure,
-            decoration: const InputDecoration(
-                hintText: 'Current password'),
+            decoration: InputDecoration(
+                hintText: AppLocale.t('Current password')),
           ),
           const SizedBox(height: 10),
           Row(children: [
@@ -234,13 +396,13 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
               child: TextField(
                 controller: _newCtrl,
                 obscureText: _obscure,
-                decoration: const InputDecoration(
-                    hintText: 'New password (min 8 characters)'),
+                decoration: InputDecoration(
+                    hintText: AppLocale.t('New password (min 8 characters)')),
               ),
             ),
             const SizedBox(width: 8),
             IconButton(
-              tooltip: _obscure ? 'Show passwords' : 'Hide passwords',
+              tooltip: _obscure ? AppLocale.t('Show passwords') : AppLocale.t('Hide passwords'),
               icon: Icon(
                 _obscure
                     ? Icons.visibility_outlined
@@ -257,7 +419,7 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
             obscureText: _obscure,
             onSubmitted: (_) => _submit(),
             decoration:
-                const InputDecoration(hintText: 'Repeat new password'),
+                InputDecoration(hintText: AppLocale.t('Repeat new password')),
           ),
           if (_error != null) ...[
             const SizedBox(height: 10),
@@ -270,7 +432,7 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
           ],
           const SizedBox(height: 12),
           OutlineButton(
-            label: _submitting ? 'Updating…' : 'Update password',
+            label: _submitting ? AppLocale.t('Updating…') : AppLocale.t('Update password'),
             icon: Icons.check_rounded,
             fg: AppPalette.primary,
             onTap: _submitting ? null : _submit,
@@ -333,9 +495,10 @@ class SegmentedThemePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = [
-      (AppThemeSetting.system, 'System', Icons.settings_suggest_outlined),
-      (AppThemeSetting.light, 'Light', Icons.light_mode_outlined),
-      (AppThemeSetting.dark, 'Dark', Icons.dark_mode_outlined),
+      (AppThemeSetting.system, AppLocale.t('System'),
+          Icons.settings_suggest_outlined),
+      (AppThemeSetting.light, AppLocale.t('Light'), Icons.light_mode_outlined),
+      (AppThemeSetting.dark, AppLocale.t('Dark'), Icons.dark_mode_outlined),
     ];
     return Container(
       padding: const EdgeInsets.all(4),

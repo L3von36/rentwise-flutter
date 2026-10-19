@@ -8,6 +8,7 @@ import 'brand_logo.dart';
 import 'chips.dart';
 import 'cards.dart';
 import '../core/palette.dart';
+import '../core/app_locale.dart';
 
 /// Destinations shown in the sidebar / drawer.
 class _NavItem {
@@ -70,7 +71,7 @@ class SideNav extends StatelessWidget {
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 22),
-            child: Text('WORKSPACE',
+            child: Text(AppLocale.t('WORKSPACE'),
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 10,
@@ -125,7 +126,7 @@ class SideNav extends StatelessWidget {
                           bg: AppPalette.raise,
                           size: 28),
                       const SizedBox(height: 8),
-                      Text('All caught up',
+                      Text(AppLocale.t('All caught up'),
                           style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13,
@@ -134,7 +135,7 @@ class SideNav extends StatelessWidget {
                           )),
                       const SizedBox(height: 3),
                       Text(
-                        'Every active rental is on track today.',
+                        AppLocale.t('Every active rental is on track today.'),
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 11.5,
@@ -155,7 +156,7 @@ class SideNav extends StatelessWidget {
                         Section.access, Icons.tune, Icons.tune),
                     selected: state.section == Section.access,
                     badge: 0,
-                    overrideLabel: 'Settings',
+                    overrideLabel: AppLocale.t('Settings'),
                     onTap: () => context
                         .read<WorkspaceState>()
                         .navigate(Section.access),
@@ -249,7 +250,7 @@ class SideNav extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: Icon(Icons.logout, color: AppPalette.red),
-              title: Text('Sign out',
+              title: Text(AppLocale.t('Sign out'),
                   style: TextStyle(
                       color: AppPalette.red, fontWeight: FontWeight.w600)),
               onTap: () {
@@ -443,7 +444,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Your workspaces',
+                Text(AppLocale.t('Your workspaces'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 14.5,
@@ -451,7 +452,7 @@ class _WorkspaceSwitcher extends StatelessWidget {
                         color: AppPalette.ink)),
                 const SizedBox(height: 4),
                 Text(
-                  'Switch the whole app to another workspace, or add one.',
+                  AppLocale.t('Switch the whole app to another workspace, or add one.'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
@@ -510,8 +511,8 @@ class _WorkspaceSwitcher extends StatelessWidget {
                     Expanded(
                       child: TextField(
                         controller: nameCtrl,
-                        decoration: const InputDecoration(
-                            hintText: 'New workspace name'),
+                        decoration: InputDecoration(
+                            hintText: AppLocale.t('New workspace name')),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -519,9 +520,9 @@ class _WorkspaceSwitcher extends StatelessWidget {
                       style: FilledButton.styleFrom(
                           backgroundColor: AppPalette.primary),
                       icon: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text('Add',
+                      label: Text(AppLocale.t('Add'),
                           style:
-                              TextStyle(fontFamily: AppTheme.fontFamily)),
+                              const TextStyle(fontFamily: AppTheme.fontFamily)),
                       onPressed: () {
                         final ok = state.addWorkspace(nameCtrl.text);
                         if (ok) {
@@ -533,9 +534,9 @@ class _WorkspaceSwitcher extends StatelessWidget {
                           ));
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                  'Enter a unique, non-empty workspace name'),
+                                  AppLocale.t('Enter a unique, non-empty workspace name')),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );

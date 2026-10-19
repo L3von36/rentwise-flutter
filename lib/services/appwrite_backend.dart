@@ -653,11 +653,15 @@ class AppwriteBackend {
           'downPayment': order.downPayment,
           'downPaymentPaidAt':
               order.downPaymentPaidAt == null ? null : awDate(order.downPaymentPaidAt!),
+          // v1.28 — Ethiopian payment rails (Telebirr / CBE Birr / …).
+          'downPaymentMethod': order.downPaymentMethod?.docName,
           'collateralAmount': order.collateralAmount,
           'collateralPaidAt':
               order.collateralPaidAt == null ? null : awDate(order.collateralPaidAt!),
+          'collateralMethod': order.collateralMethod?.docName,
           'remainingPaidAt':
               order.remainingPaidAt == null ? null : awDate(order.remainingPaidAt!),
+          'remainingMethod': order.remainingMethod?.docName,
           'idVerifiedAt':
               order.idVerifiedAt == null ? null : awDate(order.idVerifiedAt!),
           'signatureData': order.signatureData,
@@ -865,14 +869,17 @@ class AppwriteBackend {
       downPaymentPaidAt: data['downPaymentPaidAt'] == null
           ? null
           : dateFromDoc(data['downPaymentPaidAt'] as String),
+      downPaymentMethod: PaymentMethodX.fromDoc(data['downPaymentMethod'] as String?),
       collateralAmount:
           ((data['collateralAmount'] ?? 0) as num? ?? 0).toDouble(),
       collateralPaidAt: data['collateralPaidAt'] == null
           ? null
           : dateFromDoc(data['collateralPaidAt'] as String),
+      collateralMethod: PaymentMethodX.fromDoc(data['collateralMethod'] as String?),
       remainingPaidAt: data['remainingPaidAt'] == null
           ? null
           : dateFromDoc(data['remainingPaidAt'] as String),
+      remainingMethod: PaymentMethodX.fromDoc(data['remainingMethod'] as String?),
       idVerifiedAt: data['idVerifiedAt'] == null
           ? null
           : dateFromDoc(data['idVerifiedAt'] as String),

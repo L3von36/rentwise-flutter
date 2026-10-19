@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/app_locale.dart';
 import '../../core/app_theme.dart';
 import '../../core/formatters.dart';
 import '../../models/customer.dart';
@@ -30,7 +30,6 @@ class OrderDetailScreen extends StatelessWidget {
     final state = context.watch<WorkspaceState>();
     // always read the live copy of the order
     final live = state.orderById(order.id) ?? order;
-    final df = DateFormat('EEE, MMM d, yyyy');
     final wide = MediaQuery.sizeOf(context).width >= 900;
 
     final days = live.eventDate
@@ -41,8 +40,10 @@ class OrderDetailScreen extends StatelessWidget {
 
     final header = SectionCard(
       icon: Icons.receipt_long_outlined,
-      title: 'Order ${live.id}',
-      subtitle: 'Created ${df.format(live.createdAt)}',
+      title: '${AppLocale.t('Order')} ${live.id}',
+      subtitle: AppLocale.tf('Created {n}', {
+        'n': Fmt.shortDateTime(live.createdAt),
+      }),
       action: StatusBadge(
         label: live.status.label,
         fg: live.status.fg,
@@ -65,27 +66,19 @@ class OrderDetailScreen extends StatelessWidget {
             children: [
               _MetaFact(
                   icon: Icons.event_outlined,
-                  label: 'Event date',
-                  value: df.format(live.eventDate)),
+                  label: AppLocale.t('Event date'),
+                  value: Fmt.shortDate(live.eventDate)),
               _MetaFact(
                   icon: Icons.schedule_rounded,
-                  label: 'Timeline',
-                  value: days > 1
-                      ? 'In $days days'
-                      : days == 1
-                          ? 'Tomorrow'
-                          : days == 0
-                              ? 'Today'
-                              : -days == 1
-                                  ? 'Yesterday'
-                                  : '${-days} days ago'),
+                  label: AppLocale.t('Timeline'),
+                  value: AppLocale.relativeDay(days)),
               _MetaFact(
                   icon: Icons.inventory_2_outlined,
-                  label: 'Items',
+                  label: AppLocale.t('Items'),
                   value: Fmt.items(live.itemCount)),
               _MetaFact(
                   icon: Icons.contact_phone_outlined,
-                  label: 'Contact',
+                  label: AppLocale.t('Contact'),
                   value: live.contactName),
             ],
           ),
@@ -95,11 +88,11 @@ class OrderDetailScreen extends StatelessWidget {
 
     final manifest = SectionCard(
       icon: Icons.list_alt_rounded,
-      title: 'Item manifest',
+      title: AppLocale.t('Item manifest'),
       child: live.lineItems.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Text('This order was created without a manifest.',
+              child: Text(AppLocale.t('This order was created without a manifest.'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -121,7 +114,8 @@ class OrderDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('TOTAL · ${Fmt.items(live.itemCount)}',
+                      child: Text(
+                          '${AppLocale.t('Total')} · ${Fmt.items(live.itemCount)}',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 11,
@@ -146,7 +140,7 @@ class OrderDetailScreen extends StatelessWidget {
                    // when there is something to read
         : SectionCard(
             icon: Icons.sticky_note_2_outlined,
-            title: 'Notes',
+            title: AppLocale.t('Notes'),
             child: Text(
               live.notes,
               style: TextStyle(
@@ -161,10 +155,12 @@ class OrderDetailScreen extends StatelessWidget {
 
     final customerCard = SectionCard(
       icon: Icons.person_outline_rounded,
-      title: 'Customer',
+      title: AppLocale.t('Customer'),
       child: customer == null
           ? Text(
-              '${live.customerName} is not in the directory yet — added bookings will link automatically.',
+              AppLocale.tf(
+                  '{n} is not in the directory yet — added bookings will link automatically.',
+                  {'n': live.customerName}),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 12.5,
@@ -232,7 +228,7 @@ class OrderDetailScreen extends StatelessWidget {
     );
 
     return DetailPage(
-      eyebrow: 'Orders / ${live.id}',
+      eyebrow: '${AppLocale.t('Orders')} / ${live.id}',
       title: live.eventName,
       icon: Icons.receipt_long_outlined,
       body: body,
@@ -284,7 +280,6 @@ class _LineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
     return Column(
       children: [
         Padding(
@@ -302,7 +297,7 @@ class _LineRow extends StatelessWidget {
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppPalette.ink)),
-                    Text('${money.format(line.unitPrice)} / unit',
+                    Text('${Fmt.moneyCents(line.unitPrice)} / ${AppLocale.t('unit')}',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11,
@@ -321,7 +316,7 @@ class _LineRow extends StatelessWidget {
               ),
               SizedBox(
                 width: 74,
-                child: Text(money.format(line.lineTotal),
+                child: Text(Fmt.moneyCents(line.lineTotal),
                     textAlign: TextAlign.right,
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
@@ -345,11 +340,20 @@ class _PaymentsHandoverCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<WorkspaceState>();
-    final df = DateFormat('MMM d, HH:mm');
     final ready = order.canHandOver;
     final outstanding = order.outstandingTotal;
     final customer = state.customerByName(order.customerName);
     final accent = ready ? AppPalette.green : AppPalette.amber;
+
+    Future<void> receive({
+      required String label,
+      required double amount,
+      required ValueChanged<PaymentMethod?> apply,
+    }) async {
+      final method = await pickPaymentMethod(context);
+      if (method == null || !context.mounted) return;
+      apply(method);
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -374,8 +378,8 @@ class _PaymentsHandoverCard extends StatelessWidget {
               Expanded(
                 child: Text(
                     ready
-                        ? 'Ready for pickup'
-                        : 'Settle before pickup',
+                        ? AppLocale.t('Ready for pickup')
+                        : AppLocale.t('Settle before pickup'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 13,
@@ -403,10 +407,11 @@ class _PaymentsHandoverCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             outstanding > 0
-                ? 'still outstanding on this order'
+                ? AppLocale.t('still outstanding on this order')
                 : order.collateralAmount > 0
-                    ? 'fully settled · refund this collateral at return'
-                    : 'fully settled · nothing held',
+                    ? AppLocale.t(
+                        'fully settled · refund this collateral at return')
+                    : AppLocale.t('fully settled · nothing held'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 11.5,
@@ -414,55 +419,69 @@ class _PaymentsHandoverCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _PaymentRow(
-            label: 'Down payment',
+            label: AppLocale.t('Down payment'),
             amount: order.downPayment,
             paid: order.downPaymentPaid,
             paidAt: order.downPaymentPaidAt,
-            df: df,
-            actionLabel: 'Mark received',
+            method: order.downPaymentMethod,
+            actionLabel: AppLocale.t('Mark received'),
             onAction: order.downPayment > 0 && order.downPaymentPaidAt == null
-                ? () => state.markDownPaymentReceived(order)
+                ? () => receive(
+                      label: AppLocale.t('Down payment'),
+                      amount: order.downPayment,
+                      apply: (m) => state.markDownPaymentReceived(order,
+                          method: m),
+                    )
                 : null,
           ),
           _PaymentRow(
-            label: 'Remaining balance',
+            label: AppLocale.t('Remaining balance'),
             amount: order.remainingDue,
             paid: order.remainingPaid,
             paidAt: order.remainingPaidAt,
-            df: df,
-            actionLabel: 'Mark received',
+            method: order.remainingMethod,
+            actionLabel: AppLocale.t('Mark received'),
             onAction: order.remainingDue > 0 && order.remainingPaidAt == null
-                ? () => state.markRemainingReceived(order)
+                ? () => receive(
+                      label: AppLocale.t('Remaining balance'),
+                      amount: order.remainingDue,
+                      apply: (m) =>
+                          state.markRemainingReceived(order, method: m),
+                    )
                 : null,
           ),
           _PaymentRow(
-            label: 'Collateral (refundable)',
+            label: AppLocale.t('Collateral (refundable)'),
             amount: order.collateralAmount,
             paid: order.collateralPaid,
             paidAt: order.collateralPaidAt,
-            df: df,
-            actionLabel: 'Mark held',
+            method: order.collateralMethod,
+            actionLabel: AppLocale.t('Mark held'),
             onAction:
                 order.collateralAmount > 0 && order.collateralPaidAt == null
-                    ? () => state.markCollateralReceived(order)
+                    ? () => receive(
+                          label: AppLocale.t('Collateral (refundable)'),
+                          amount: order.collateralAmount,
+                          apply: (m) => state.markCollateralReceived(order,
+                              method: m),
+                        )
                     : null,
           ),
           _CheckRow(
             icon: Icons.badge_outlined,
-            label: 'Customer ID verified',
+            label: AppLocale.t('Customer ID verified'),
             done: order.idVerified,
             doneAt: order.idVerifiedAt,
-            df: df,
             detail: (customer == null ||
                     (customer.idType.isEmpty && customer.idNumber.isEmpty))
                 ? null
-                : '· ${customer.idType.isEmpty ? 'ID' : customer.idType}'
+                : '· ${customer.idType.isEmpty ? AppLocale.t('ID') : customer.idType}'
                     '${customer.idNumber.isEmpty ? '' : ' · ${customer.idNumber}'}',
-            actionLabel: 'Verify ID',
+            actionLabel: AppLocale.t('Verify ID'),
             onAction:
                 order.idVerifiedAt == null ? () => state.markIdVerified(order) : null,
           ),
-          _SignatureRow(order: order, df: df),
+          _SignatureRow(order: order),
           if (!ready) ...[
             const SizedBox(height: 10),
             Container(
@@ -496,7 +515,8 @@ class _PaymentsHandoverCard extends StatelessWidget {
                     ),
                   const SizedBox(height: 4),
                   Text(
-                    'Nothing leaves the shop until every step above is done.',
+                    AppLocale.t(
+                        'Nothing leaves the shop until every step above is done.'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 10.5,
@@ -513,13 +533,94 @@ class _PaymentsHandoverCard extends StatelessWidget {
   }
 }
 
+/// Payment-rail picker — the Ethiopian rails a rental desk actually
+/// collects on. Shown BEFORE recording any money so the ledger records
+/// HOW it arrived, not just that it did.
+Future<PaymentMethod?> pickPaymentMethod(BuildContext context) {
+  return showDialog<PaymentMethod>(
+    context: context,
+    barrierColor: Colors.black.withOpacity(0.35),
+    builder: (dialogCtx) => AlertDialog(
+      backgroundColor: AppPalette.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(AppLocale.t('How was this payment received?'),
+          style: TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppPalette.ink)),
+      content: SizedBox(
+        width: 340,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final m in PaymentMethod.values)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => Navigator.of(dialogCtx).pop(m),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppPalette.fill,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppPalette.stroke),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(_methodIcon(m),
+                            size: 17, color: AppPalette.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(m.label,
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppPalette.ink)),
+                        ),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 16, color: AppPalette.faint),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogCtx).pop(),
+          child: Text(AppLocale.t('Cancel'),
+              style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 12.5,
+                  color: AppPalette.muted)),
+        ),
+      ],
+    ),
+  );
+}
+
+IconData _methodIcon(PaymentMethod m) => switch (m) {
+      PaymentMethod.cash => Icons.payments_outlined,
+      PaymentMethod.telebirr => Icons.smartphone_rounded,
+      PaymentMethod.cbeBirr => Icons.account_balance_rounded,
+      PaymentMethod.mpesa => Icons.phone_android_rounded,
+      PaymentMethod.chapa => Icons.public_rounded,
+      PaymentMethod.card => Icons.credit_card_rounded,
+    };
+
 /// One settled/unsettled money line of the payment plan.
 class _PaymentRow extends StatelessWidget {
   final String label;
   final double amount;
   final bool paid;
   final DateTime? paidAt;
-  final DateFormat df;
+  final PaymentMethod? method;
   final String actionLabel;
   final VoidCallback? onAction;
 
@@ -528,9 +629,9 @@ class _PaymentRow extends StatelessWidget {
     required this.amount,
     required this.paid,
     required this.paidAt,
-    required this.df,
     required this.actionLabel,
     required this.onAction,
+    this.method,
   });
 
   @override
@@ -556,18 +657,42 @@ class _PaymentRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppPalette.ink)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(label,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppPalette.ink)),
+                    ),
+                    if (paid && method != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: AppPalette.greenBg,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(method!.chip,
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppPalette.green)),
+                      ),
+                    ],
+                  ],
+                ),
                 Text(
                   amount <= 0
-                      ? 'none on this order'
+                      ? AppLocale.t('none on this order')
                       : paid
-                          ? 'received '
-                              '· ${paidAt == null ? '' : df.format(paidAt!)}'
+                          ? '${AppLocale.t('received')}'
+                              '${paidAt == null ? '' : ' · ${Fmt.shortDateTime(paidAt!)}'}'
                           : Fmt.moneySmart(amount),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
@@ -608,7 +733,6 @@ class _CheckRow extends StatelessWidget {
   final String label;
   final bool done;
   final DateTime? doneAt;
-  final DateFormat df;
   final String? detail;
   final String actionLabel;
   final VoidCallback? onAction;
@@ -618,7 +742,6 @@ class _CheckRow extends StatelessWidget {
     required this.label,
     required this.done,
     required this.doneAt,
-    required this.df,
     required this.actionLabel,
     required this.onAction,
     this.detail,
@@ -644,7 +767,13 @@ class _CheckRow extends StatelessWidget {
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                         color: AppPalette.ink)),
-                if (detail != null)
+                if (done && doneAt != null)
+                  Text(Fmt.shortDateTime(doneAt!),
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          color: AppPalette.muted))
+                else if (detail != null)
                   Text(detail!,
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
@@ -682,8 +811,7 @@ class _CheckRow extends StatelessWidget {
 /// signature once the agreement is signed.
 class _SignatureRow extends StatelessWidget {
   final RentalOrder order;
-  final DateFormat df;
-  const _SignatureRow({required this.order, required this.df});
+  const _SignatureRow({required this.order});
 
   @override
   Widget build(BuildContext context) {
@@ -700,7 +828,7 @@ class _SignatureRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Rental agreement signed',
+                Text(AppLocale.t('Rental agreement signed'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
@@ -708,8 +836,12 @@ class _SignatureRow extends StatelessWidget {
                         color: AppPalette.ink)),
                 Text(
                   done
-                      ? 'signed by ${order.signedName} · ${df.format(order.signedAt!)}'
-                      : "capture the customer's signature on the pad",
+                      ? AppLocale.tf('signed by {n} · {m}', {
+                          'n': order.signedName,
+                          'm': Fmt.shortDateTime(order.signedAt!),
+                        })
+                      : AppLocale.t(
+                          "capture the customer's signature on the pad"),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11,
@@ -755,7 +887,7 @@ class _SignatureRow extends StatelessWidget {
                   color: AppPalette.primarySoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('Capture signature',
+                child: Text(AppLocale.t('Capture signature'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11,
@@ -832,7 +964,7 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
                       size: 18, color: AppPalette.primary),
                   const SizedBox(width: 9),
                   Expanded(
-                    child: Text('Sign rental agreement',
+                    child: Text(AppLocale.t('Sign rental agreement'),
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 15,
@@ -852,8 +984,9 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
               ),
               const SizedBox(height: 4),
               Text(
-                  'Order #${widget.order.id} · ${widget.order.eventName} — '
-                  'the customer signs to accept the rental terms.',
+                  AppLocale.tf(
+                      'Order #{n} · {e} — the customer signs to accept the rental terms.',
+                      {'n': widget.order.id, 'e': widget.order.eventName}),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
@@ -862,8 +995,9 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
               TextField(
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                    labelText: 'Printed name', hintText: 'Full name'),
+                decoration: InputDecoration(
+                    labelText: AppLocale.t('Printed name'),
+                    hintText: AppLocale.t('Full name')),
               ),
               const SizedBox(height: 12),
               Container(
@@ -911,8 +1045,8 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
                   TextButton(
                     onPressed:
                         _strokes.isEmpty ? null : () => setState(() => _strokes.clear()),
-                    child: const Text('Clear',
-                        style: TextStyle(fontFamily: AppTheme.fontFamily)),
+                    child: Text(AppLocale.t('Clear'),
+                        style: const TextStyle(fontFamily: AppTheme.fontFamily)),
                   ),
                   const Spacer(),
                   FilledButton(
@@ -963,8 +1097,8 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
                             );
                           }
                         : null,
-                    child: const Text('Save signature',
-                        style: TextStyle(fontFamily: AppTheme.fontFamily)),
+                    child: Text(AppLocale.t('Save signature'),
+                        style: const TextStyle(fontFamily: AppTheme.fontFamily)),
                   ),
                 ],
               ),
@@ -1055,7 +1189,7 @@ class _CustomerStrip extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         color: AppPalette.ink)),
                 Text(
-                    '${customer.company} · ${customer.rentals} ${customer.rentals == 1 ? 'rental' : 'rentals'}',
+                    '${customer.company} · ${AppLocale.tr(customer.rentals == 1 ? '1 rental' : '{n} rentals', customer.rentals)}',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
@@ -1085,7 +1219,7 @@ class _StatusActionsCard extends StatelessWidget {
 
     return SectionCard(
       icon: Icons.bolt_rounded,
-      title: 'Update status',
+      title: AppLocale.t('Update status'),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -1100,16 +1234,19 @@ class _StatusActionsCard extends StatelessWidget {
                 if (ok) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(switch (s) {
-                      OrderStatus.confirmed =>
-                        'Payment accepted — ${order.id} marked paid',
-                      OrderStatus.returned =>
-                        '${order.id} returned — restock items after inspection',
-                      OrderStatus.outForDelivery =>
-                        '${order.id} handed over — items are with the customer',
-                      OrderStatus.preparing =>
-                        '${order.id} staged for prep',
-                      OrderStatus.needsPayment =>
-                        '${order.id} awaiting payment',
+                      OrderStatus.confirmed => AppLocale.tf(
+                          'Payment accepted — {n} marked paid',
+                          {'n': order.id}),
+                      OrderStatus.returned => AppLocale.tf(
+                          '{n} returned — restock items after inspection',
+                          {'n': order.id}),
+                      OrderStatus.outForDelivery => AppLocale.tf(
+                          '{n} handed over — items are with the customer',
+                          {'n': order.id}),
+                      OrderStatus.preparing => AppLocale.tf(
+                          '{n} staged for prep', {'n': order.id}),
+                      OrderStatus.needsPayment => AppLocale.tf(
+                          '{n} awaiting payment', {'n': order.id}),
                     }),
                     behavior: SnackBarBehavior.floating,
                   ));
@@ -1119,7 +1256,8 @@ class _StatusActionsCard extends StatelessWidget {
           if (next.contains(OrderStatus.outForDelivery) &&
               !order.canHandOver)
             Text(
-              'Handover blocked — finish the checklist above first.',
+              AppLocale.t(
+                  'Handover blocked — finish the checklist above first.'),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 11.5,
@@ -1127,7 +1265,7 @@ class _StatusActionsCard extends StatelessWidget {
                   color: AppPalette.amber),
             ),
           if (next.isEmpty)
-            Text('This order is fully closed — nothing left to do.',
+            Text(AppLocale.t('This order is fully closed — nothing left to do.'),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12.5,

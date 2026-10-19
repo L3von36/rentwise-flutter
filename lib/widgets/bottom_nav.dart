@@ -7,6 +7,7 @@ import '../screens/booking/new_booking_sheet.dart';
 import '../screens/profile/profile_screen.dart';
 import 'chips.dart';
 import '../core/palette.dart';
+import '../core/app_locale.dart';
 
 /// Phone-style bottom navigation (Instagram/Telegram pattern):
 /// Dashboard · Inventory · ＋ · Orders · More.
@@ -34,7 +35,7 @@ class RentWiseBottomNav extends StatelessWidget {
               child: _Tab(
                 icon: Icons.space_dashboard_outlined,
                 activeIcon: Icons.space_dashboard_rounded,
-                label: 'Home',
+                label: AppLocale.t('Home'),
                 selected: state.section == Section.dashboard,
                 onTap: () =>
                     context.read<WorkspaceState>().navigate(Section.dashboard),
@@ -44,7 +45,7 @@ class RentWiseBottomNav extends StatelessWidget {
               child: _Tab(
                 icon: Icons.inventory_2_outlined,
                 activeIcon: Icons.inventory_2_rounded,
-                label: 'Stock',
+                label: AppLocale.t('Stock'),
                 selected: state.section == Section.inventory,
                 onTap: () =>
                     context.read<WorkspaceState>().navigate(Section.inventory),
@@ -55,7 +56,7 @@ class RentWiseBottomNav extends StatelessWidget {
               child: _Tab(
                 icon: Icons.receipt_long_outlined,
                 activeIcon: Icons.receipt_long_rounded,
-                label: 'Orders',
+                label: AppLocale.t('Orders'),
                 selected: state.section == Section.orders,
                 onTap: () =>
                     context.read<WorkspaceState>().navigate(Section.orders),
@@ -65,7 +66,7 @@ class RentWiseBottomNav extends StatelessWidget {
               child: _Tab(
                 icon: Icons.menu_rounded,
                 activeIcon: Icons.menu_rounded,
-                label: 'More',
+                label: AppLocale.t('More'),
                 selected: false,
                 badge: state.unreadActivity,
                 onTap: () => _openMoreSheet(context),
@@ -139,7 +140,7 @@ class RentWiseBottomNav extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Text('View profile',
+                  Text(AppLocale.t('View profile'),
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 11,
@@ -155,33 +156,33 @@ class RentWiseBottomNav extends StatelessWidget {
             const Divider(height: 10),
             _MoreTile(
               icon: Icons.people_outline,
-              label: 'Customers',
+              label: AppLocale.t('Customers'),
               onTap: () => _go(sheetCtx, Section.customers),
             ),
             _MoreTile(
               icon: Icons.show_chart,
-              label: 'Activity Log',
+              label: AppLocale.t('Activity Log'),
               badge: state.unreadActivity,
               onTap: () => _go(sheetCtx, Section.activity),
             ),
             if (state.isOwner) ...[
               _MoreTile(
                 icon: Icons.donut_small_outlined,
-                label: 'Reports',
+                label: AppLocale.t('Reports'),
                 onTap: () => _go(sheetCtx, Section.reports),
               ),
               // The access console is owner-only: employees must never be
               // able to reach (or change) role assignments.
               _MoreTile(
                 icon: Icons.verified_user_outlined,
-                label: 'Access & roles',
+                label: AppLocale.t('Access & roles'),
                 onTap: () => _go(sheetCtx, Section.access),
               ),
             ],
             const Divider(height: 10),
             _MoreTile(
               icon: Icons.logout_rounded,
-              label: 'Sign out',
+              label: AppLocale.t('Sign out'),
               destructive: true,
               onTap: () {
                 Navigator.pop(sheetCtx);

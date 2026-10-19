@@ -3,6 +3,7 @@ import '../../core/app_theme.dart';
 import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Password recovery — honest by design.
 ///
@@ -44,7 +45,7 @@ class PasswordRecoveryView extends StatelessWidget {
                 bg: AppPalette.primarySoft,
                 size: 42),
             const SizedBox(height: 16),
-            Text('Reset your password',
+            Text(AppLocale.t('Reset your password'),
                 style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 6),
             Text(
@@ -88,9 +89,9 @@ class PasswordRecoveryView extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: onBack,
-                  child: const Center(
-                    child: Text('Back to sign in',
-                        style: TextStyle(
+                  child: Center(
+                    child: Text(AppLocale.t('Back to sign in'),
+                        style: const TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,

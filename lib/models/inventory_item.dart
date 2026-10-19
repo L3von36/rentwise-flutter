@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/palette.dart';
+import '../core/app_locale.dart';
 
 /// Lifecycle state of an inventory stock line.
 ///
@@ -14,10 +15,10 @@ enum ItemStatus { inStock, partial, rentedOut, maintenance }
 
 extension ItemStatusX on ItemStatus {
   String get label => switch (this) {
-        ItemStatus.inStock => 'In stock',
-        ItemStatus.partial => 'Partially out',
-        ItemStatus.rentedOut => 'Rented out',
-        ItemStatus.maintenance => 'Maintenance',
+        ItemStatus.inStock => AppLocale.t('In stock'),
+        ItemStatus.partial => AppLocale.t('Partially out'),
+        ItemStatus.rentedOut => AppLocale.t('Rented out'),
+        ItemStatus.maintenance => AppLocale.t('Maintenance'),
       };
 
   Color get fg => switch (this) {

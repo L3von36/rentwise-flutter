@@ -13,6 +13,7 @@ import '../../widgets/kpi_card.dart';
 import '../../widgets/motion.dart';
 import 'customer_detail_screen.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Customer insights — the full analytics page behind the purple
 /// “Relationship pulse” panel and the “View customer insights” link.
@@ -25,7 +26,7 @@ class CustomerInsightsScreen extends StatelessWidget {
     final state = context.watch<WorkspaceState>();
     final compact = Density.compact(context);
     final customers = state.customers;
-    final money = NumberFormat.compactCurrency(symbol: '\$', decimalDigits: 1);
+    final money = NumberFormat.compactCurrency(symbol: AppLocale.birr, decimalDigits: 1);
 
     final totalSpend =
         customers.fold<double>(0, (s, c) => s + c.lifetimeSpend);
@@ -52,9 +53,9 @@ class CustomerInsightsScreen extends StatelessWidget {
               icon: Icons.people_outline,
               iconColor: AppPalette.primary,
               iconBg: AppPalette.primarySoft,
-              label: 'Active relationships',
+              label: AppLocale.t('Active relationships'),
               value: '${customers.length}',
-              subtitle: 'In your directory',
+              subtitle: AppLocale.t('In your directory'),
             ),
           ),
           SizedBox(
@@ -63,7 +64,7 @@ class CustomerInsightsScreen extends StatelessWidget {
               icon: Icons.repeat_rounded,
               iconColor: AppPalette.purple,
               iconBg: AppPalette.purpleBg,
-              label: 'Repeat rate',
+              label: AppLocale.t('Repeat rate'),
               value: '${repeatPct.round()}%',
               subtitle: '$repeat of ${customers.length} customers',
             ),
@@ -74,9 +75,9 @@ class CustomerInsightsScreen extends StatelessWidget {
               icon: Icons.payments_outlined,
               iconColor: AppPalette.green,
               iconBg: AppPalette.greenBg,
-              label: 'Avg lifetime value',
+              label: AppLocale.t('Avg lifetime value'),
               value: money.format(avgValue),
-              subtitle: 'Per customer',
+              subtitle: AppLocale.t('Per customer'),
             ),
           ),
           SizedBox(
@@ -85,9 +86,9 @@ class CustomerInsightsScreen extends StatelessWidget {
               icon: Icons.schedule_rounded,
               iconColor: AppPalette.amber,
               iconBg: AppPalette.amberBg,
-              label: 'Open follow-ups',
+              label: AppLocale.t('Open follow-ups'),
               value: '${state.followUpsCount}',
-              subtitle: 'No booking in 30+ days',
+              subtitle: AppLocale.t('No booking in 30+ days'),
             ),
           ),
         ],
@@ -99,8 +100,8 @@ class CustomerInsightsScreen extends StatelessWidget {
 
     final retentionCard = SectionCard(
       icon: Icons.donut_small_rounded,
-      title: 'Retention mix',
-      subtitle: 'Who comes back, and how often.',
+      title: AppLocale.t('Retention mix'),
+      subtitle: AppLocale.t('Who comes back, and how often.'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -113,7 +114,7 @@ class CustomerInsightsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Repeat customers (3+ rentals)',
+              Text(AppLocale.t('Repeat customers (3+ rentals)'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -136,7 +137,7 @@ class CustomerInsightsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Benchmark — healthy workspace',
+              Text(AppLocale.t('Benchmark — healthy workspace'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -154,8 +155,8 @@ class CustomerInsightsScreen extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             repeatPct >= benchmarkPct
-                ? 'You are ahead of the benchmark — loyalty is compounding.'
-                : 'A few follow-up calls would push you past the benchmark.',
+                ? AppLocale.t('You are ahead of the benchmark — loyalty is compounding.')
+                : AppLocale.t('A few follow-up calls would push you past the benchmark.'),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 12.5,
@@ -168,8 +169,8 @@ class CustomerInsightsScreen extends StatelessWidget {
 
     final leaderboardCard = SectionCard(
       icon: Icons.emoji_events_outlined,
-      title: 'Top customers',
-      subtitle: 'Ranked by lifetime spend — tap to open a profile.',
+      title: AppLocale.t('Top customers'),
+      subtitle: AppLocale.t('Ranked by lifetime spend — tap to open a profile.'),
       child: Column(
         children: [
           for (var i = 0; i < leaderboard.length; i++)
@@ -189,9 +190,9 @@ class CustomerInsightsScreen extends StatelessWidget {
     );
 
     return DetailPage(
-      eyebrow: 'Customers / Insights',
-      title: 'Customer insights',
-      subtitle: 'Retention, lead time and lifetime value — live.',
+      eyebrow: AppLocale.t('Customers / Insights'),
+      title: AppLocale.t('Customer insights'),
+      subtitle: AppLocale.t('Retention, lead time and lifetime value — live.'),
       icon: Icons.insights_outlined,
       iconColor: AppPalette.purple,
       iconBg: AppPalette.purpleBg,
@@ -236,7 +237,7 @@ class _LeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    final money = NumberFormat.currency(symbol: AppLocale.birr, decimalDigits: 0);
     final medal = switch (rank) {
       1 => '🥇',
       2 => '🥈',

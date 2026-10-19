@@ -80,7 +80,7 @@ void main() {
       expect(order.remainingDue, total);
       expect(order.outstandingTotal, total);
       expect(order.handoverBlockers,
-          contains('Remaining \$${total.toStringAsFixed(0)} not received'));
+          contains('Remaining Br ${total.toStringAsFixed(0)} not received'));
     });
   });
 

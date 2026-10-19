@@ -13,6 +13,7 @@ import '../../widgets/motion.dart';
 import '../calendar/calendar_screen.dart';
 import '../orders/order_detail_screen.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Entry point used by the dashboard task list and KPI cards.
 void openTasks(BuildContext context) {
@@ -33,11 +34,11 @@ class TasksScreen extends StatefulWidget {
 class _TasksScreenState extends State<TasksScreen> {
   String? _kind; // null = all buckets
 
-  static const _filters = [
-    ('All', null),
-    ('Prep', 'prep'),
-    ('On rent', 'delivery'),
-    ('Payments', 'payment'),
+  static List<(String, String?)> get _filters => [
+    (AppLocale.t('All'), null),
+    (AppLocale.t('Prep'), 'prep'),
+    (AppLocale.t('On rent'), 'delivery'),
+    (AppLocale.t('Payments'), 'payment'),
   ];
 
   @override
@@ -49,8 +50,8 @@ class _TasksScreenState extends State<TasksScreen> {
         _kind == null ? tasks : tasks.where((t) => t.kind == _kind).toList();
 
     return DetailPage(
-      eyebrow: 'Tasks',
-      title: 'Shift tasks',
+      eyebrow: AppLocale.t('Tasks'),
+      title: AppLocale.t('Shift tasks'),
       subtitle: '${tasks.length} on deck for today',
       icon: Icons.checklist_rounded,
       // Wide windows get a centered readable column instead of task rows
@@ -64,9 +65,9 @@ class _TasksScreenState extends State<TasksScreen> {
             children: [
           SectionCard(
             icon: Icons.checklist_rounded,
-            title: 'Tasks',
+            title: AppLocale.t('Tasks'),
             action: LinkChip(
-              label: 'Open calendar',
+              label: AppLocale.t('Open calendar'),
               onTap: () => openCalendar(context),
             ),
             child: Column(
@@ -96,7 +97,7 @@ class _TasksScreenState extends State<TasksScreen> {
                         Icon(Icons.verified_outlined,
                             size: 18, color: AppPalette.green),
                         const SizedBox(width: 8),
-                        Text('Nothing in this bucket.',
+                        Text(AppLocale.t('Nothing in this bucket.'),
                             style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 12.5,
@@ -264,9 +265,9 @@ class _TaskCard extends StatelessWidget {
   /// Compact-but-honest board labels — the row only has room for the
   /// verb, the order detail screen shows the full [OrderStatusX.actionLabel].
   String _labelFor(OrderStatus next) => switch (next) {
-        OrderStatus.needsPayment => 'Collect',
-        OrderStatus.confirmed => 'Accept payment',
-        OrderStatus.outForDelivery => 'Hand over',
+        OrderStatus.needsPayment => AppLocale.t('Collect'),
+        OrderStatus.confirmed => AppLocale.t('Accept payment'),
+        OrderStatus.outForDelivery => AppLocale.t('Hand over'),
         _ => next.actionLabel,
       };
 }

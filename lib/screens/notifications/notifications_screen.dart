@@ -12,6 +12,7 @@ import '../../widgets/detail_page.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/top_bar.dart' show RichActivityText;
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Where a notification row leads when tapped.
 Section _targetFor(ActivityType type) => switch (type) {
@@ -45,8 +46,8 @@ class NotificationsScreen extends StatelessWidget {
     }
 
     return DetailPage(
-      eyebrow: 'Workspace / Notifications',
-      title: 'Notifications',
+      eyebrow: AppLocale.t('Workspace / Notifications'),
+      title: AppLocale.t('Notifications'),
       icon: Icons.notifications_none_rounded,
       showIcon: false,
       body: Column(
@@ -139,7 +140,7 @@ class _NotificationsHero extends StatelessWidget {
         Expanded(
           child: Text(
             unread == 0
-                ? 'You are all caught up'
+                ? AppLocale.t('You are all caught up')
                 : '$unread unread update${unread == 1 ? '' : 's'} waiting',
             style: const TextStyle(
                 fontFamily: AppTheme.fontFamily,
@@ -154,21 +155,21 @@ class _NotificationsHero extends StatelessWidget {
     final stats = Row(
       children: [
         Expanded(
-            child: _HeroStat(value: '$today', label: 'Today')),
+            child: _HeroStat(value: '$today', label: AppLocale.t('Today'))),
         const SizedBox(width: 10),
         Expanded(
-            child: _HeroStat(value: '$total', label: 'All time')),
+            child: _HeroStat(value: '$total', label: AppLocale.t('All time'))),
       ],
     );
 
     final cta = unread > 0
         ? _HeroAction(
-      label: 'Mark all read',
+      label: AppLocale.t('Mark all read'),
       enabled: true,
       onTap: () {
               state.markActivityRead();
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('All notifications marked as read'),
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(AppLocale.t('All notifications marked as read')),
                 behavior: SnackBarBehavior.floating,
               ));
             },
@@ -359,8 +360,8 @@ String _dayLabel(DateTime at) {
   final today = DateTime(now.year, now.month, now.day);
   final that = DateTime(at.year, at.month, at.day);
   final diff = today.difference(that).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
+  if (diff == 0) return AppLocale.t('Today');
+  if (diff == 1) return AppLocale.t('Yesterday');
   const months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -376,8 +377,8 @@ class _EmptyFeed extends StatelessWidget {
   Widget build(BuildContext context) {
     return SectionCard(
       icon: Icons.notifications_none_rounded,
-      title: 'Nothing yet',
-      subtitle: 'Workspace actions will appear here as they happen.',
+      title: AppLocale.t('Nothing yet'),
+      subtitle: AppLocale.t('Workspace actions will appear here as they happen.'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 26),
         child: Center(

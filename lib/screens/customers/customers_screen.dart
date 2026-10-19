@@ -16,6 +16,7 @@ import 'customer_detail_screen.dart';
 import 'customer_insights_screen.dart';
 import '../booking/new_booking_sheet.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 class CustomersScreen extends StatelessWidget {
   const CustomersScreen({super.key});
@@ -35,7 +36,7 @@ class CustomersScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text('Customers',
+                child: Text(AppLocale.t('Customers'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: Density.compact(context) ? 17 : 21,
@@ -44,7 +45,7 @@ class CustomersScreen extends StatelessWidget {
                         color: AppPalette.ink)),
               ),
               PrimaryButton(
-                label: 'Add customer',
+                label: AppLocale.t('Add customer'),
                 icon: Icons.person_add_alt_1_outlined,
                 onTap: () => _showAddDialog(context),
               ),
@@ -66,9 +67,9 @@ class CustomersScreen extends StatelessWidget {
                     icon: Icons.people_outline,
                     iconColor: AppPalette.primary,
                     iconBg: AppPalette.primarySoft,
-                    label: 'Total customers',
+                    label: AppLocale.t('Total customers'),
                     value: '${state.customers.length}',
-                    subtitle: 'In your directory',
+                    subtitle: AppLocale.t('In your directory'),
                     onTap: () => _openInsights(context),
                   ),
                 ),
@@ -78,7 +79,7 @@ class CustomersScreen extends StatelessWidget {
                     icon: Icons.repeat_rounded,
                     iconColor: AppPalette.purple,
                     iconBg: AppPalette.purpleBg,
-                    label: 'Repeat customers',
+                    label: AppLocale.t('Repeat customers'),
                     value:
                         '${_repeatPct(state)}%',
                     subtitle: '3+ bookings',
@@ -91,9 +92,9 @@ class CustomersScreen extends StatelessWidget {
                     icon: Icons.payments_outlined,
                     iconColor: AppPalette.green,
                     iconBg: AppPalette.greenBg,
-                    label: 'Customer value',
+                    label: AppLocale.t('Customer value'),
                     value: _totalValue(state),
-                    subtitle: 'Lifetime spend',
+                    subtitle: AppLocale.t('Lifetime spend'),
                     onTap: () => _openInsights(context),
                   ),
                 ),
@@ -103,9 +104,9 @@ class CustomersScreen extends StatelessWidget {
                     icon: Icons.schedule_rounded,
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
-                    label: 'Follow-ups',
+                    label: AppLocale.t('Follow-ups'),
                     value: '${state.followUpsCount}',
-                    subtitle: 'No booking in 30+ days',
+                    subtitle: AppLocale.t('No booking in 30+ days'),
                     onTap: () => _openInsights(context),
                   ),
                 ),
@@ -148,14 +149,14 @@ class CustomersScreen extends StatelessWidget {
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final idNumberCtrl = TextEditingController();
-    String idType = 'National ID';
+    String idType = 'National ID'; // stored in English; display localized
 
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.35),
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Add customer',
-            style: TextStyle(
+        title: Text(AppLocale.t('Add customer'),
+            style: const TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 15,
                 fontWeight: FontWeight.w800)),
@@ -167,25 +168,25 @@ class CustomersScreen extends StatelessWidget {
             children: [
               TextField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(hintText: 'Full name'),
+                decoration: InputDecoration(hintText: AppLocale.t('Full name')),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: companyCtrl,
                 decoration:
-                    const InputDecoration(hintText: 'Company / event group'),
+                    InputDecoration(hintText: AppLocale.t('Company / event group')),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(hintText: 'Email'),
+                decoration: InputDecoration(hintText: AppLocale.t('Email')),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: phoneCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(hintText: 'Phone'),
+                decoration: InputDecoration(hintText: AppLocale.t('Phone')),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -193,18 +194,19 @@ class CustomersScreen extends StatelessWidget {
                 isDense: true,
                 isExpanded: true,
                 items: [
-                  for (final t in kCustomerIdTypes)
-                    DropdownMenuItem(value: t, child: Text(t)),
+                  for (final idt in kCustomerIdTypes)
+                    DropdownMenuItem(
+                        value: idt, child: Text(AppLocale.t(idt))),
                 ],
                 onChanged: (v) => idType = v ?? 'National ID',
-                decoration: const InputDecoration(
-                    labelText: 'ID type (payment policy)'),
+                decoration: InputDecoration(
+                    labelText: AppLocale.t('ID type (payment policy)')),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: idNumberCtrl,
-                decoration: const InputDecoration(
-                    hintText: 'ID number / serial on the document'),
+                decoration: InputDecoration(
+                    hintText: AppLocale.t('ID number / serial on the document')),
               ),
             ],
           ),
@@ -212,7 +214,7 @@ class CustomersScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('Cancel',
+            child: Text(AppLocale.t('Cancel'),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     color: AppPalette.body)),
@@ -245,8 +247,8 @@ class CustomersScreen extends StatelessWidget {
                 ),
               );
             },
-            child: const Text('Add customer',
-                style: TextStyle(fontFamily: AppTheme.fontFamily)),
+            child: Text(AppLocale.t('Add customer'),
+                style: const TextStyle(fontFamily: AppTheme.fontFamily)),
           ),
         ],
       ),
@@ -261,17 +263,16 @@ class _Directory extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final customers = state.filteredCustomers;
-    final df = DateFormat('MMM d, yyyy');
-
+    
     return SectionCard(
       icon: Icons.people_outline,
-      title: 'Customer directory',
+      title: AppLocale.t('Customer directory'),
       action: OutlineButton(
-        label: 'Export',
+        label: AppLocale.t('Export'),
         icon: Icons.file_download_outlined,
         onTap: () => showCsvExport(
           context,
-          title: 'Customers',
+          title: AppLocale.t('Customers'),
           filename: 'customers.csv',
           header: const [
             'id', 'name', 'company', 'email', 'phone', 'id_type', 'id_number',
@@ -298,7 +299,7 @@ class _Directory extends StatelessWidget {
           TextField(
             onChanged: state.setCustomerQuery,
             decoration: InputDecoration(
-              hintText: 'Search customers',
+              hintText: AppLocale.t('Search customers'),
               prefixIcon:
                   Icon(Icons.search_rounded, size: 18, color: AppPalette.muted),
               prefixIconConstraints: const BoxConstraints(minWidth: 42),
@@ -335,7 +336,7 @@ class _Directory extends StatelessWidget {
                     children: [
                       Expanded(
                           flex: 4,
-                          child: Text('CUSTOMER',
+                          child: Text(AppLocale.t('CUSTOMER'),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 10.5,
@@ -344,7 +345,7 @@ class _Directory extends StatelessWidget {
                                   color: AppPalette.muted))),
                       Expanded(
                           flex: 2,
-                          child: Text('RENTALS',
+                          child: Text(AppLocale.t('RENTALS'),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 10.5,
@@ -353,7 +354,7 @@ class _Directory extends StatelessWidget {
                                   color: AppPalette.muted))),
                       Expanded(
                           flex: 3,
-                          child: Text('LIFETIME SPEND',
+                          child: Text(AppLocale.t('LIFETIME SPEND'),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 10.5,
@@ -362,7 +363,7 @@ class _Directory extends StatelessWidget {
                                   color: AppPalette.muted))),
                       Expanded(
                           flex: 3,
-                          child: Text('LAST BOOKING',
+                          child: Text(AppLocale.t('LAST BOOKING'),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 10.5,
@@ -430,7 +431,7 @@ class _Directory extends StatelessWidget {
                         Expanded(
                           flex: 3,
                           child: Text(
-                              '\$${NumberFormat('#,##0').format(cust.lifetimeSpend)}',
+                              Fmt.money(cust.lifetimeSpend),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13.5,
@@ -439,7 +440,7 @@ class _Directory extends StatelessWidget {
                         ),
                         Expanded(
                           flex: 3,
-                          child: Text(df.format(cust.lastBooking),
+                          child: Text(Fmt.shortDate(cust.lastBooking),
                               style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13,
@@ -474,7 +475,7 @@ class _CustomerActionsMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      tooltip: 'Customer actions',
+      tooltip: AppLocale.t('Customer actions'),
       color: AppPalette.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(11),
@@ -489,57 +490,57 @@ class _CustomerActionsMenu extends StatelessWidget {
           case 'email':
             Clipboard.setData(ClipboardData(text: cust.email));
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Email copied — ${cust.email}'),
+              content: Text(AppLocale.tf('Email copied — {n}', {'n': cust.email})),
               behavior: SnackBarBehavior.floating,
             ));
           case 'phone':
             Clipboard.setData(ClipboardData(text: cust.phone));
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Phone copied — ${cust.phone}'),
+              content: Text(AppLocale.tf('Phone copied — {n}', {'n': cust.phone})),
               behavior: SnackBarBehavior.floating,
             ));
         }
       },
       offset: const Offset(0, 8),
-      itemBuilder: (_) => const [
+      itemBuilder: (_) => [
         PopupMenuItem(
             value: 'profile',
             height: 38,
             child: Row(children: [
-              Icon(Icons.person_outline_rounded, size: 15),
-              SizedBox(width: 8),
-              Text('View profile',
-                  style: TextStyle(
+              const Icon(Icons.person_outline_rounded, size: 15),
+              const SizedBox(width: 8),
+              Text(AppLocale.t('View profile'),
+                  style: const TextStyle(
                       fontFamily: AppTheme.fontFamily, fontSize: 13)),
             ])),
         PopupMenuItem(
             value: 'booking',
             height: 38,
             child: Row(children: [
-              Icon(Icons.add_rounded, size: 15),
-              SizedBox(width: 8),
-              Text('New booking',
-                  style: TextStyle(
+              const Icon(Icons.add_rounded, size: 15),
+              const SizedBox(width: 8),
+              Text(AppLocale.t('New booking'),
+                  style: const TextStyle(
                       fontFamily: AppTheme.fontFamily, fontSize: 13)),
             ])),
         PopupMenuItem(
             value: 'email',
             height: 38,
             child: Row(children: [
-              Icon(Icons.copy_rounded, size: 15),
-              SizedBox(width: 8),
-              Text('Copy email',
-                  style: TextStyle(
+              const Icon(Icons.copy_rounded, size: 15),
+              const SizedBox(width: 8),
+              Text(AppLocale.t('Copy email'),
+                  style: const TextStyle(
                       fontFamily: AppTheme.fontFamily, fontSize: 13)),
             ])),
         PopupMenuItem(
             value: 'phone',
             height: 38,
             child: Row(children: [
-              Icon(Icons.copy_all_rounded, size: 15),
-              SizedBox(width: 8),
-              Text('Copy phone',
-                  style: TextStyle(
+              const Icon(Icons.copy_all_rounded, size: 15),
+              const SizedBox(width: 8),
+              Text(AppLocale.t('Copy phone'),
+                  style: const TextStyle(
                       fontFamily: AppTheme.fontFamily, fontSize: 13)),
             ])),
       ],
@@ -562,8 +563,7 @@ class _CustomerCardWide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final df = DateFormat('MMM d, yyyy');
-    return HoverFill(
+        return HoverFill(
       onTap: () => openCustomerDetail(context, cust),
       radius: 10,
       child: Container(
@@ -599,7 +599,7 @@ class _CustomerCardWide extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('\$${NumberFormat('#,##0').format(cust.lifetimeSpend)}',
+              Text(Fmt.money(cust.lifetimeSpend),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 13.5,
@@ -607,7 +607,7 @@ class _CustomerCardWide extends StatelessWidget {
                       color: AppPalette.ink)),
               const SizedBox(height: 2),
               Text(
-                  '${cust.rentals} ${cust.rentals == 1 ? 'rental' : 'rentals'} · ${df.format(cust.lastBooking)}',
+                  '${cust.rentals} ${cust.rentals == 1 ? 'rental' : 'rentals'} · ${Fmt.shortDate(cust.lastBooking)}',
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11.5,

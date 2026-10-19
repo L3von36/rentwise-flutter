@@ -17,6 +17,7 @@ import 'item_adjust_dialog.dart';
 import '../../widgets/filters.dart';
 import '../../widgets/indicators.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Which metric a KPI drill-in dialog breaks down by category.
 enum _BreakdownMode { total, available, onRent }
@@ -46,7 +47,7 @@ class InventoryScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text('Inventory',
+                child: Text(AppLocale.t('Inventory'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: Density.compact(context) ? 17 : 21,
@@ -58,7 +59,7 @@ class InventoryScreen extends StatelessWidget {
               // Employees adjust stock counts from the table instead.
               if (state.isOwner)
                 PrimaryButton(
-                  label: 'Add inventory',
+                  label: AppLocale.t('Add inventory'),
                   icon: Icons.add_rounded,
                   onTap: () => _showAddDialog(context),
                 ),
@@ -82,9 +83,9 @@ class InventoryScreen extends StatelessWidget {
                     icon: Icons.inventory_2_outlined,
                     iconColor: AppPalette.primary,
                     iconBg: AppPalette.primarySoft,
-                    label: 'Total items',
+                    label: AppLocale.t('Total items'),
                     value: '${state.totalUnits}',
-                    subtitle: 'All catalog units',
+                    subtitle: AppLocale.t('All catalog units'),
                     trailing: TrendChip.flat(
                         text: '${state.inventory.length} lines'),
                     onTap: () => _showCategoryBreakdown(
@@ -97,9 +98,9 @@ class InventoryScreen extends StatelessWidget {
                     icon: Icons.check_circle_outline_rounded,
                     iconColor: AppPalette.green,
                     iconBg: AppPalette.greenBg,
-                    label: 'Available now',
+                    label: AppLocale.t('Available now'),
                     value: '${state.availableUnits}',
-                    subtitle: 'Ready to book',
+                    subtitle: AppLocale.t('Ready to book'),
                     trailing: TrendChip(
                         text: '${availablePct.toStringAsFixed(0)}%',
                         positive: true),
@@ -113,9 +114,9 @@ class InventoryScreen extends StatelessWidget {
                     icon: Icons.local_shipping_outlined,
                     iconColor: AppPalette.amber,
                     iconBg: AppPalette.amberBg,
-                    label: 'On rent',
+                    label: AppLocale.t('On rent'),
                     value: '${state.onRentUnits}',
-                    subtitle: 'With customers now',
+                    subtitle: AppLocale.t('With customers now'),
                     trailing: TrendChip(
                         text: '${onRentPct.toStringAsFixed(1)}%',
                         positive: false),
@@ -129,10 +130,10 @@ class InventoryScreen extends StatelessWidget {
                     icon: Icons.build_circle_outlined,
                     iconColor: AppPalette.blue,
                     iconBg: AppPalette.blueBg,
-                    label: 'Needs attention',
+                    label: AppLocale.t('Needs attention'),
                     value: '${state.attentionItems}',
-                    subtitle: 'In maintenance',
-                    trailing: const TrendChip.flat(text: 'Watch list'),
+                    subtitle: AppLocale.t('In maintenance'),
+                    trailing: TrendChip.flat(text: AppLocale.t('Watch list')),
                     onTap: () => _showAttentionList(context),
                   ),
                 ),
@@ -144,13 +145,13 @@ class InventoryScreen extends StatelessWidget {
           // main card
           SectionCard(
             icon: Icons.inventory_2_outlined,
-            title: 'All inventory',
+            title: AppLocale.t('All inventory'),
             action: OutlineButton(
-              label: 'Export CSV',
+              label: AppLocale.t('Export CSV'),
               icon: Icons.file_download_outlined,
               onTap: () => showCsvExport(
                 context,
-                title: 'Inventory',
+                title: AppLocale.t('Inventory'),
                 filename: 'inventory.csv',
                 header: const [
                   'id', 'name', 'category', 'total_stock', 'available',
@@ -179,7 +180,7 @@ class InventoryScreen extends StatelessWidget {
                       child: TextField(
                         onChanged: state.setInventoryQuery,
                         decoration: InputDecoration(
-                          hintText: 'Search inventory',
+                          hintText: AppLocale.t('Search inventory'),
                           prefixIcon: Icon(Icons.search_rounded,
                               size: 18, color: AppPalette.muted),
                           prefixIconConstraints:
@@ -209,7 +210,7 @@ class InventoryScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: _StatusChip(
-                            label: 'All statuses',
+                            label: AppLocale.t('All statuses'),
                             count: state.inventory.length,
                             fg: AppPalette.primary,
                             bg: AppPalette.primarySoft,
@@ -265,7 +266,7 @@ class InventoryScreen extends StatelessWidget {
                 if (items.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 36),
-                    child: Text('No items match your filters.',
+                    child: Text(AppLocale.t('No items match your filters.'),
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13.5,
@@ -310,15 +311,15 @@ class InventoryScreen extends StatelessWidget {
     final (title, subtitle) = switch (mode) {
       _BreakdownMode.total => (
         'Total items — $grandTotal units',
-        'Every unit you own, grouped by category'
+        AppLocale.t('Every unit you own, grouped by category')
       ),
       _BreakdownMode.available => (
         'Available now — $grandTotal units',
-        'Bookable units per category (maintenance items are not counted)'
+        AppLocale.t('Bookable units per category (maintenance items are not counted)')
       ),
       _BreakdownMode.onRent => (
         'On rent — $grandTotal units',
-        'Units out with customers, grouped by category'
+        AppLocale.t('Units out with customers, grouped by category')
       ),
     };
 
@@ -352,7 +353,7 @@ class InventoryScreen extends StatelessWidget {
               if (categories.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Text('No inventory yet.',
+                  child: Text(AppLocale.t('No inventory yet.'),
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
@@ -425,14 +426,14 @@ class InventoryScreen extends StatelessWidget {
                 Navigator.pop(dialogCtx);
                 state.setInventoryStatusFilter(ItemStatus.rentedOut);
               },
-              child: Text('Show rented items in the list',
+              child: Text(AppLocale.t('Show rented items in the list'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       color: AppPalette.primary)),
             ),
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('Close',
+            child: Text(AppLocale.t('Close'),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     color: AppPalette.body)),
@@ -454,8 +455,8 @@ class InventoryScreen extends StatelessWidget {
       context: context,
       barrierColor: Colors.black.withOpacity(0.35),
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Needs attention',
-            style: TextStyle(
+        title: Text(AppLocale.t('Needs attention'),
+            style: const TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 15,
                 fontWeight: FontWeight.w800)),
@@ -464,7 +465,7 @@ class InventoryScreen extends StatelessWidget {
           child: watch.isEmpty
               ? Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Text('Nothing needs attention — all healthy.',
+                  child: Text(AppLocale.t('Nothing needs attention — all healthy.'),
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
@@ -501,7 +502,7 @@ class InventoryScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('Close',
+            child: Text(AppLocale.t('Close'),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     color: AppPalette.body)),
@@ -516,15 +517,15 @@ class InventoryScreen extends StatelessWidget {
     final nameCtrl = TextEditingController();
     final stockCtrl = TextEditingController(text: '10');
     final rateCtrl = TextEditingController(text: '5.00');
-    String category = 'Seating';
+    String category = AppLocale.t('Seating');
 
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.35),
       builder: (dialogCtx) => StatefulBuilder(
         builder: (dialogCtx, setDialogState) => AlertDialog(
-          title: const Text('Add inventory',
-              style: TextStyle(
+          title: Text(AppLocale.t('Add inventory'),
+              style: const TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 15,
                   fontWeight: FontWeight.w800)),
@@ -537,7 +538,7 @@ class InventoryScreen extends StatelessWidget {
                 TextField(
                   controller: nameCtrl,
                   decoration:
-                      const InputDecoration(hintText: 'Item name'),
+                      InputDecoration(hintText: AppLocale.t('Item name')),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -548,7 +549,7 @@ class InventoryScreen extends StatelessWidget {
                   ],
                   onChanged: (v) =>
                       setDialogState(() => category = v ?? category),
-                  decoration: const InputDecoration(hintText: 'Category'),
+                  decoration: InputDecoration(hintText: AppLocale.t('Category')),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -558,7 +559,7 @@ class InventoryScreen extends StatelessWidget {
                         controller: stockCtrl,
                         keyboardType: TextInputType.number,
                         decoration:
-                            const InputDecoration(hintText: 'Total stock'),
+                            InputDecoration(hintText: AppLocale.t('Total stock')),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -566,8 +567,8 @@ class InventoryScreen extends StatelessWidget {
                       child: TextField(
                         controller: rateCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                            hintText: 'Rate / day (\$)'),
+                        decoration: InputDecoration(
+                            hintText: AppLocale.t('Rate / day (Br)')),
                       ),
                     ),
                   ],
@@ -578,7 +579,7 @@ class InventoryScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: Text('Cancel',
+              child: Text(AppLocale.t('Cancel'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       color: AppPalette.body)),
@@ -603,8 +604,8 @@ class InventoryScreen extends StatelessWidget {
                   ),
                 );
               },
-              child: const Text('Add item',
-                  style: TextStyle(fontFamily: AppTheme.fontFamily)),
+              child: Text(AppLocale.t('Add item'),
+                  style: const TextStyle(fontFamily: AppTheme.fontFamily)),
             ),
           ],
         ),

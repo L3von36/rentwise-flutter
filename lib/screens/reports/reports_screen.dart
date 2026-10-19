@@ -1,6 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/density.dart';
@@ -14,6 +13,7 @@ import '../../widgets/restricted.dart';
 import '../../state/workspace_state.dart';
 import '../../models/pickup.dart' show RevenuePoint, CategoryRevenue;
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Owner-only performance console. Every figure on this screen is
 /// computed from live workspace state (metrics doc + orders) — nothing
@@ -31,7 +31,7 @@ class ReportsScreen extends StatelessWidget {
       return Padding(
         padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
             Density.pagePad(context), 24),
-        child: const RestrictedPanel(area: 'Reports'),
+        child: RestrictedPanel(area: AppLocale.t('Reports')),
       );
     }
 
@@ -44,7 +44,7 @@ class ReportsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Reports',
+          Text(AppLocale.t('Reports'),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: Density.compact(context) ? 17 : 21,
@@ -57,7 +57,7 @@ class ReportsScreen extends StatelessWidget {
           StaggerIn(
             index: 0,
             child: _PerformanceHero(
-              monthLabel: DateFormat('MMMM y').format(DateTime.now()),
+              monthLabel: Fmt.monthYear(DateTime.now()),
               revenueK: state.monthGrossRevenueK,
               utilization: state.utilization,
               momentumPct: momentum,
@@ -82,10 +82,10 @@ class ReportsScreen extends StatelessWidget {
                       icon: Icons.request_quote_outlined,
                       iconColor: AppPalette.amber,
                       iconBg: AppPalette.amberBg,
-                      label: 'Awaiting payment',
+                      label: AppLocale.t('Awaiting payment'),
                       value:
                           Fmt.moneySmart(state.awaitingPaymentTotal),
-                      subtitle: 'open receivables',
+                      subtitle: AppLocale.t('open receivables'),
                     ),
                   ),
                   SizedBox(
@@ -100,11 +100,11 @@ class ReportsScreen extends StatelessWidget {
                           state.returnsLateCount > 0
                               ? AppPalette.redBg
                               : AppPalette.greenBg,
-                      label: 'Late returns',
+                      label: AppLocale.t('Late returns'),
                       value: '${state.returnsLateCount}',
                       subtitle: state.returnsLateCount > 0
                           ? 'need follow-up'
-                          : 'all on time',
+                          : AppLocale.t('all on time'),
                     ),
                   ),
                 ],
@@ -118,8 +118,8 @@ class ReportsScreen extends StatelessWidget {
             index: 2,
             child: SectionCard(
               icon: Icons.show_chart_rounded,
-              title: 'Revenue trend',
-              subtitle: DateFormat('MMMM y').format(DateTime.now()),
+              title: AppLocale.t('Revenue trend'),
+              subtitle: Fmt.monthYear(DateTime.now()),
               action: _MomentumChip(pct: momentum),
               child: _TrendChart(trend: trend),
             ),
@@ -196,7 +196,7 @@ class _PerformanceHero extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$monthLabel performance',
+              Text(AppLocale.tf('{n} performance', {'n': monthLabel}),
                   style: const TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 15.5,
@@ -209,14 +209,14 @@ class _PerformanceHero extends StatelessWidget {
     );
 
     final stats = [
-      _HeroStat(value: '\$${revenueK.toStringAsFixed(1)}k', label: 'Revenue'),
+      _HeroStat(value: Fmt.compactMoney(revenueK * 1000), label: AppLocale.t('Revenue')),
       _HeroStat(
           value: '${utilization.toStringAsFixed(1)}%',
-          label: 'Utilization'),
+          label: AppLocale.t('Utilization')),
       _HeroStat(
           value:
               '${momentumPct >= 0 ? '+' : '-'}${momentumPct.abs().toStringAsFixed(1)}%',
-          label: 'Momentum'),
+          label: AppLocale.t('Momentum')),
     ];
     final statRow = Row(
       children: [
@@ -418,8 +418,8 @@ class _TrendChart extends StatelessWidget {
                     getTooltipItem: (group, _, __, ___) {
                       final p = trend[group.x.toInt()];
                       return BarTooltipItem(
-                        '${DateFormat('MMM d').format(p.day)} · '
-                            '\$${p.value.toStringAsFixed(1)}k',
+                        '${Fmt.dayMonth(p.day)} · '
+                            '${Fmt.compactMoney(p.value * 1000)}',
                         TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             color: AppPalette.dark
@@ -470,18 +470,18 @@ class _TrendChart extends StatelessWidget {
             children: [
               Expanded(
                   child: _ChartStat(
-                      label: 'Best day',
+                      label: AppLocale.t('Best day'),
                       value:
-                          '\$${best.value.toStringAsFixed(1)}k · ${DateFormat('MMM d').format(best.day)}')),
+                          '${Fmt.compactMoney(best.value * 1000)} · ${Fmt.dayMonth(best.day)}')),
               _vDivider(),
               Expanded(
                   child: _ChartStat(
-                      label: 'Daily average',
-                      value: '\$${avg.toStringAsFixed(1)}k')),
+                      label: AppLocale.t('Daily average'),
+                      value: Fmt.compactMoney(avg * 1000))),
               _vDivider(),
               Expanded(
                   child: _ChartStat(
-                      label: 'Days booked',
+                      label: AppLocale.t('Days booked'),
                       value: '$booked of ${trend.length}')),
             ],
           ),
@@ -498,8 +498,7 @@ class _TrendChart extends StatelessWidget {
 
   static String _axisLabel(double v) {
     if (v == 0) return '0';
-    final s = v.toStringAsFixed(1);
-    return '\$${s.endsWith('.0') ? s.substring(0, s.length - 2) : s}k';
+    return Fmt.compactMoney(v * 1000);
   }
 
   Widget _xLabel(double value, List<RevenuePoint> trend) {
@@ -513,7 +512,7 @@ class _TrendChart extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Text(
-        DateFormat('MMM d').format(d),
+        Fmt.dayMonth(d),
         style: TextStyle(
             fontFamily: AppTheme.fontFamily,
             fontSize: 11,
@@ -613,12 +612,12 @@ class _CategoryPanel extends StatelessWidget {
       icon: Icons.donut_large_rounded,
       iconColor: AppPalette.purple,
       iconBg: AppPalette.purpleBg,
-      title: 'Top categories',
+      title: AppLocale.t('Top categories'),
       child: series.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 26),
               child: Center(
-                child: Text('No category revenue recorded yet.',
+                child: Text(AppLocale.t('No category revenue recorded yet.'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
@@ -659,7 +658,7 @@ class _CategoryList extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text('Combined this month',
+              child: Text(AppLocale.t('Combined this month'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -667,7 +666,7 @@ class _CategoryList extends StatelessWidget {
                       color: AppPalette.muted)),
             ),
             Text(
-                '\$${NumberFormat.decimalPattern().format(total.round())}',
+                Fmt.money(total),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 13.5,
@@ -698,8 +697,8 @@ class _CategoryRow extends StatelessWidget {
   });
 
   String _amountLabel() => amount >= 10000
-      ? '\$${(amount / 1000).toStringAsFixed(1)}k'
-      : '\$${NumberFormat.decimalPattern().format(amount.round())}';
+      ? Fmt.compactMoney(amount)
+      : Fmt.money(amount);
 
   @override
   Widget build(BuildContext context) {
@@ -783,15 +782,15 @@ class _PipelinePanel extends StatelessWidget {
       icon: Icons.route_rounded,
       iconColor: AppPalette.blue,
       iconBg: AppPalette.blueBg,
-      title: 'Order pipeline',
+      title: AppLocale.t('Order pipeline'),
       child: Column(
         children: [
           _PipeRow(
             icon: Icons.inventory_2_outlined,
             color: AppPalette.primary,
             bg: AppPalette.primarySoft,
-            label: 'Preparing',
-            sub: 'being staged & packed',
+            label: AppLocale.t('Preparing'),
+            sub: AppLocale.t('being staged & packed'),
             count: state.preparingCount,
           ),
           const Divider(height: 18),
@@ -799,10 +798,11 @@ class _PipelinePanel extends StatelessWidget {
             icon: Icons.request_page_outlined,
             color: AppPalette.amber,
             bg: AppPalette.amberBg,
-            label: 'Needs payment',
+            label: AppLocale.t('Needs payment'),
             sub: state.awaitingPaymentTotal > 0
-                ? '${Fmt.moneySmart(state.awaitingPaymentTotal)} awaiting'
-                : 'nothing outstanding',
+                ? AppLocale.tf('{n} awaiting',
+                    {'n': Fmt.moneySmart(state.awaitingPaymentTotal)})
+                : AppLocale.t('nothing outstanding'),
             count: state.needsPaymentCount,
           ),
           const Divider(height: 18),
@@ -810,7 +810,7 @@ class _PipelinePanel extends StatelessWidget {
             icon: Icons.local_shipping_outlined,
             color: AppPalette.blue,
             bg: AppPalette.blueBg,
-            label: 'With customer',
+            label: AppLocale.t('With customer'),
             sub: 'on rent · pickup only',
             count: state.outForDeliveryCount,
           ),
@@ -819,7 +819,7 @@ class _PipelinePanel extends StatelessWidget {
             icon: Icons.event_available_outlined,
             color: AppPalette.green,
             bg: AppPalette.greenBg,
-            label: 'Returns today',
+            label: AppLocale.t('Returns today'),
             sub: 'scheduled check-ins',
             count: state.returnsTodayCount,
           ),
@@ -832,7 +832,7 @@ class _PipelinePanel extends StatelessWidget {
             bg: state.returnsLateCount > 0
                 ? AppPalette.redBg
                 : AppPalette.greenBg,
-            label: 'Late returns',
+            label: AppLocale.t('Late returns'),
             sub: state.returnsLateCount > 0
                 ? 'follow up with customers'
                 : 'everything on schedule',
@@ -863,7 +863,7 @@ class _PipeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLate = label == 'Late returns' && count > 0;
+    final isLate = label == AppLocale.t('Late returns') && count > 0;
     return Row(
       children: [
         IconChipLite(icon: icon, color: color, bg: bg, size: 34),

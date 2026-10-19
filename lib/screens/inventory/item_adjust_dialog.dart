@@ -5,6 +5,7 @@ import '../../models/inventory_item.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/chips.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Adjust stock / toggle maintenance for an inventory item.
 Future<void> showItemAdjustDialog(
@@ -92,7 +93,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                 ],
               ),
               const SizedBox(height: 18),
-              Text('Available units',
+              Text(AppLocale.t('Available units'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -148,8 +149,8 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                     Expanded(
                       child: Text(
                         _maintenance
-                            ? 'Under maintenance — excluded from Available / On rent until returned to service'
-                            : 'Pull this item from availability (repairs, cleaning, damage)',
+                            ? AppLocale.t('Under maintenance — excluded from Available / On rent until returned to service')
+                            : AppLocale.t('Pull this item from availability (repairs, cleaning, damage)'),
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
@@ -191,7 +192,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                                   color: AppPalette.stroke),
                             ),
                             alignment: Alignment.center,
-                            child: Text('Cancel',
+                            child: Text(AppLocale.t('Cancel'),
                                 style: TextStyle(
                                     fontFamily: AppTheme.fontFamily,
                                     fontSize: 13.5,
@@ -212,9 +213,9 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(11),
                           onTap: _save,
-                          child: const Center(
-                            child: Text('Save changes',
-                                style: TextStyle(
+                          child: Center(
+                            child: Text(AppLocale.t('Save changes'),
+                                style: const TextStyle(
                                     fontFamily: AppTheme.fontFamily,
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w600,

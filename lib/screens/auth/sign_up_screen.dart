@@ -5,6 +5,7 @@ import '../../state/workspace_state.dart';
 import 'auth_scaffold.dart';
 import '../../widgets/cards.dart';
 import '../../core/palette.dart';
+import '../../core/app_locale.dart';
 
 /// Sign-up screen — the ONE-TIME owner bootstrap.
 ///
@@ -47,20 +48,20 @@ class _SignUpViewState extends State<SignUpView> {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
     if (name.isEmpty) {
-      setState(() => _formError = 'Enter your full name.');
+      setState(() => _formError = AppLocale.t('Enter your full name.'));
       return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      setState(() => _formError = 'Enter a valid email address.');
+      setState(() => _formError = AppLocale.t('Enter a valid email address.'));
       return;
     }
     if (password.length < 8) {
       setState(() => _formError =
-          'Password must be at least 8 characters.');
+          AppLocale.t('Password must be at least 8 characters.'));
       return;
     }
     if (password != _confirmCtrl.text) {
-      setState(() => _formError = 'Passwords do not match.');
+      setState(() => _formError = AppLocale.t('Passwords do not match.'));
       return;
     }
 
@@ -101,7 +102,7 @@ class _SignUpViewState extends State<SignUpView> {
                 bg: AppPalette.primarySoft,
                 size: 42),
             const SizedBox(height: 16),
-            Text('Register your workspace',
+            Text(AppLocale.t('Register your workspace'),
                 style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 6),
             Text(
@@ -111,13 +112,13 @@ class _SignUpViewState extends State<SignUpView> {
             const SizedBox(height: 20),
 
             // Name
-            const _FieldLabel('Full name'),
+            _FieldLabel(AppLocale.t('Full name')),
             const SizedBox(height: 7),
             TextField(
               controller: _nameCtrl,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
-                hintText: 'Your full name',
+                hintText: AppLocale.t('Your full name'),
                 prefixIcon: Icon(Icons.badge_outlined,
                     size: 18, color: AppPalette.muted),
                 prefixIconConstraints:
@@ -127,7 +128,7 @@ class _SignUpViewState extends State<SignUpView> {
             const SizedBox(height: 14),
 
             // Email
-            const _FieldLabel('Work email'),
+            _FieldLabel(AppLocale.t('Work email')),
             const SizedBox(height: 7),
             TextField(
               controller: _emailCtrl,
@@ -143,7 +144,7 @@ class _SignUpViewState extends State<SignUpView> {
             const SizedBox(height: 14),
 
             // Password
-            const _FieldLabel('Password'),
+            _FieldLabel(AppLocale.t('Password')),
             const SizedBox(height: 7),
             TextField(
               controller: _passwordCtrl,
@@ -168,7 +169,7 @@ class _SignUpViewState extends State<SignUpView> {
             const SizedBox(height: 14),
 
             // Confirm
-            const _FieldLabel('Confirm password'),
+            _FieldLabel(AppLocale.t('Confirm password')),
             const SizedBox(height: 7),
             TextField(
               controller: _confirmCtrl,
@@ -244,15 +245,15 @@ class _SignUpViewState extends State<SignUpView> {
                                   Colors.white),
                             ),
                           )
-                        : const Row(
+                        : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.person_add_alt_1_rounded,
+                              const Icon(Icons.person_add_alt_1_rounded,
                                   size: 18, color: Colors.white),
-                              SizedBox(width: 9),
+                              const SizedBox(width: 9),
                               Text(
-                                'Create owner account',
-                                style: TextStyle(
+                                AppLocale.t('Create owner account'),
+                                style: const TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w600,
@@ -270,7 +271,7 @@ class _SignUpViewState extends State<SignUpView> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Flexible(
-                  child: Text('Already have an account?',
+                  child: Text(AppLocale.t('Already have an account?'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -285,7 +286,7 @@ class _SignUpViewState extends State<SignUpView> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: Text('Sign in',
+                  child: Text(AppLocale.t('Sign in'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

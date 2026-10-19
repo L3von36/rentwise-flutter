@@ -2,11 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_locale.dart';
 import '../../core/app_theme.dart';
 import '../../core/formatters.dart';
 import '../../models/inventory_item.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
+import '../../widgets/rw_date_picker.dart';
 import '../../core/palette.dart';
 
 /// Booking line with quantity stepper.
@@ -53,7 +55,7 @@ class _LineRow extends StatelessWidget {
                         color: AppPalette.ink)),
                 const SizedBox(height: 2),
                 Text(
-                    '${line.qty} × \$${item.ratePerDay.toStringAsFixed(2)}/day · ${item.available} available',
+                    '${line.qty} × ${Fmt.moneyCents(item.ratePerDay)}/${AppLocale.t('day')} · ${AppLocale.tr('{n} available', item.available)}',
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11.5,
@@ -270,8 +272,13 @@ class _BookingDialogState extends State<_BookingDialog> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Booking #$id created for $_customer · '
-            'collect ${Fmt.moneySmart(_downPayment)} down payment at pickup'),
+        content: Text(
+            '${AppLocale.tf('Booking #{n} created for {c}', {
+                  'n': id,
+                  'c': _customer!,
+                })} · ${AppLocale.tf('collect {m} down payment at pickup', {
+                  'm': Fmt.moneySmart(_downPayment),
+                })}'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -299,7 +306,7 @@ class _BookingDialogState extends State<_BookingDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('New rental booking',
+                  Text(AppLocale.t('New rental booking'),
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 15,
@@ -327,17 +334,17 @@ class _BookingDialogState extends State<_BookingDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // customer + event
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       flex: 5,
-                      child: _Label('Customer'),
+                      child: _Label(AppLocale.t('Customer')),
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       flex: 5,
-                      child: _Label('Event name'),
+                      child: _Label(AppLocale.t('Event name')),
                     ),
                   ],
                 ),
@@ -360,8 +367,8 @@ class _BookingDialogState extends State<_BookingDialog> {
                                     style: const TextStyle(fontSize: 13))),
                         ],
                         onChanged: (v) => setState(() => _customer = v),
-                        decoration: const InputDecoration(
-                            hintText: 'Select customer'),
+                        decoration: InputDecoration(
+                            hintText: AppLocale.t('Select customer')),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -378,15 +385,16 @@ class _BookingDialogState extends State<_BookingDialog> {
                 ),
                 const SizedBox(height: 14),
 
-                const _Label('Event date'),
+                _Label(AppLocale.t('Event date')),
                 const SizedBox(height: 7),
                 InkWell(
                   borderRadius: BorderRadius.circular(10),
                   onTap: () async {
                     final now = DateTime.now();
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _eventDate ?? now.add(const Duration(days: 3)),
+                    final picked = await showRwDatePicker(
+                      context,
+                      initialDate:
+                          _eventDate ?? now.add(const Duration(days: 3)),
                       firstDate: now,
                       lastDate: now.add(const Duration(days: 365)),
                     );
@@ -407,8 +415,8 @@ class _BookingDialogState extends State<_BookingDialog> {
                         const SizedBox(width: 9),
                         Text(
                           _eventDate == null
-                              ? 'Pick a date'
-                              : _fmtDate(_eventDate!),
+                              ? AppLocale.t('Pick a date')
+                              : Fmt.shortDate(_eventDate!),
                           style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 13.5,
@@ -425,7 +433,7 @@ class _BookingDialogState extends State<_BookingDialog> {
                 const SizedBox(height: 16),
 
                 // items
-                const _Label('Items'),
+                _Label(AppLocale.t('Items')),
                 const SizedBox(height: 7),
                 if (_lines.isEmpty)
                   Container(
@@ -438,7 +446,8 @@ class _BookingDialogState extends State<_BookingDialog> {
                     ),
                     child: Center(
                       child: Text(
-                          'No items yet — add the pieces this event needs.',
+                          AppLocale.t(
+                              'No items yet — add the pieces this event needs.'),
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 12.5,
@@ -513,7 +522,8 @@ class _BookingDialogState extends State<_BookingDialog> {
                 const SizedBox(height: 16),
 
                 // payment plan (v1.26) — agreed at booking
-                const _Label('Payment plan · collect before pickup'),
+                _Label(AppLocale.t(
+                    'Payment plan · collect before pickup')),
                 const SizedBox(height: 7),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,9 +536,10 @@ class _BookingDialogState extends State<_BookingDialog> {
                             decimal: true),
                         onChanged: (_) => setState(() => _downEdited = true),
                         decoration: InputDecoration(
-                          hintText:
-                              '50% suggested · ${Fmt.moneySmart(_suggestedDown)}',
-                          labelText: 'Down payment',
+                          hintText: AppLocale.tf(
+                              '50% suggested · {m}',
+                              {'m': Fmt.moneySmart(_suggestedDown)}),
+                          labelText: AppLocale.t('Down payment'),
                         ),
                       ),
                     ),
@@ -540,9 +551,9 @@ class _BookingDialogState extends State<_BookingDialog> {
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                         onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: '0',
-                          labelText: 'Collateral deposit',
+                          labelText: AppLocale.t('Collateral deposit'),
                         ),
                       ),
                     ),
@@ -562,9 +573,10 @@ class _BookingDialogState extends State<_BookingDialog> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'down ${Fmt.moneySmart(_downPayment)} · '
-                              'remaining ${Fmt.moneySmart((_total - _downPayment).clamp(0, double.infinity))} · '
-                              'collateral ${Fmt.moneySmart(_collateral)} — all settled before pickup',
+                          '${AppLocale.t('down')} ${Fmt.moneySmart(_downPayment)} · '
+                              '${AppLocale.t('remaining')} ${Fmt.moneySmart((_total - _downPayment).clamp(0, double.infinity))} · '
+                              '${AppLocale.t('collateral')} ${Fmt.moneySmart(_collateral)} '
+                              '${AppLocale.t('— all settled before pickup')}',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 11.5,
@@ -583,7 +595,8 @@ class _BookingDialogState extends State<_BookingDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Customer pickup & return — transport is on the customer.',
+                        AppLocale.t(
+                            'Customer pickup & return — transport is on the customer.'),
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11,
@@ -595,13 +608,13 @@ class _BookingDialogState extends State<_BookingDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                const _Label('Notes (optional)'),
+                _Label(AppLocale.t('Notes (optional)')),
                 const SizedBox(height: 7),
                 TextField(
                   maxLines: 2,
                   onChanged: (v) => _notes = v,
-                  decoration: const InputDecoration(
-                      hintText: 'Venue contact, access notes…'),
+                  decoration: InputDecoration(
+                      hintText: AppLocale.t('Venue contact, access notes…')),
                 ),
               ],
             ),
@@ -621,13 +634,14 @@ class _BookingDialogState extends State<_BookingDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Estimated rate',
+                    Text(AppLocale.t('Estimated rate'),
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11.5,
                             color: AppPalette.muted)),
                     const SizedBox(height: 2),
-                    Text('\$${_total.toStringAsFixed(2)} / day',
+                    Text(
+                        '${Fmt.moneyCents(_total)} / ${AppLocale.t('day')}',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 15,
@@ -648,14 +662,14 @@ class _BookingDialogState extends State<_BookingDialog> {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 20),
                       alignment: Alignment.center,
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_rounded,
+                          const Icon(Icons.check_rounded,
                               size: 17, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text('Create booking',
-                              style: TextStyle(
+                          const SizedBox(width: 8),
+                          Text(AppLocale.t('Create booking'),
+                              style: const TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -696,14 +710,6 @@ class _BookingDialogState extends State<_BookingDialog> {
       ),
     );
   }
-}
-
-String _fmtDate(DateTime d) {
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ];
-  return '${months[d.month - 1]} ${d.day}, ${d.year}';
 }
 
 class _Label extends StatelessWidget {
