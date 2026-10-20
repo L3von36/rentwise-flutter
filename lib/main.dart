@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RendererBinding;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +14,12 @@ import 'widgets/desktop.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Web + automation/screen-reader support: Flutter web paints to canvas,
+  // so the DOM stays empty until semantics are enabled. `?a11y=1` opts in
+  // (assistive tech can also enable it via the browser's a11y toggle).
+  if (kIsWeb && Uri.base.queryParameters['a11y'] == '1') {
+    RendererBinding.instance.ensureSemantics();
+  }
   // Route HTTP through the OS system proxy when one is configured —
   // without this, machines behind VPN/proxy "system proxy" toggles can
   // never reach Appwrite Cloud from the desktop builds.
