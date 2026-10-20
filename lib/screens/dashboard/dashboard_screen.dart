@@ -76,9 +76,9 @@ void _openTaskSource(BuildContext context, ShiftTask task) {
 }
 
 // ======================================================= employee dashboard
-/// Task-first home for operations staff. Wide: 4-up task KPIs + task list,
-/// dispatch runs, quick actions and personal activity in a 2-column grid.
-/// Compact: shift banner + mini KPI strip + stacked cards.
+/// Task-first home for operations staff. The shift hero is the single summary
+/// for the day; the rest of the screen is reserved for work that can be
+/// acted on now. This avoids repeating the same counts in multiple cards.
 class _EmployeeDashboard extends StatelessWidget {
   final WorkspaceState state;
   final DateTime now;
@@ -108,117 +108,7 @@ class _EmployeeDashboard extends StatelessWidget {
             tasks: tasks,
             compact: compact,
           ),
-          const SizedBox(height: 16),
-
-          // ---- KPIs
-          if (wide)
-            LayoutBuilder(builder: (context, c) {
-              const cols = 4;
-              const gap = 12.0;
-              final cardW = (c.maxWidth - gap * (cols - 1)) / cols;
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: [
-                  SizedBox(
-                    width: cardW,
-                    child: KpiCard(
-                      icon: Icons.checklist_rounded,
-                      iconColor: AppPalette.primary,
-                      iconBg: AppPalette.primarySoft,
-                      label: AppLocale.t('Tasks on deck'),
-                      value: '${tasks.length}',
-                      subtitle: AppLocale.t('Pickups, returns & check-ins'),
-                      onTap: () => openTasks(context),
-                    ),
-                  ),
-                  SizedBox(
-                    width: cardW,
-                    child: KpiCard(
-                      icon: Icons.shopping_bag_outlined,
-                      iconColor: AppPalette.blue,
-                      iconBg: AppPalette.blueBg,
-                      label: AppLocale.t('With customer'),
-                      value: '${state.outForDeliveryCount}',
-                      subtitle: 'currently rented out',
-                      onTap: () {
-                        state.setOrderStatusFilter(OrderStatus.outForDelivery);
-                        state.navigate(Section.orders);
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    width: cardW,
-                    child: KpiCard(
-                      icon: Icons.assignment_return_outlined,
-                      iconColor: AppPalette.amber,
-                      iconBg: AppPalette.amberBg,
-                      label: AppLocale.t('Returns to check in'),
-                      value: '${state.returnsTodayCount}',
-                      subtitle: state.returnsLateCount > 0
-                          ? AppLocale.tf('Keep an eye on {n} late returns', {'n': state.returnsLateCount})
-                          : AppLocale.t('All returns on schedule'),
-                      onTap: () => state.navigate(Section.orders),
-                    ),
-                  ),
-                  SizedBox(
-                    width: cardW,
-                    child: KpiCard(
-                      icon: Icons.inventory_2_outlined,
-                      iconColor: AppPalette.purple,
-                      iconBg: AppPalette.purpleBg,
-                      label: AppLocale.t('To stage & pack'),
-                      value: '${state.preparingCount}',
-                      subtitle: state.preparingCount > 0
-                          ? 'being staged & packed'
-                          : AppLocale.t('Queue is clear'),
-                      onTap: () {
-                        state.setOrderStatusFilter(OrderStatus.preparing);
-                        state.navigate(Section.orders);
-                      },
-                    ),
-                  ),
-                ],
-              );
-            })
-          else
-              SizedBox(
-                height: 122,
-                // Same swipeable glance strip as the owner view: tiles
-                // keep a readable width and peek past the edge with a
-                // fade affordance on narrow phones.
-                child: KpiStrip(
-                  children: [
-                    KpiTileMini(
-                      icon: Icons.checklist_rounded,
-                      iconColor: AppPalette.primary,
-                      iconBg: AppPalette.primarySoft,
-                      label: AppLocale.t('Tasks due'),
-                      value: '${tasks.length}',
-                      subtitle: 'for today',
-                      onTap: () => openTasks(context),
-                    ),
-                    KpiTileMini(
-                      icon: Icons.shopping_bag_outlined,
-                      iconColor: AppPalette.blue,
-                      iconBg: AppPalette.blueBg,
-                      label: AppLocale.t('On rent'),
-                      value: '${state.outForDeliveryCount}',
-                      subtitle: 'out with customers',
-                      onTap: () => state.navigate(Section.orders),
-                    ),
-                    KpiTileMini(
-                      icon: Icons.assignment_return_outlined,
-                      iconColor: AppPalette.amber,
-                      iconBg: AppPalette.amberBg,
-                      label: AppLocale.t('Returns'),
-                      value: '${state.returnsTodayCount}',
-                      subtitle: 'to check in',
-                      onTap: () => state.navigate(Section.orders),
-                    ),
-                  ],
-                ),
-              ),
+          const SizedBox(height: 14),
 
           // ---- main content
           if (wide) ...[
@@ -243,8 +133,6 @@ class _EmployeeDashboard extends StatelessWidget {
                     child: Column(
                       children: [
                         _QuickActionsCard(state: state),
-                        const SizedBox(height: 20),
-                        _MyActivityCard(state: state, limit: 4),
                       ],
                     ),
                   ),
@@ -257,7 +145,7 @@ class _EmployeeDashboard extends StatelessWidget {
             const SizedBox(height: 14),
             _QuickActionsCard(state: state),
             const SizedBox(height: 14),
-            _MyActivityCard(state: state, limit: 3),
+            _DispatchCard(state: state),
           ],
         ],
       ),
@@ -1188,7 +1076,9 @@ class _OwnerWideDashboard extends StatelessWidget {
 
           // ---- financial KPI grid
           LayoutBuilder(builder: (context, c) {
-            const cols = 4;
+            // There are three metrics here; keeping a fourth empty column
+            // made the owner dashboard feel sparse and visually unbalanced.
+            const cols = 3;
             const gap = 12.0;
             final cardW = (c.maxWidth - gap * (cols - 1)) / cols;
             return Wrap(

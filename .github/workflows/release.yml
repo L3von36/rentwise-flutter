@@ -4,7 +4,7 @@ name: Build & Release
 #   - Push a tag like v1.0.1          -> full build + GitHub Release
 #   - Actions tab -> Run workflow     -> full build + GitHub Release
 #     (set "version" input, e.g. v1.0.1; empty = pubspec version)
-# Any other push to main            -> sanity build (analyze + tests + APK artifact only)
+# Any push to main                  -> full multi-platform build artifacts
 
 on:
   push:
@@ -104,7 +104,6 @@ jobs:
   # ---------------------------------------------------------------- windows
   build-windows:
     name: Windows desktop
-    if: needs.version.outputs.is_release == 'true'
     # windows-2025 image ships a stale CMAKE_GENERATOR env (VS2019, not installed)
     # and no VS2019 toolset -> pin to windows-2022 which has VS2022.
     runs-on: windows-2022
@@ -147,7 +146,6 @@ jobs:
   # ------------------------------------------------------------------- macos
   build-macos:
     name: macOS app
-    if: needs.version.outputs.is_release == 'true'
     runs-on: macos-latest
     needs: version
     steps:
@@ -182,7 +180,6 @@ jobs:
   # ------------------------------------------------------------------ linux
   build-linux:
     name: Linux desktop
-    if: needs.version.outputs.is_release == 'true'
     runs-on: ubuntu-22.04
     needs: version
     steps:
