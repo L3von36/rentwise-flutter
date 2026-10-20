@@ -113,6 +113,8 @@ mkattr inventory_items '{"key":"category","type":"string","size":64,"required":t
 mkattr inventory_items '{"key":"totalStock","type":"integer","required":true,"min":0,"max":100000}' integer
 mkattr inventory_items '{"key":"available","type":"integer","required":true,"min":0,"max":100000}' integer
 mkattr inventory_items '{"key":"ratePerDay","type":"float","required":true,"min":0,"max":1000000}' float
+mkattr inventory_items '{"key":"downPaymentPerUnit","type":"float","required":false,"default":0,"min":0,"max":1000000}' float
+mkattr inventory_items '{"key":"collateralPerUnit","type":"float","required":false,"default":0,"min":0,"max":1000000}' float
 mkattr inventory_items '{"key":"iconKey","type":"string","size":64,"required":false,"default":"inventory_2"}' string
 mkattr inventory_items '{"key":"sortIndex","type":"integer","required":false,"default":0,"min":0,"max":100000}' integer
 mkattr inventory_items '{"key":"maintenance","type":"boolean","required":false,"default":false}' boolean

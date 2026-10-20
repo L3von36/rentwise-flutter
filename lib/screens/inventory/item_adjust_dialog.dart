@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
+import '../../models/account.dart';
 import '../../models/inventory_item.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/chips.dart';
@@ -8,8 +9,7 @@ import '../../core/palette.dart';
 import '../../core/app_locale.dart';
 
 /// Adjust stock / toggle maintenance for an inventory item.
-Future<void> showItemAdjustDialog(
-    BuildContext context, InventoryItem item) {
+Future<void> showItemAdjustDialog(BuildContext context, InventoryItem item) {
   return showDialog<void>(
     context: context,
     barrierColor: Colors.black.withOpacity(0.35),
@@ -28,12 +28,25 @@ class _ItemAdjustDialog extends StatefulWidget {
 class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
   late int _available;
   late bool _maintenance;
+  late final TextEditingController _downCtrl;
+  late final TextEditingController _collateralCtrl;
 
   @override
   void initState() {
     super.initState();
     _available = widget.item.available;
     _maintenance = widget.item.maintenance;
+    _downCtrl = TextEditingController(
+        text: widget.item.downPaymentPerUnit.toStringAsFixed(2));
+    _collateralCtrl = TextEditingController(
+        text: widget.item.collateralPerUnit.toStringAsFixed(2));
+  }
+
+  @override
+  void dispose() {
+    _downCtrl.dispose();
+    _collateralCtrl.dispose();
+    super.dispose();
   }
 
   void _save() {
@@ -43,6 +56,16 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
       available: _available.clamp(0, widget.item.totalStock),
       maintenance: _maintenance,
     );
+    if (state.role.canEditPricing) {
+      state.updateItemPaymentPolicy(
+        widget.item,
+        downPaymentPerUnit:
+            double.tryParse(_downCtrl.text.trim().replaceAll(',', '')) ?? 0,
+        collateralPerUnit:
+            double.tryParse(_collateralCtrl.text.trim().replaceAll(',', '')) ??
+                0,
+      );
+    }
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -135,6 +158,59 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                 ],
               ),
               const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(AppLocale.t('Payment policy per unit'),
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppPalette.ink)),
+                  ),
+                  if (!context.read<WorkspaceState>().role.canEditPricing)
+                    Text(AppLocale.t('Owner managed'),
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 10.5,
+                            color: AppPalette.muted)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _downCtrl,
+                      readOnly:
+                          !context.read<WorkspaceState>().role.canEditPricing,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: AppLocale.t('Down payment'),
+                        prefixText: 'Br ',
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _collateralCtrl,
+                      readOnly:
+                          !context.read<WorkspaceState>().role.canEditPricing,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: AppLocale.t('Collateral'),
+                        prefixText: 'Br ',
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
               InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: () => setState(() => _maintenance = !_maintenance),
@@ -149,8 +225,10 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                     Expanded(
                       child: Text(
                         _maintenance
-                            ? AppLocale.t('Under maintenance — excluded from Available / On rent until returned to service')
-                            : AppLocale.t('Pull this item from availability (repairs, cleaning, damage)'),
+                            ? AppLocale.t(
+                                'Under maintenance — excluded from Available / On rent until returned to service')
+                            : AppLocale.t(
+                                'Pull this item from availability (repairs, cleaning, damage)'),
                         style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
@@ -169,9 +247,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
-                    color: _maintenance
-                        ? AppPalette.amber
-                        : AppPalette.body),
+                    color: _maintenance ? AppPalette.amber : AppPalette.body),
               ),
               const SizedBox(height: 18),
               Row(
@@ -188,8 +264,7 @@ class _ItemAdjustDialogState extends State<_ItemAdjustDialog> {
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
-                              border: Border.all(
-                                  color: AppPalette.stroke),
+                              border: Border.all(color: AppPalette.stroke),
                             ),
                             alignment: Alignment.center,
                             child: Text(AppLocale.t('Cancel'),
@@ -254,8 +329,7 @@ class _AdjustBtn extends StatelessWidget {
           alignment: Alignment.center,
           child: Icon(icon,
               size: 17,
-              color:
-                  onTap == null ? AppPalette.faint : AppPalette.primary),
+              color: onTap == null ? AppPalette.faint : AppPalette.primary),
         ),
       ),
     );

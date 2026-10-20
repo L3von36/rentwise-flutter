@@ -2,7 +2,13 @@ import '../../core/app_locale.dart';
 import '../../core/formatters.dart';
 
 /// Order lifecycle statuses shown in the Orders screen.
-enum OrderStatus { preparing, confirmed, needsPayment, outForDelivery, returned }
+enum OrderStatus {
+  preparing,
+  confirmed,
+  needsPayment,
+  outForDelivery,
+  returned
+}
 
 /// How money actually arrived — the Ethiopian payment rails a rental
 /// desk sees daily. Brand names stay Latin in every language; only Cash
@@ -94,14 +100,22 @@ class OrderLine {
   final String itemName;
   final int qty;
   final double unitPrice;
+  final double downPayment;
+  final double collateralAmount;
 
   const OrderLine({
     required this.itemName,
     required this.qty,
     required this.unitPrice,
+    this.downPayment = 0,
+    this.collateralAmount = 0,
   });
 
   double get lineTotal => qty * unitPrice;
+  double get downPaymentTotal => qty * downPayment;
+  double get collateralTotal => qty * collateralAmount;
+  double get remainingTotal =>
+      (lineTotal - downPaymentTotal).clamp(0, double.infinity);
 
   Map<String, dynamic> toCsvRow() =>
       {'item': itemName, 'qty': qty, 'unit': unitPrice, 'total': lineTotal};
@@ -205,15 +219,11 @@ class RentalOrder {
   /// Balance left after the down payment — collected before handover.
   double get remainingDue => (total - downPayment).clamp(0, double.infinity);
 
-  bool get downPaymentPaid =>
-      downPayment <= 0 || downPaymentPaidAt != null;
-  bool get remainingPaid =>
-      remainingDue <= 0 || remainingPaidAt != null;
-  bool get collateralPaid =>
-      collateralAmount <= 0 || collateralPaidAt != null;
+  bool get downPaymentPaid => downPayment <= 0 || downPaymentPaidAt != null;
+  bool get remainingPaid => remainingDue <= 0 || remainingPaidAt != null;
+  bool get collateralPaid => collateralAmount <= 0 || collateralPaidAt != null;
   bool get idVerified => idVerifiedAt != null;
-  bool get signatureCaptured =>
-      signedAt != null && signatureData.isNotEmpty;
+  bool get signatureCaptured => signedAt != null && signatureData.isNotEmpty;
 
   /// Money still owed on this order (down + remaining + collateral).
   double get outstandingTotal =>

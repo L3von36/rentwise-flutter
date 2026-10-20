@@ -634,6 +634,7 @@ void main() {
     // Status actions write through to the store — the button uses the
     // action label, not the status label. RW-2051 is fully settled in
     // the seeded dataset, so the handover gate lets it through.
+    await tester.ensureVisible(find.text('Hand over to customer'));
     await tester.tap(find.text('Hand over to customer'));
     await tester.pumpAndSettle();
     final state = tester.state(find.byType(Navigator)).context

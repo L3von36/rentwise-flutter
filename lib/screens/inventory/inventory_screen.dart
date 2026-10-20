@@ -32,14 +32,16 @@ class InventoryScreen extends StatelessWidget {
     final compactList = width < 860;
 
     final items = state.filteredInventory;
-    final availablePct =
-        state.totalUnits == 0 ? 0 : (state.availableUnits / state.totalUnits * 100);
-    final onRentPct =
-        state.totalUnits == 0 ? 0 : (state.onRentUnits / state.totalUnits * 100);
+    final availablePct = state.totalUnits == 0
+        ? 0
+        : (state.availableUnits / state.totalUnits * 100);
+    final onRentPct = state.totalUnits == 0
+        ? 0
+        : (state.onRentUnits / state.totalUnits * 100);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(Density.pagePad(context), 18,
-          Density.pagePad(context), 24),
+      padding: EdgeInsets.fromLTRB(
+          Density.pagePad(context), 18, Density.pagePad(context), 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -86,10 +88,10 @@ class InventoryScreen extends StatelessWidget {
                     label: AppLocale.t('Total items'),
                     value: '${state.totalUnits}',
                     subtitle: AppLocale.t('All catalog units'),
-                    trailing: TrendChip.flat(
-                        text: '${state.inventory.length} lines'),
-                    onTap: () => _showCategoryBreakdown(
-                        context, _BreakdownMode.total),
+                    trailing:
+                        TrendChip.flat(text: '${state.inventory.length} lines'),
+                    onTap: () =>
+                        _showCategoryBreakdown(context, _BreakdownMode.total),
                   ),
                 ),
                 SizedBox(
@@ -154,8 +156,14 @@ class InventoryScreen extends StatelessWidget {
                 title: AppLocale.t('Inventory'),
                 filename: 'inventory.csv',
                 header: const [
-                  'id', 'name', 'category', 'total_stock', 'available',
-                  'on_rent', 'status', 'rate_per_day'
+                  'id',
+                  'name',
+                  'category',
+                  'total_stock',
+                  'available',
+                  'on_rent',
+                  'status',
+                  'rate_per_day'
                 ],
                 rows: state.inventory
                     .map((i) => [
@@ -214,10 +222,8 @@ class InventoryScreen extends StatelessWidget {
                             count: state.inventory.length,
                             fg: AppPalette.primary,
                             bg: AppPalette.primarySoft,
-                            selected:
-                                state.inventoryStatusFilter == null,
-                            onTap: () =>
-                                state.setInventoryStatusFilter(null),
+                            selected: state.inventoryStatusFilter == null,
+                            onTap: () => state.setInventoryStatusFilter(null),
                           ),
                         ),
                         for (final status in ItemStatus.values)
@@ -228,8 +234,7 @@ class InventoryScreen extends StatelessWidget {
                               count: state.countByStatus(status),
                               fg: status.fg,
                               bg: status.bg,
-                              selected:
-                                  state.inventoryStatusFilter == status,
+                              selected: state.inventoryStatusFilter == status,
                               onTap: () => state.setInventoryStatusFilter(
                                   state.inventoryStatusFilter == status
                                       ? null
@@ -243,7 +248,8 @@ class InventoryScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Text('${items.length} of ${state.inventory.length} items',
+                  child: Text(
+                      '${items.length} of ${state.inventory.length} items',
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12,
@@ -305,22 +311,23 @@ class InventoryScreen extends StatelessWidget {
     final maxUnits = byCategory.values
         .map((l) => l.fold<int>(0, (s, i) => s + metric(i)))
         .fold(0, math.max);
-    final grandTotal =
-        byCategory.values.fold<int>(0, (s, l) => s + l.fold(0, (s, i) => s + metric(i)));
+    final grandTotal = byCategory.values
+        .fold<int>(0, (s, l) => s + l.fold(0, (s, i) => s + metric(i)));
 
     final (title, subtitle) = switch (mode) {
       _BreakdownMode.total => (
-        'Total items — $grandTotal units',
-        AppLocale.t('Every unit you own, grouped by category')
-      ),
+          'Total items — $grandTotal units',
+          AppLocale.t('Every unit you own, grouped by category')
+        ),
       _BreakdownMode.available => (
-        'Available now — $grandTotal units',
-        AppLocale.t('Bookable units per category (maintenance items are not counted)')
-      ),
+          'Available now — $grandTotal units',
+          AppLocale.t(
+              'Bookable units per category (maintenance items are not counted)')
+        ),
       _BreakdownMode.onRent => (
-        'On rent — $grandTotal units',
-        AppLocale.t('Units out with customers, grouped by category')
-      ),
+          'On rent — $grandTotal units',
+          AppLocale.t('Units out with customers, grouped by category')
+        ),
     };
 
     final barColor = switch (mode) {
@@ -390,8 +397,7 @@ class InventoryScreen extends StatelessWidget {
                             end: maxUnits == 0
                                 ? 0.0
                                 : byCategory[category]!
-                                        .fold<int>(
-                                            0, (s, i) => s + metric(i)) /
+                                        .fold<int>(0, (s, i) => s + metric(i)) /
                                     maxUnits),
                         duration: const Duration(milliseconds: 450),
                         curve: Curves.easeOutCubic,
@@ -435,8 +441,7 @@ class InventoryScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(dialogCtx),
             child: Text(AppLocale.t('Close'),
                 style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    color: AppPalette.body)),
+                    fontFamily: AppTheme.fontFamily, color: AppPalette.body)),
           ),
         ],
       ),
@@ -446,10 +451,9 @@ class InventoryScreen extends StatelessWidget {
   /// The items that need attention right now (low availability).
   void _showAttentionList(BuildContext context) {
     final state = context.read<WorkspaceState>();
-    final watch = state.inventory
-        .where((i) => i.needsAttention)
-        .toList()
-      ..sort((a, b) => a.availabilityFraction.compareTo(b.availabilityFraction));
+    final watch = state.inventory.where((i) => i.needsAttention).toList()
+      ..sort(
+          (a, b) => a.availabilityFraction.compareTo(b.availabilityFraction));
 
     showDialog<void>(
       context: context,
@@ -465,7 +469,8 @@ class InventoryScreen extends StatelessWidget {
           child: watch.isEmpty
               ? Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Text(AppLocale.t('Nothing needs attention — all healthy.'),
+                  child: Text(
+                      AppLocale.t('Nothing needs attention — all healthy.'),
                       style: TextStyle(
                           fontFamily: AppTheme.fontFamily,
                           fontSize: 12.5,
@@ -504,8 +509,7 @@ class InventoryScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(dialogCtx),
             child: Text(AppLocale.t('Close'),
                 style: TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    color: AppPalette.body)),
+                    fontFamily: AppTheme.fontFamily, color: AppPalette.body)),
           ),
         ],
       ),
@@ -517,6 +521,8 @@ class InventoryScreen extends StatelessWidget {
     final nameCtrl = TextEditingController();
     final stockCtrl = TextEditingController(text: '10');
     final rateCtrl = TextEditingController(text: '5.00');
+    final downCtrl = TextEditingController(text: '0');
+    final collateralCtrl = TextEditingController(text: '0');
     String category = AppLocale.t('Seating');
 
     showDialog<void>(
@@ -549,7 +555,8 @@ class InventoryScreen extends StatelessWidget {
                   ],
                   onChanged: (v) =>
                       setDialogState(() => category = v ?? category),
-                  decoration: InputDecoration(hintText: AppLocale.t('Category')),
+                  decoration:
+                      InputDecoration(hintText: AppLocale.t('Category')),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -558,8 +565,8 @@ class InventoryScreen extends StatelessWidget {
                       child: TextField(
                         controller: stockCtrl,
                         keyboardType: TextInputType.number,
-                        decoration:
-                            InputDecoration(hintText: AppLocale.t('Total stock')),
+                        decoration: InputDecoration(
+                            hintText: AppLocale.t('Total stock')),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -573,6 +580,32 @@ class InventoryScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: downCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: InputDecoration(
+                            labelText: AppLocale.t('Down / unit'),
+                            prefixText: 'Br '),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: collateralCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: InputDecoration(
+                            labelText: AppLocale.t('Collateral / unit'),
+                            prefixText: 'Br '),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -581,8 +614,7 @@ class InventoryScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(dialogCtx),
               child: Text(AppLocale.t('Cancel'),
                   style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      color: AppPalette.body)),
+                      fontFamily: AppTheme.fontFamily, color: AppPalette.body)),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -595,6 +627,8 @@ class InventoryScreen extends StatelessWidget {
                   category: category,
                   totalStock: int.tryParse(stockCtrl.text) ?? 1,
                   ratePerDay: double.tryParse(rateCtrl.text) ?? 1,
+                  downPaymentPerUnit: double.tryParse(downCtrl.text) ?? 0,
+                  collateralPerUnit: double.tryParse(collateralCtrl.text) ?? 0,
                 );
                 Navigator.pop(dialogCtx);
                 ScaffoldMessenger.of(context).showSnackBar(

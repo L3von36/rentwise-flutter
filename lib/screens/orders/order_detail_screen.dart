@@ -32,9 +32,7 @@ class OrderDetailScreen extends StatelessWidget {
     final live = state.orderById(order.id) ?? order;
     final wide = MediaQuery.sizeOf(context).width >= 900;
 
-    final days = live.eventDate
-        .difference(DateTime.now())
-        .inDays;
+    final days = live.eventDate.difference(DateTime.now()).inDays;
 
     final customer = state.customerByName(live.customerName);
 
@@ -92,7 +90,8 @@ class OrderDetailScreen extends StatelessWidget {
       child: live.lineItems.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Text(AppLocale.t('This order was created without a manifest.'),
+              child: Text(
+                  AppLocale.t('This order was created without a manifest.'),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12.5,
@@ -137,7 +136,7 @@ class OrderDetailScreen extends StatelessWidget {
 
     final notesCard = live.notes.isEmpty
         ? null // no notes → no card: the section only earns its place
-                   // when there is something to read
+        // when there is something to read
         : SectionCard(
             icon: Icons.sticky_note_2_outlined,
             title: AppLocale.t('Notes'),
@@ -160,7 +159,9 @@ class OrderDetailScreen extends StatelessWidget {
           ? Text(
               AppLocale.tf(
                   '{n} is not in the directory yet — added bookings will link automatically.',
-                  {'n': live.customerName}),
+                  {
+                    'n': live.customerName
+                  }),
               style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 12.5,
@@ -297,7 +298,8 @@ class _LineRow extends StatelessWidget {
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppPalette.ink)),
-                    Text('${Fmt.moneyCents(line.unitPrice)} / ${AppLocale.t('unit')}',
+                    Text(
+                        '${Fmt.moneyCents(line.unitPrice)} / ${AppLocale.t('unit')}',
                         style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontSize: 11,
@@ -360,8 +362,8 @@ class _PaymentsHandoverCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: ready ? AppPalette.greenBg : AppPalette.amberBg,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(
-            color: accent.withOpacity(AppPalette.dark ? 0.3 : 0.22)),
+        border:
+            Border.all(color: accent.withOpacity(AppPalette.dark ? 0.3 : 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,9 +395,8 @@ class _PaymentsHandoverCard extends StatelessWidget {
             // While settling: what is still owed. Once settled: the
             // only number the desk still needs — the collateral to
             // hand back at return. Cents kept when they exist.
-            Fmt.moneySmart(outstanding > 0
-                ? outstanding
-                : order.collateralAmount),
+            Fmt.moneySmart(
+                outstanding > 0 ? outstanding : order.collateralAmount),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 26,
@@ -417,6 +418,52 @@ class _PaymentsHandoverCard extends StatelessWidget {
                 fontSize: 11.5,
                 color: AppPalette.muted),
           ),
+          if (order.lineItems.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(AppLocale.t('Price by item'),
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
+                    color: AppPalette.muted)),
+            const SizedBox(height: 6),
+            for (final line in order.lineItems)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('${line.itemName} ×${line.qty}',
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppPalette.ink)),
+                        ),
+                        Text(Fmt.moneySmart(line.lineTotal),
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: AppPalette.ink)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                        '${AppLocale.t('Down')} ${Fmt.moneySmart(line.downPaymentTotal)} · ${AppLocale.t('Remaining')} ${Fmt.moneySmart(line.remainingTotal)} · ${AppLocale.t('Collateral')} ${Fmt.moneySmart(line.collateralTotal)}',
+                        style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 10.5,
+                            color: AppPalette.muted)),
+                  ],
+                ),
+              ),
+            const Divider(height: 16),
+          ],
           const SizedBox(height: 12),
           _PaymentRow(
             label: AppLocale.t('Down payment'),
@@ -429,8 +476,8 @@ class _PaymentsHandoverCard extends StatelessWidget {
                 ? () => receive(
                       label: AppLocale.t('Down payment'),
                       amount: order.downPayment,
-                      apply: (m) => state.markDownPaymentReceived(order,
-                          method: m),
+                      apply: (m) =>
+                          state.markDownPaymentReceived(order, method: m),
                     )
                 : null,
           ),
@@ -462,8 +509,8 @@ class _PaymentsHandoverCard extends StatelessWidget {
                     ? () => receive(
                           label: AppLocale.t('Collateral (refundable)'),
                           amount: order.collateralAmount,
-                          apply: (m) => state.markCollateralReceived(order,
-                              method: m),
+                          apply: (m) =>
+                              state.markCollateralReceived(order, method: m),
                         )
                     : null,
           ),
@@ -478,8 +525,9 @@ class _PaymentsHandoverCard extends StatelessWidget {
                 : '· ${customer.idType.isEmpty ? AppLocale.t('ID') : customer.idType}'
                     '${customer.idNumber.isEmpty ? '' : ' · ${customer.idNumber}'}',
             actionLabel: AppLocale.t('Verify ID'),
-            onAction:
-                order.idVerifiedAt == null ? () => state.markIdVerified(order) : null,
+            onAction: order.idVerifiedAt == null
+                ? () => state.markIdVerified(order)
+                : null,
           ),
           _SignatureRow(order: order),
           if (!ready) ...[
@@ -488,7 +536,8 @@ class _PaymentsHandoverCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppPalette.amber.withOpacity(AppPalette.dark ? 0.14 : 0.10),
+                color:
+                    AppPalette.amber.withOpacity(AppPalette.dark ? 0.14 : 0.10),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -754,8 +803,7 @@ class _CheckRow extends StatelessWidget {
       child: Row(
         children: [
           Icon(done ? Icons.check_circle_rounded : icon,
-              size: 16,
-              color: done ? AppPalette.green : AppPalette.amber),
+              size: 16, color: done ? AppPalette.green : AppPalette.amber),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -942,8 +990,7 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
   }
 
   bool get _hasInk =>
-      _strokes.any((s) => s.length >= 2) ||
-      (_current?.length ?? 0) >= 2;
+      _strokes.any((s) => s.length >= 2) || (_current?.length ?? 0) >= 2;
 
   @override
   Widget build(BuildContext context) {
@@ -986,7 +1033,10 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
               Text(
                   AppLocale.tf(
                       'Order #{n} · {e} — the customer signs to accept the rental terms.',
-                      {'n': widget.order.id, 'e': widget.order.eventName}),
+                      {
+                        'n': widget.order.id,
+                        'e': widget.order.eventName
+                      }),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
@@ -1043,17 +1093,18 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
               Row(
                 children: [
                   TextButton(
-                    onPressed:
-                        _strokes.isEmpty ? null : () => setState(() => _strokes.clear()),
+                    onPressed: _strokes.isEmpty
+                        ? null
+                        : () => setState(() => _strokes.clear()),
                     child: Text(AppLocale.t('Clear'),
-                        style: const TextStyle(fontFamily: AppTheme.fontFamily)),
+                        style:
+                            const TextStyle(fontFamily: AppTheme.fontFamily)),
                   ),
                   const Spacer(),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: _hasInk
-                            ? AppPalette.primary
-                            : AppPalette.faint),
+                        backgroundColor:
+                            _hasInk ? AppPalette.primary : AppPalette.faint),
                     onPressed: _hasInk
                         ? () {
                             // Normalize from the strokes' own bounds so
@@ -1072,18 +1123,16 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
                                               (bounds.width == 0
                                                   ? 1
                                                   : bounds.width) *
-                                          kSignatureGridMax)
-                                      .roundToDouble())
-                                      .clamp(0.0,
-                                          kSignatureGridMax.toDouble()),
+                                              kSignatureGridMax)
+                                          .roundToDouble())
+                                      .clamp(0.0, kSignatureGridMax.toDouble()),
                                   (((p.dy - bounds.top) /
                                               (bounds.height == 0
                                                   ? 1
                                                   : bounds.height) *
-                                          kSignatureGridMax)
-                                      .roundToDouble())
-                                      .clamp(0.0,
-                                          kSignatureGridMax.toDouble()),
+                                              kSignatureGridMax)
+                                          .roundToDouble())
+                                      .clamp(0.0, kSignatureGridMax.toDouble()),
                                 );
                             final scaled = _strokes
                                 .map((s) => s.map(norm).toList())
@@ -1098,7 +1147,8 @@ class _SignaturePadDialogState extends State<_SignaturePadDialog> {
                           }
                         : null,
                     child: Text(AppLocale.t('Save signature'),
-                        style: const TextStyle(fontFamily: AppTheme.fontFamily)),
+                        style:
+                            const TextStyle(fontFamily: AppTheme.fontFamily)),
                   ),
                 ],
               ),
@@ -1197,8 +1247,7 @@ class _CustomerStrip extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.chevron_right_rounded,
-              size: 18, color: AppPalette.muted),
+          Icon(Icons.chevron_right_rounded, size: 18, color: AppPalette.muted),
         ],
       ),
     );
@@ -1243,18 +1292,17 @@ class _StatusActionsCard extends StatelessWidget {
                       OrderStatus.outForDelivery => AppLocale.tf(
                           '{n} handed over — items are with the customer',
                           {'n': order.id}),
-                      OrderStatus.preparing => AppLocale.tf(
-                          '{n} staged for prep', {'n': order.id}),
-                      OrderStatus.needsPayment => AppLocale.tf(
-                          '{n} awaiting payment', {'n': order.id}),
+                      OrderStatus.preparing =>
+                        AppLocale.tf('{n} staged for prep', {'n': order.id}),
+                      OrderStatus.needsPayment =>
+                        AppLocale.tf('{n} awaiting payment', {'n': order.id}),
                     }),
                     behavior: SnackBarBehavior.floating,
                   ));
                 }
               },
             ),
-          if (next.contains(OrderStatus.outForDelivery) &&
-              !order.canHandOver)
+          if (next.contains(OrderStatus.outForDelivery) && !order.canHandOver)
             Text(
               AppLocale.t(
                   'Handover blocked — finish the checklist above first.'),
@@ -1265,7 +1313,8 @@ class _StatusActionsCard extends StatelessWidget {
                   color: AppPalette.amber),
             ),
           if (next.isEmpty)
-            Text(AppLocale.t('This order is fully closed — nothing left to do.'),
+            Text(
+                AppLocale.t('This order is fully closed — nothing left to do.'),
                 style: TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12.5,

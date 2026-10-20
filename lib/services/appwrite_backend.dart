@@ -111,8 +111,7 @@ class AppwriteBackend {
       role: (d['role'] ?? 'employee') == 'owner'
           ? UserRole.owner
           : UserRole.employee,
-      initials:
-          initialsFor((d['name'] ?? user.name) as String? ?? user.name),
+      initials: initialsFor((d['name'] ?? user.name) as String? ?? user.name),
       title: (d['title'] ?? '') as String? ?? '',
       userId: user.$id,
     );
@@ -166,19 +165,21 @@ class AppwriteBackend {
       title: 'Workspace owner',
       userId: user.$id,
     );
-    await _db.createDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.colProfiles,
-      documentId: user.$id,
-      data: {
-        'userId': user.$id,
-        'name': owner.name,
-        'email': owner.email,
-        'role': 'owner',
-        'title': owner.title,
-      },
-      permissions: _profilePermissions([user.$id]),
-    ).timeout(_callTimeout);
+    await _db
+        .createDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.colProfiles,
+          documentId: user.$id,
+          data: {
+            'userId': user.$id,
+            'name': owner.name,
+            'email': owner.email,
+            'role': 'owner',
+            'title': owner.title,
+          },
+          permissions: _profilePermissions([user.$id]),
+        )
+        .timeout(_callTimeout);
     return owner;
   }
 
@@ -213,19 +214,21 @@ class AppwriteBackend {
       title: title.trim().isEmpty ? 'Team member' : title.trim(),
       userId: user.$id,
     );
-    await _db.createDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.colProfiles,
-      documentId: user.$id,
-      data: {
-        'userId': user.$id,
-        'name': member.name,
-        'email': member.email,
-        'role': 'employee',
-        'title': member.title,
-      },
-      permissions: _profilePermissions([_userId ?? user.$id]),
-    ).timeout(_callTimeout);
+    await _db
+        .createDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.colProfiles,
+          documentId: user.$id,
+          data: {
+            'userId': user.$id,
+            'name': member.name,
+            'email': member.email,
+            'role': 'employee',
+            'title': member.title,
+          },
+          permissions: _profilePermissions([_userId ?? user.$id]),
+        )
+        .timeout(_callTimeout);
     return member;
   }
 
@@ -301,13 +304,15 @@ class AppwriteBackend {
       if (newRole != null) 'role': newRole.name,
       if (effectiveTitle != null) 'title': effectiveTitle,
     };
-    await _db.updateDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.colProfiles,
-      documentId: userId,
-      data: data,
-      permissions: _profilePermissions(ownerIds),
-    ).timeout(_callTimeout);
+    await _db
+        .updateDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.colProfiles,
+          documentId: userId,
+          data: data,
+          permissions: _profilePermissions(ownerIds),
+        )
+        .timeout(_callTimeout);
 
     // Re-share every OTHER profile doc with the full owner set so newly
     // promoted owners can manage the team too. Best-effort.
@@ -315,13 +320,15 @@ class AppwriteBackend {
       for (final m in team) {
         if (m.userId == userId) continue;
         try {
-          await _db.updateDocument(
-            databaseId: AppwriteConfig.databaseId,
-            collectionId: AppwriteConfig.colProfiles,
-            documentId: m.userId,
-            data: {},
-            permissions: _profilePermissions(ownerIds),
-          ).timeout(_callTimeout);
+          await _db
+              .updateDocument(
+                databaseId: AppwriteConfig.databaseId,
+                collectionId: AppwriteConfig.colProfiles,
+                documentId: m.userId,
+                data: {},
+                permissions: _profilePermissions(ownerIds),
+              )
+              .timeout(_callTimeout);
         } catch (e) {
           debugPrint('Appwrite[profiles.reshare ${m.userId}] $e');
         }
@@ -440,21 +447,25 @@ class AppwriteBackend {
       'categoryJson': '[]',
     };
     try {
-      await _db.updateDocument(
-        databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.colMetrics,
-        documentId: 'main',
-        data: resetMetrics,
-      ).timeout(_callTimeout);
+      await _db
+          .updateDocument(
+            databaseId: AppwriteConfig.databaseId,
+            collectionId: AppwriteConfig.colMetrics,
+            documentId: 'main',
+            data: resetMetrics,
+          )
+          .timeout(_callTimeout);
     } catch (_) {
       // No metrics document yet — create it zeroed.
       try {
-        await _db.createDocument(
-          databaseId: AppwriteConfig.databaseId,
-          collectionId: AppwriteConfig.colMetrics,
-          documentId: 'main',
-          data: resetMetrics,
-        ).timeout(_callTimeout);
+        await _db
+            .createDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.colMetrics,
+              documentId: 'main',
+              data: resetMetrics,
+            )
+            .timeout(_callTimeout);
       } catch (e) {
         debugPrint('Appwrite[metrics.reset] $e');
       }
@@ -494,17 +505,15 @@ class AppwriteBackend {
     final docs = <models.Document>[];
     var cursor = '';
     for (var page = 0; page < maxPages; page++) {
-      final res = await _db
-          .listDocuments(
-            databaseId: AppwriteConfig.databaseId,
-            collectionId: collectionId,
-            queries: [
-              ...extraQueries,
-              aw.Query.limit(pageSize),
-              if (cursor.isNotEmpty) aw.Query.cursorAfter(cursor),
-            ],
-          )
-          .timeout(_bulkTimeout);
+      final res = await _db.listDocuments(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: collectionId,
+        queries: [
+          ...extraQueries,
+          aw.Query.limit(pageSize),
+          if (cursor.isNotEmpty) aw.Query.cursorAfter(cursor),
+        ],
+      ).timeout(_bulkTimeout);
       docs.addAll(res.documents);
       if (res.documents.length < pageSize) break;
       cursor = res.documents.last.$id;
@@ -519,10 +528,9 @@ class AppwriteBackend {
     final inv = _listAll(AppwriteConfig.colInventory);
     final ord = _listAll(AppwriteConfig.colOrders);
     final cus = _listAll(AppwriteConfig.colCustomers);
-    final act =
-        _listAll(AppwriteConfig.colActivities, extraQueries: [
-          aw.Query.orderDesc('at'),
-        ]);
+    final act = _listAll(AppwriteConfig.colActivities, extraQueries: [
+      aw.Query.orderDesc('at'),
+    ]);
     final pks = _listAll(AppwriteConfig.colPickups);
     final wrk = _listAll(AppwriteConfig.colWorkspaces);
     final met = _getMetricsDoc();
@@ -539,8 +547,7 @@ class AppwriteBackend {
     final metRes = await met;
     final m = metRes?.data ?? const {};
 
-    final activeWs =
-        _userId == null ? '' : await _activeWorkspaceFor(_userId!);
+    final activeWs = _userId == null ? '' : await _activeWorkspaceFor(_userId!);
 
     return WorkspaceSnapshot(
       accountUserId: _userId ?? '',
@@ -554,10 +561,8 @@ class AppwriteBackend {
           .where((n) => n.isNotEmpty)
           .toList(),
       activeWorkspace: activeWs,
-      grossMonthK:
-          ((m['grossMonth'] ?? 0) as num).toDouble(),
-      utilizationPct:
-          ((m['utilization'] ?? 0) as num).toDouble(),
+      grossMonthK: ((m['grossMonth'] ?? 0) as num).toDouble(),
+      utilizationPct: ((m['utilization'] ?? 0) as num).toDouble(),
       earnings: pointsFromJson(m['earningsJson']),
       categoryRevenue: categoriesFromJson(m['categoryJson']),
       trend: pointsFromJson(m['trendJson']),
@@ -618,6 +623,8 @@ class AppwriteBackend {
           'available': item.available,
           'maintenance': item.maintenance,
           'ratePerDay': item.ratePerDay,
+          'downPaymentPerUnit': item.downPaymentPerUnit,
+          'collateralPerUnit': item.collateralPerUnit,
           'iconKey': iconKeyFor(item.icon),
         },
         isNew: isNew,
@@ -651,16 +658,19 @@ class AppwriteBackend {
           'linesJson': orderLinesToDoc(order.lineItems),
           // v1.26 payment policy + handover gate.
           'downPayment': order.downPayment,
-          'downPaymentPaidAt':
-              order.downPaymentPaidAt == null ? null : awDate(order.downPaymentPaidAt!),
+          'downPaymentPaidAt': order.downPaymentPaidAt == null
+              ? null
+              : awDate(order.downPaymentPaidAt!),
           // v1.28 — Ethiopian payment rails (Telebirr / CBE Birr / …).
           'downPaymentMethod': order.downPaymentMethod?.docName,
           'collateralAmount': order.collateralAmount,
-          'collateralPaidAt':
-              order.collateralPaidAt == null ? null : awDate(order.collateralPaidAt!),
+          'collateralPaidAt': order.collateralPaidAt == null
+              ? null
+              : awDate(order.collateralPaidAt!),
           'collateralMethod': order.collateralMethod?.docName,
-          'remainingPaidAt':
-              order.remainingPaidAt == null ? null : awDate(order.remainingPaidAt!),
+          'remainingPaidAt': order.remainingPaidAt == null
+              ? null
+              : awDate(order.remainingPaidAt!),
           'remainingMethod': order.remainingMethod?.docName,
           'idVerifiedAt':
               order.idVerifiedAt == null ? null : awDate(order.idVerifiedAt!),
@@ -686,8 +696,7 @@ class AppwriteBackend {
         },
       );
 
-  Future<void> putCustomer(Customer customer, {bool isNew = false}) =>
-      _upsert(
+  Future<void> putCustomer(Customer customer, {bool isNew = false}) => _upsert(
         AppwriteConfig.colCustomers,
         customer.id,
         {
@@ -845,6 +854,8 @@ class AppwriteBackend {
       available: (data['available'] ?? 0) as int,
       maintenance: (data['maintenance'] ?? false) == true,
       ratePerDay: ((data['ratePerDay'] ?? 0) as num).toDouble(),
+      downPaymentPerUnit: ((data['downPaymentPerUnit'] ?? 0) as num).toDouble(),
+      collateralPerUnit: ((data['collateralPerUnit'] ?? 0) as num).toDouble(),
       icon: kInventoryIcons[(data['iconKey'] ?? '') as String? ?? ''] ??
           Icons.inventory_2_outlined,
     );
@@ -857,29 +868,35 @@ class AppwriteBackend {
       eventName: (data['eventName'] ?? '') as String,
       customerName: (data['customerName'] ?? '') as String,
       contactName: (data['contactName'] ?? '') as String? ?? '',
-      createdAt: dateFromDoc((data['createdAt'] ?? awDate(DateTime.now())) as String),
-      eventDate: dateFromDoc((data['eventDate'] ?? awDate(DateTime.now())) as String),
+      createdAt:
+          dateFromDoc((data['createdAt'] ?? awDate(DateTime.now())) as String),
+      eventDate:
+          dateFromDoc((data['eventDate'] ?? awDate(DateTime.now())) as String),
       itemCount: (data['itemCount'] ?? 0) as int,
       total: ((data['total'] ?? 0) as num).toDouble(),
       status: statusFromDoc((data['status'] ?? 'preparing') as String),
       notes: (data['notes'] ?? '') as String? ?? '',
-      lineItems: orderLinesFromDoc((data['linesJson'] ?? '[]') as String? ?? '[]'),
+      lineItems:
+          orderLinesFromDoc((data['linesJson'] ?? '[]') as String? ?? '[]'),
       // v1.26 payment policy + handover gate (absent on legacy docs).
       downPayment: ((data['downPayment'] ?? 0) as num? ?? 0).toDouble(),
       downPaymentPaidAt: data['downPaymentPaidAt'] == null
           ? null
           : dateFromDoc(data['downPaymentPaidAt'] as String),
-      downPaymentMethod: PaymentMethodX.fromDoc(data['downPaymentMethod'] as String?),
+      downPaymentMethod:
+          PaymentMethodX.fromDoc(data['downPaymentMethod'] as String?),
       collateralAmount:
           ((data['collateralAmount'] ?? 0) as num? ?? 0).toDouble(),
       collateralPaidAt: data['collateralPaidAt'] == null
           ? null
           : dateFromDoc(data['collateralPaidAt'] as String),
-      collateralMethod: PaymentMethodX.fromDoc(data['collateralMethod'] as String?),
+      collateralMethod:
+          PaymentMethodX.fromDoc(data['collateralMethod'] as String?),
       remainingPaidAt: data['remainingPaidAt'] == null
           ? null
           : dateFromDoc(data['remainingPaidAt'] as String),
-      remainingMethod: PaymentMethodX.fromDoc(data['remainingMethod'] as String?),
+      remainingMethod:
+          PaymentMethodX.fromDoc(data['remainingMethod'] as String?),
       idVerifiedAt: data['idVerifiedAt'] == null
           ? null
           : dateFromDoc(data['idVerifiedAt'] as String),
@@ -901,9 +918,10 @@ class AppwriteBackend {
       phone: (data['phone'] ?? '') as String? ?? '',
       rentals: (data['rentals'] ?? 0) as int,
       lifetimeSpend: ((data['lifetimeSpend'] ?? 0) as num).toDouble(),
-      lastBooking:
-          dateFromDoc((data['lastBooking'] ?? awDate(DateTime.now())) as String),
-      avatarColor: avatarColorFromIndex((data['avatarColorIndex'] ?? 0) as int? ?? 0),
+      lastBooking: dateFromDoc(
+          (data['lastBooking'] ?? awDate(DateTime.now())) as String),
+      avatarColor:
+          avatarColorFromIndex((data['avatarColorIndex'] ?? 0) as int? ?? 0),
       idType: (data['idType'] ?? '') as String? ?? '',
       idNumber: (data['idNumber'] ?? '') as String? ?? '',
     );
@@ -915,7 +933,8 @@ class AppwriteBackend {
       id: d.$id,
       actor: (data['actor'] ?? '') as String,
       actorInitials: (data['actorInitials'] ?? '') as String? ?? '',
-      actorColor: actorColorFromIndex((data['actorColorIndex'] ?? 0) as int? ?? 0),
+      actorColor:
+          actorColorFromIndex((data['actorColorIndex'] ?? 0) as int? ?? 0),
       at: dateFromDoc((data['at'] ?? awDate(DateTime.now())) as String),
       type: activityTypeFromDoc((data['type'] ?? 'note') as String),
       body: (data['body'] ?? '') as String,
@@ -987,9 +1006,8 @@ class AppwriteBackend {
           // Appwrite's message names the exact client to register, e.g.
           // "Register your new client (com.rentwise.rentwise) as a new
           // Windows platform ..." — surface that identifier.
-          final id = RegExp(r'\(([^)]+)\)')
-              .firstMatch(error.message ?? '')
-              ?.group(1);
+          final id =
+              RegExp(r'\(([^)]+)\)').firstMatch(error.message ?? '')?.group(1);
           return 'Appwrite does not recognize this app origin'
               '${id == null ? '' : ' ($id)'} — register it under Platforms '
               'in the Appwrite console (project rentwise), then try again.';
@@ -1083,10 +1101,8 @@ String slugFor(String name) => name
     .replaceAll(RegExp(r'^-+|-+$'), '');
 
 /// Metrics JSON encoders (seeding harness side).
-String pointsToJson(List<RevenuePoint> points) => jsonEncode(points
-    .map((p) => {'day': awDate(p.day), 'value': p.value})
-    .toList());
+String pointsToJson(List<RevenuePoint> points) => jsonEncode(
+    points.map((p) => {'day': awDate(p.day), 'value': p.value}).toList());
 
-String categoriesToJson(List<CategoryRevenue> cats) => jsonEncode(cats
-    .map((c) => {'category': c.category, 'amount': c.amount})
-    .toList());
+String categoriesToJson(List<CategoryRevenue> cats) => jsonEncode(
+    cats.map((c) => {'category': c.category, 'amount': c.amount}).toList());

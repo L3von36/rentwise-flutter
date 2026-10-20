@@ -15,7 +15,15 @@ import '../services/appwrite_backend.dart';
 import '../core/app_locale.dart';
 
 /// Workspace sections (sidebar / drawer destinations).
-enum Section { dashboard, inventory, orders, customers, activity, access, reports }
+enum Section {
+  dashboard,
+  inventory,
+  orders,
+  customers,
+  activity,
+  access,
+  reports
+}
 
 extension SectionX on Section {
   String get label => switch (this) {
@@ -106,7 +114,8 @@ class WorkspaceState extends ChangeNotifier {
   void _push(Future<void> work, String label) {
     work.catchError((Object e) {
       debugPrint('Appwrite[$label] $e');
-      _emit('Cloud sync failed ($label) — change is local only. '
+      _emit(
+          'Cloud sync failed ($label) — change is local only. '
           'Check your connection; it will not be re-sent automatically.',
           error: true);
       notifyListeners();
@@ -138,7 +147,8 @@ class WorkspaceState extends ChangeNotifier {
     _backend?.setActiveWorkspace(name);
     _log(
       type: ActivityType.note,
-      body: '**${_account?.name ?? 'Someone'}** switched to workspace **$name**',
+      body:
+          '**${_account?.name ?? 'Someone'}** switched to workspace **$name**',
     );
     notifyListeners();
   }
@@ -157,15 +167,13 @@ class WorkspaceState extends ChangeNotifier {
     _workspace = trimmed;
     final b = _backend;
     if (b != null) {
-      _push(
-          b.putWorkspace(trimmed, createdBy: _account?.name ?? ''),
+      _push(b.putWorkspace(trimmed, createdBy: _account?.name ?? ''),
           'workspaces.put');
       _push(b.setActiveWorkspace(trimmed), 'workspaces.active');
     }
     _log(
       type: ActivityType.note,
-      body:
-          '**${_account?.name ?? 'Someone'}** created workspace **$trimmed**',
+      body: '**${_account?.name ?? 'Someone'}** created workspace **$trimmed**',
     );
     notifyListeners();
     return true;
@@ -200,8 +208,7 @@ class WorkspaceState extends ChangeNotifier {
     try {
       if (b == null) {
         _loadingAuth = false;
-        _authError =
-            'Appwrite backend is not configured in this build. '
+        _authError = 'Appwrite backend is not configured in this build. '
             'Please reinstall the official release.';
         notifyListeners();
         return _authError;
@@ -278,8 +285,7 @@ class WorkspaceState extends ChangeNotifier {
         // Reaching this means a wiring bug — fail honestly instead of
         // falling back to any local dataset.
         _loadingAuth = false;
-        _authError =
-            'Appwrite backend is not configured in this build. '
+        _authError = 'Appwrite backend is not configured in this build. '
             'Please reinstall the official release.';
         notifyListeners();
         return _authError;
@@ -316,8 +322,7 @@ class WorkspaceState extends ChangeNotifier {
     if (!isOwner) return;
     if (_account == null || _account!.role == role) return;
     _account = _account!.copyWith(role: role);
-    if (!isOwner &&
-        (section == Section.reports || section == Section.access)) {
+    if (!isOwner && (section == Section.reports || section == Section.access)) {
       _section = Section.dashboard; // preview lands somewhere allowed
     }
     notifyListeners();
@@ -417,8 +422,7 @@ class WorkspaceState extends ChangeNotifier {
   }
 
   /// Number of owner profiles in the loaded team directory.
-  int get ownerCount =>
-      _team.where((m) => m.role == UserRole.owner).length;
+  int get ownerCount => _team.where((m) => m.role == UserRole.owner).length;
 
   /// OWNER ACTION — edits a team member's role and/or job title.
   /// Guardrails: owner-only, never your own role, and the last owner
@@ -674,8 +678,7 @@ class WorkspaceState extends ChangeNotifier {
     for (final p in _pickups.take(2)) {
       tasks.add(ShiftTask(
         title: 'Pull & stage',
-        meta:
-            '${Fmt.items(p.itemCount)} · ${p.venue} · #${p.id}',
+        meta: '${Fmt.items(p.itemCount)} · ${p.venue} · #${p.id}',
         chip: 'Upcoming',
         chipFg: AppPalette.green,
         chipBg: AppPalette.greenBg,
@@ -738,8 +741,7 @@ class WorkspaceState extends ChangeNotifier {
   /// KPI: every unit the business owns, including units currently under
   /// maintenance (they are still property — see the 4th card for how
   /// many of them are out of service).
-  int get totalUnits =>
-      _inventory.fold(0, (sum, i) => sum + i.totalStock);
+  int get totalUnits => _inventory.fold(0, (sum, i) => sum + i.totalStock);
 
   /// KPI: units bookable right now. Maintenance items are pulled from
   /// the pool — their units are neither available nor on rent.
@@ -749,10 +751,8 @@ class WorkspaceState extends ChangeNotifier {
 
   /// KPI: units out with customers. Maintenance items never count —
   /// a broken chair is not "on rent".
-  int get onRentUnits =>
-      _inventory.fold(0, (sum, i) => sum + i.onRentUnits);
-  int get attentionItems =>
-      _inventory.where((i) => i.needsAttention).length;
+  int get onRentUnits => _inventory.fold(0, (sum, i) => sum + i.onRentUnits);
+  int get attentionItems => _inventory.where((i) => i.needsAttention).length;
 
   /// Adds a catalog item (owner-only). Employees operate stock levels
   /// but never extend the catalog.
@@ -761,6 +761,8 @@ class WorkspaceState extends ChangeNotifier {
     required String category,
     required int totalStock,
     required double ratePerDay,
+    double downPaymentPerUnit = 0,
+    double collateralPerUnit = 0,
   }) {
     if (!role.canCreateInventory) {
       _deny('add inventory items');
@@ -775,6 +777,8 @@ class WorkspaceState extends ChangeNotifier {
       totalStock: totalStock,
       available: totalStock,
       ratePerDay: ratePerDay,
+      downPaymentPerUnit: downPaymentPerUnit.clamp(0, ratePerDay),
+      collateralPerUnit: collateralPerUnit.clamp(0, double.infinity),
       icon: Icons.inventory_2_outlined,
     );
     _inventory = [item, ..._inventory];
@@ -808,10 +812,8 @@ class WorkspaceState extends ChangeNotifier {
     if (idx == -1) return;
     final ts = (totalStock ?? item.totalStock).clamp(0, 100000);
     final av = (available ?? item.available).clamp(0, ts);
-    final updated = item.copyWith(
-        totalStock: ts,
-        available: av,
-        maintenance: maintenance);
+    final updated =
+        item.copyWith(totalStock: ts, available: av, maintenance: maintenance);
     _inventory[idx] = updated;
     final b = _backend;
     if (b != null) {
@@ -825,6 +827,38 @@ class WorkspaceState extends ChangeNotifier {
             : '**${_account?.name ?? 'Someone'}** returned **${item.name}** to service',
       );
     }
+    notifyListeners();
+  }
+
+  /// Owner-only payment policy for an inventory line. Values are copied into
+  /// each new order so later catalog edits never rewrite payment history.
+  void updateItemPaymentPolicy(
+    InventoryItem item, {
+    required double downPaymentPerUnit,
+    required double collateralPerUnit,
+  }) {
+    if (!role.canEditPricing) {
+      _deny('change item payment policy');
+      notifyListeners();
+      return;
+    }
+    final idx = _inventory.indexWhere((i) => i.id == item.id);
+    if (idx == -1) return;
+    final updated = item.copyWith(
+      downPaymentPerUnit: downPaymentPerUnit.clamp(0, item.ratePerDay),
+      collateralPerUnit: collateralPerUnit.clamp(0, double.infinity),
+    );
+    _inventory[idx] = updated;
+    final b = _backend;
+    if (b != null) {
+      _push(
+          b.putInventoryItem(updated, isNew: false), 'inventory.paymentPolicy');
+    }
+    _log(
+      type: ActivityType.note,
+      body:
+          '**${_account?.name ?? 'Someone'}** updated payment policy for **${item.name}**',
+    );
     notifyListeners();
   }
 
@@ -889,8 +923,7 @@ class WorkspaceState extends ChangeNotifier {
     return tabOrders.where((o) => o.status == f).toList();
   }
 
-  int get openOrdersCount =>
-      _orders.where((o) => o.status.isOpen).length;
+  int get openOrdersCount => _orders.where((o) => o.status.isOpen).length;
   int get preparingCount =>
       _orders.where((o) => o.status == OrderStatus.preparing).length;
   int get needsPaymentCount =>
@@ -1031,7 +1064,8 @@ class WorkspaceState extends ChangeNotifier {
       type: status == OrderStatus.returned
           ? ActivityType.returnItem
           : ActivityType.orderUpdate,
-      body: '**${_account?.name ?? 'Someone'}** marked **#${order.id} · ${order.eventName}** '
+      body:
+          '**${_account?.name ?? 'Someone'}** marked **#${order.id} · ${order.eventName}** '
           'as **${status.label}**${status == OrderStatus.confirmed ? ' (payment accepted)' : ''}',
     );
     if (status == OrderStatus.returned) {
@@ -1077,15 +1111,15 @@ class WorkspaceState extends ChangeNotifier {
 
   /// Records the DOWN PAYMENT as received (always the first collection).
   /// [method] captures the Ethiopian payment rail the money arrived on.
-  bool markDownPaymentReceived(RentalOrder order,
-      {PaymentMethod? method}) {
+  bool markDownPaymentReceived(RentalOrder order, {PaymentMethod? method}) {
     if (order.downPayment <= 0 || order.downPaymentPaidAt != null) return false;
     return _applyOrderPatch(
           order,
           (o) => o.copyWith(
               downPaymentPaidAt: DateTime.now(), downPaymentMethod: method),
           type: ActivityType.payment,
-          body: '**${_account?.name ?? 'Someone'}** collected the **down payment '
+          body:
+              '**${_account?.name ?? 'Someone'}** collected the **down payment '
               '${Fmt.moneySmart(order.downPayment)}**'
               '${method == null ? '' : ' via ${method.label}'}'
               ' on **#${order.id} · ${order.eventName}**',
@@ -1119,7 +1153,8 @@ class WorkspaceState extends ChangeNotifier {
           (o) => o.copyWith(
               collateralPaidAt: DateTime.now(), collateralMethod: method),
           type: ActivityType.payment,
-          body: '**${_account?.name ?? 'Someone'}** held a **collateral deposit '
+          body:
+              '**${_account?.name ?? 'Someone'}** held a **collateral deposit '
               '${Fmt.moneySmart(order.collateralAmount)}**'
               '${method == null ? '' : ' via ${method.label}'}'
               ' on **#${order.id} · ${order.eventName}**',
@@ -1148,8 +1183,7 @@ class WorkspaceState extends ChangeNotifier {
       {required List<List<Offset>> strokes, required String signedName}) {
     final data = signatureToDoc(strokes);
     if (data.isEmpty || data.length > 2800) {
-      _emit('Signature could not be stored — please sign again.',
-          error: true);
+      _emit('Signature could not be stored — please sign again.', error: true);
       notifyListeners();
       return false;
     }
@@ -1159,10 +1193,10 @@ class WorkspaceState extends ChangeNotifier {
     return _applyOrderPatch(
           order,
           (o) => o.copyWith(
-                signatureData: data,
-                signedName: name,
-                signedAt: DateTime.now(),
-              ),
+            signatureData: data,
+            signedName: name,
+            signedAt: DateTime.now(),
+          ),
           type: ActivityType.orderUpdate,
           body: '**${_account?.name ?? 'Someone'}** captured the signed rental '
               'agreement for **#${order.id} · ${order.eventName}** (signed by $name)',
@@ -1178,9 +1212,8 @@ class WorkspaceState extends ChangeNotifier {
 
   /// Orders open for at least one handover requirement — the pick-up
   /// shortlist the front desk works from.
-  List<RentalOrder> get awaitingHandoverOrders => _orders
-      .where((o) => o.status.isOpen && !o.canHandOver)
-      .toList();
+  List<RentalOrder> get awaitingHandoverOrders =>
+      _orders.where((o) => o.status.isOpen && !o.canHandOver).toList();
 
   // -------------------------------------------------------------- customers
   late List<Customer> _customers;
@@ -1230,8 +1263,7 @@ class WorkspaceState extends ChangeNotifier {
       rentals: 0,
       lifetimeSpend: 0,
       lastBooking: DateTime.now(),
-      avatarColor:
-          kAvatarPalette[_customers.length % kAvatarPalette.length],
+      avatarColor: kAvatarPalette[_customers.length % kAvatarPalette.length],
     );
     _customers = [customer, ..._customers];
     final b = _backend;
@@ -1263,9 +1295,7 @@ class WorkspaceState extends ChangeNotifier {
 
   List<ActivityEntry> get filteredActivity {
     if (_activityFilter == 'All') return _activity;
-    return _activity
-        .where((a) => a.type.label == _activityFilter)
-        .toList();
+    return _activity.where((a) => a.type.label == _activityFilter).toList();
   }
 
   /// True when [t] falls on the same calendar day as "now".
@@ -1349,19 +1379,18 @@ class WorkspaceState extends ChangeNotifier {
   /// decrements availability, appends an order, writes activity and
   /// updates the customer's stats. Returns the generated order id.
   ///
-  /// The payment plan is agreed HERE: [downPayment] (collected first —
-  /// tap "Mark received" on the order once the money lands) and
-  /// [collateralAmount] (held until the items come back). Both, plus
-  /// the remaining balance, ID check and signature, must be done
-  /// before the items may leave the shop.
+  /// The normal payment plan is copied from each inventory item here:
+  /// down payment and refundable collateral are multiplied by quantity,
+  /// while the remaining balance is derived from the order total. The
+  /// nullable overrides keep legacy callers and migrated orders compatible.
   String createBooking({
     required String customerName,
     required String eventName,
     required DateTime eventDate,
     required List<BookingLine> lines,
     String? notes,
-    double downPayment = 0,
-    double collateralAmount = 0,
+    double? downPayment,
+    double? collateralAmount,
   }) {
     if (!role.canOperateRentals) {
       _deny('create bookings');
@@ -1369,8 +1398,12 @@ class WorkspaceState extends ChangeNotifier {
       return '';
     }
     final id = _nextId('RW', _orders.map((o) => o.id));
-    final total = lines.fold<double>(
-        0, (sum, l) => sum + l.qty * l.item.ratePerDay);
+    final total =
+        lines.fold<double>(0, (sum, l) => sum + l.qty * l.item.ratePerDay);
+    final configuredDown = lines.fold<double>(
+        0, (sum, l) => sum + l.qty * l.item.downPaymentPerUnit);
+    final configuredCollateral = lines.fold<double>(
+        0, (sum, l) => sum + l.qty * l.item.collateralPerUnit);
     final itemCount = lines.fold<int>(0, (sum, l) => sum + l.qty);
 
     // decrement availability
@@ -1397,13 +1430,16 @@ class WorkspaceState extends ChangeNotifier {
       total: total,
       status: OrderStatus.confirmed,
       notes: (notes == null || notes.trim().isEmpty) ? '' : notes.trim(),
-      downPayment: downPayment.clamp(0, double.infinity),
-      collateralAmount: collateralAmount.clamp(0, double.infinity),
+      downPayment: (downPayment ?? configuredDown).clamp(0, total),
+      collateralAmount:
+          (collateralAmount ?? configuredCollateral).clamp(0, double.infinity),
       lineItems: lines
           .map((l) => OrderLine(
                 itemName: l.item.name,
                 qty: l.qty,
                 unitPrice: l.item.ratePerDay,
+                downPayment: l.item.downPaymentPerUnit,
+                collateralAmount: l.item.collateralPerUnit,
               ))
           .toList(growable: false),
     );
@@ -1412,13 +1448,14 @@ class WorkspaceState extends ChangeNotifier {
     final summary = lines.map((l) => '${l.item.name} ×${l.qty}').join(', ');
     _log(
       type: ActivityType.newBooking,
-      body: '**${_account?.name ?? 'Someone'}** created a rental for **${Fmt.items(itemCount)} · $eventName** ($summary)',
+      body:
+          '**${_account?.name ?? 'Someone'}** created a rental for **${Fmt.items(itemCount)} · $eventName** ($summary)',
     );
 
     // attach booking to a matching customer if present
     Customer? updatedCustomer;
-    final cIdx =
-        _customers.indexWhere((c) => c.name.toLowerCase() == customerName.toLowerCase());
+    final cIdx = _customers
+        .indexWhere((c) => c.name.toLowerCase() == customerName.toLowerCase());
     if (cIdx != -1) {
       updatedCustomer = _customers[cIdx].copyWith(
         rentals: _customers[cIdx].rentals + 1,
@@ -1435,8 +1472,8 @@ class WorkspaceState extends ChangeNotifier {
         _push(b.putInventoryItem(item, isNew: false), 'inventory.booking');
       }
       if (updatedCustomer != null) {
-        _push(b.putCustomer(updatedCustomer, isNew: false),
-            'customers.booking');
+        _push(
+            b.putCustomer(updatedCustomer, isNew: false), 'customers.booking');
       }
     }
 

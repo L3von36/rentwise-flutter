@@ -28,9 +28,9 @@ const Map<String, IconData> kInventoryIcons = {
 };
 
 /// Reverse lookup used by the seeding harness.
-String iconKeyFor(IconData icon) =>
-    kInventoryIcons.entries
-        .firstWhere((e) => e.value == icon, orElse: () => const MapEntry('inventory_2', Icons.inventory_2_outlined))
+String iconKeyFor(IconData icon) => kInventoryIcons.entries
+    .firstWhere((e) => e.value == icon,
+        orElse: () => const MapEntry('inventory_2', Icons.inventory_2_outlined))
     .key;
 
 /// Avatar palette for customers, cycled by [Customer.avatarColor].
@@ -64,10 +64,9 @@ int avatarColorIndex(Color color) {
 }
 
 /// Appwrite datetime attributes are ISO-8601 with millisecond precision.
-String awDate(DateTime d) =>
-    DateTime.utc(d.year, d.month, d.day, d.hour, d.minute, d.second,
-            d.millisecond)
-        .toIso8601String();
+String awDate(DateTime d) => DateTime.utc(
+        d.year, d.month, d.day, d.hour, d.minute, d.second, d.millisecond)
+    .toIso8601String();
 
 DateTime dateFromDoc(String raw) => DateTime.parse(raw).toLocal();
 
@@ -80,7 +79,13 @@ ActivityType activityTypeFromDoc(String raw) => ActivityType.values.byName(raw);
 
 /// Quoted line items ride along on the order document as JSON.
 String orderLinesToDoc(List<OrderLine> lines) => jsonEncode(lines
-    .map((l) => {'item': l.itemName, 'qty': l.qty, 'unit': l.unitPrice})
+    .map((l) => {
+          'item': l.itemName,
+          'qty': l.qty,
+          'unit': l.unitPrice,
+          'down': l.downPayment,
+          'collateral': l.collateralAmount,
+        })
     .toList());
 
 List<OrderLine> orderLinesFromDoc(String raw) {
@@ -92,6 +97,8 @@ List<OrderLine> orderLinesFromDoc(String raw) {
               itemName: (e['item'] ?? '') as String,
               qty: (e['qty'] ?? 0) as int,
               unitPrice: ((e['unit'] ?? 0) as num).toDouble(),
+              downPayment: ((e['down'] ?? 0) as num).toDouble(),
+              collateralAmount: ((e['collateral'] ?? 0) as num).toDouble(),
             ))
         .toList(growable: false);
   } catch (_) {
@@ -189,8 +196,7 @@ List<List<Offset>> signatureFromDoc(String raw) {
         if (pos + 4 > bytes.length) throw const FormatException('short');
         x += i16();
         y += i16();
-        stroke.add(Offset(
-            (x.toDouble()).clamp(0, kSignatureGridMax).toDouble(),
+        stroke.add(Offset((x.toDouble()).clamp(0, kSignatureGridMax).toDouble(),
             (y.toDouble()).clamp(0, kSignatureGridMax).toDouble()));
       }
       if (stroke.length >= 2) strokes.add(stroke);

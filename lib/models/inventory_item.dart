@@ -51,6 +51,11 @@ class InventoryItem {
   final bool maintenance;
 
   final double ratePerDay;
+
+  /// Owner-defined payment plan defaults captured when an order is created.
+  /// These are per rentable unit so a booking can multiply them by quantity.
+  final double downPaymentPerUnit;
+  final double collateralPerUnit;
   final IconData icon;
 
   const InventoryItem({
@@ -62,6 +67,8 @@ class InventoryItem {
     required this.available,
     this.maintenance = false,
     required this.ratePerDay,
+    this.downPaymentPerUnit = 0,
+    this.collateralPerUnit = 0,
     required this.icon,
   });
 
@@ -85,6 +92,8 @@ class InventoryItem {
     int? available,
     int? totalStock,
     bool? maintenance,
+    double? downPaymentPerUnit,
+    double? collateralPerUnit,
   }) =>
       InventoryItem(
         id: id,
@@ -95,6 +104,8 @@ class InventoryItem {
         available: available ?? this.available,
         maintenance: maintenance ?? this.maintenance,
         ratePerDay: ratePerDay,
+        downPaymentPerUnit: downPaymentPerUnit ?? this.downPaymentPerUnit,
+        collateralPerUnit: collateralPerUnit ?? this.collateralPerUnit,
         icon: icon,
       );
 }
