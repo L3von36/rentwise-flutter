@@ -8,7 +8,6 @@ import '../../core/formatters.dart';
 import '../../data/catalog.dart';
 import '../../models/inventory_item.dart';
 import '../../models/shift_task.dart';
-import '../../models/activity_entry.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -231,8 +230,7 @@ class _ShiftHero extends StatelessWidget {
                     Text(
                       compact
                           ? Fmt.weekdayMonth(now).toUpperCase()
-                          : Fmt.longDate(now)
-                              .toUpperCase(),
+                          : Fmt.longDate(now).toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -257,13 +255,18 @@ class _ShiftHero extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       tasks.isEmpty
-                          ? AppLocale.t('You are all caught up — nothing pending today.')
+                          ? AppLocale.t(
+                              'You are all caught up — nothing pending today.')
                           : state.returnsTodayCount == 0
-                              ? AppLocale.tf('You have {n} tasks on deck today.',
+                              ? AppLocale.tf(
+                                  'You have {n} tasks on deck today.',
                                   {'n': tasks.length})
                               : AppLocale.tf(
                                   'You have {n} tasks on deck today, including {m} return check-ins.',
-                                  {'n': tasks.length, 'm': state.returnsTodayCount}),
+                                  {
+                                      'n': tasks.length,
+                                      'm': state.returnsTodayCount
+                                    }),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -289,7 +292,9 @@ class _ShiftHero extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          total == 0 ? AppLocale.t('All clear') : '$_done of $total done',
+                          total == 0
+                              ? AppLocale.t('All clear')
+                              : '$_done of $total done',
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 11,
@@ -304,7 +309,8 @@ class _ShiftHero extends StatelessWidget {
                         children: [
                           _HeroPill(
                             icon: Icons.timelapse_rounded,
-                            text: AppLocale.tf('Until {n}', {'n': AppLocale.t(Catalog.businessCloseTime)}),
+                            text: AppLocale.tf('Until {n}',
+                                {'n': AppLocale.t(Catalog.businessCloseTime)}),
                           ),
                         ],
                       ),
@@ -361,11 +367,11 @@ class _TaskFilter {
 }
 
 List<_TaskFilter> _kTaskFilters() => [
-  _TaskFilter(AppLocale.t('All')),
-  _TaskFilter(AppLocale.t('Prep'), 'prep'),
-  _TaskFilter(AppLocale.t('On rent'), 'delivery'),
-  _TaskFilter(AppLocale.t('Payments'), 'payment'),
-];
+      _TaskFilter(AppLocale.t('All')),
+      _TaskFilter(AppLocale.t('Prep'), 'prep'),
+      _TaskFilter(AppLocale.t('On rent'), 'delivery'),
+      _TaskFilter(AppLocale.t('Payments'), 'payment'),
+    ];
 
 class _TaskListCard extends StatefulWidget {
   final WorkspaceState state;
@@ -391,7 +397,9 @@ class _TaskListCardState extends State<_TaskListCard> {
     return SectionCard(
       icon: Icons.checklist_rounded,
       title: AppLocale.t('Your task list'),
-      subtitle: filtered.isEmpty ? AppLocale.t('Nothing in this bucket — all clear.') : null,
+      subtitle: filtered.isEmpty
+          ? AppLocale.t('Nothing in this bucket — all clear.')
+          : null,
       action: LinkChip(
         label: AppLocale.t('All tasks'),
         onTap: () => openTasks(context),
@@ -478,7 +486,8 @@ class _FilterPill extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-                color: selected ? AppPalette.primaryBorder : Colors.transparent),
+                color:
+                    selected ? AppPalette.primaryBorder : Colors.transparent),
           ),
           child: Text(
             count == 0 ? label : '$label · $count',
@@ -486,8 +495,7 @@ class _FilterPill extends StatelessWidget {
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 11,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                color:
-                    selected ? AppPalette.primaryDeep : AppPalette.body),
+                color: selected ? AppPalette.primaryDeep : AppPalette.body),
           ),
         ),
       ),
@@ -569,8 +577,7 @@ class _TaskRow extends StatelessWidget {
           StatusBadge.custom(
               label: task.chip, fg: task.chipFg, bg: task.chipBg),
           const SizedBox(width: 6),
-          Icon(Icons.chevron_right_rounded,
-              size: 15, color: AppPalette.faint),
+          Icon(Icons.chevron_right_rounded, size: 15, color: AppPalette.faint),
         ],
       ),
     );
@@ -581,8 +588,8 @@ class _TaskRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppPalette.primarySoft.withOpacity(0.42),
               borderRadius: BorderRadius.circular(11),
-              border: Border.all(
-                  color: AppPalette.primaryBorder.withOpacity(0.55)),
+              border:
+                  Border.all(color: AppPalette.primaryBorder.withOpacity(0.55)),
             ),
             child: row,
           )
@@ -613,11 +620,10 @@ class _DispatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final prep = state.orders
-        .where((o) => o.status == OrderStatus.preparing)
-        .toList();
+    final prep =
+        state.orders.where((o) => o.status == OrderStatus.preparing).toList();
     final df = DateFormat('EEE, MMM d');
-        final next = state.nextDispatch;
+    final next = state.nextDispatch;
     final runs = [
       if (prep.isNotEmpty)
         (
@@ -663,7 +669,8 @@ class _DispatchCard extends StatelessWidget {
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Center(
-                child: Text(AppLocale.t('No runs scheduled — the board is clear.'),
+                child: Text(
+                    AppLocale.t('No runs scheduled — the board is clear.'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
@@ -783,36 +790,35 @@ class _RunRow extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     color: AppPalette.primaryDeep)),
           ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppPalette.ink)),
-              const SizedBox(height: 2),
-              Text(meta,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 11.5,
-                      color: AppPalette.muted)),
-            ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.ink)),
+                const SizedBox(height: 2),
+                Text(meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 11.5,
+                        color: AppPalette.muted)),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        StatusBadge.custom(label: chip, fg: chipFg, bg: chipBg),
-        const SizedBox(width: 6),
-        Icon(Icons.chevron_right_rounded,
-            size: 15, color: AppPalette.faint),
-      ],
+          const SizedBox(width: 10),
+          StatusBadge.custom(label: chip, fg: chipFg, bg: chipBg),
+          const SizedBox(width: 6),
+          Icon(Icons.chevron_right_rounded, size: 15, color: AppPalette.faint),
+        ],
       ),
     );
 
@@ -832,6 +838,7 @@ class _RunRow extends StatelessWidget {
     );
   }
 }
+
 /// One-tap shortcuts, tuned per role:
 ///  - employee: booking flow + counter work (payments, returns, customers)
 ///  - owner: business levers (reports, access & roles) + shared flow entry
@@ -946,7 +953,8 @@ class _QuickActionTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-                color: AppPalette.stroke.withOpacity(AppPalette.dark ? 0.9 : 0.6)),
+                color:
+                    AppPalette.stroke.withOpacity(AppPalette.dark ? 0.9 : 0.6)),
           ),
           child: SizedBox(
             height: 84,
@@ -972,54 +980,6 @@ class _QuickActionTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// -------------------------------------------------------- my activity
-class _MyActivityCard extends StatelessWidget {
-  final WorkspaceState state;
-  final int limit;
-
-  const _MyActivityCard({required this.state, required this.limit});
-
-  @override
-  Widget build(BuildContext context) {
-    final mine = state.myActivity.take(limit).toList();
-    return SectionCard(
-      icon: Icons.history_rounded,
-      title: AppLocale.t('My recent actions'),
-      subtitle: null,
-      action: LinkChip(
-        label: AppLocale.t('View all'),
-        onTap: () => state.navigate(Section.activity),
-      ),
-      child: mine.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(AppLocale.t('No actions logged yet today.'),
-                  style: TextStyle(
-                      fontFamily: AppTheme.fontFamily,
-                      fontSize: 12.5,
-                      color: AppPalette.muted)),
-            )
-          : Column(
-              children: [
-                for (var i = 0; i < mine.length; i++)
-                  _TimelineTile(
-                    isLast: i == mine.length - 1,
-                    dotColor: mine[i].type.fg,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      child: ActivityRow(
-                        entry: mine[i],
-                        showDivider: false,
-                        onTap: () => state.navigate(Section.activity),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
     );
   }
 }
@@ -1055,7 +1015,9 @@ class _OwnerWideDashboard extends StatelessWidget {
                   children: [
                     Eyebrow(Fmt.longDate(now)),
                     const SizedBox(height: 6),
-                    Text(AppLocale.tf('Welcome back, {n}', {'n': _firstName(state)}),
+                    Text(
+                        AppLocale.tf(
+                            'Welcome back, {n}', {'n': _firstName(state)}),
                         style: Theme.of(context).textTheme.headlineLarge),
                   ],
                 ),
@@ -1098,8 +1060,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                     subtitle: state.earnings.length >= 2
                         ? AppLocale.tf('vs. {n} yesterday', {
                             'n': Fmt.money(state
-                                    .earnings[state.earnings.length - 2]
-                                    .value *
+                                    .earnings[state.earnings.length - 2].value *
                                 1000),
                           })
                         : AppLocale.t('Bookings today'),
@@ -1117,7 +1078,8 @@ class _OwnerWideDashboard extends StatelessWidget {
                     iconBg: AppPalette.amberBg,
                     label: AppLocale.t('Fleet utilization'),
                     value: '${state.utilization.toStringAsFixed(1)}%',
-                    subtitle: AppLocale.tr('{n} units on hand', state.totalUnits),
+                    subtitle:
+                        AppLocale.tr('{n} units on hand', state.totalUnits),
                     onTap: () => state.navigate(Section.inventory),
                   ),
                 ),
@@ -1158,8 +1120,7 @@ class _OwnerWideDashboard extends StatelessWidget {
                   flex: 12,
                   child: Column(
                     children: [
-                      _SnapshotCard(
-                          state: state, snapshot: snapshot),
+                      _SnapshotCard(state: state, snapshot: snapshot),
                       const SizedBox(height: 20),
                       _UpcomingPickups(state: state, now: now),
                     ],
@@ -1204,7 +1165,8 @@ class _EarningsCard extends StatelessWidget {
     final maxV = points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
     final maxCat =
         categories.map((c) => c.amount).reduce((a, b) => a > b ? a : b);
-    final money = NumberFormat.currency(symbol: AppLocale.birr, decimalDigits: 0);
+    final money =
+        NumberFormat.currency(symbol: AppLocale.birr, decimalDigits: 0);
     final wide = MediaQuery.sizeOf(context).width >= 1240;
 
     final bars = Column(
@@ -1219,8 +1181,7 @@ class _EarningsCard extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
                     child: FractionallySizedBox(
-                      heightFactor:
-                          (points[i].value / maxV).clamp(0.15, 1.0),
+                      heightFactor: (points[i].value / maxV).clamp(0.15, 1.0),
                       alignment: Alignment.bottomCenter,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
@@ -1280,7 +1241,8 @@ class _EarningsCard extends StatelessWidget {
                 color: AppPalette.ink)),
         const SizedBox(height: 3),
         Text(
-            AppLocale.tf('Month to date · {n}', {'n': AppLocale.gcMonthName(DateTime.now())}),
+            AppLocale.tf('Month to date · {n}',
+                {'n': AppLocale.gcMonthName(DateTime.now())}),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 11.5,
@@ -1408,8 +1370,7 @@ class _EmptyMetricsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.insights_outlined,
-              size: 30, color: AppPalette.muted),
+          Icon(Icons.insights_outlined, size: 30, color: AppPalette.muted),
           const SizedBox(height: 10),
           Text(AppLocale.t('No earnings data yet'),
               style: TextStyle(
@@ -1449,7 +1410,8 @@ class _BusinessOpenBanner extends StatelessWidget {
           color: AppPalette.greenBg.withOpacity(AppPalette.dark ? 0.8 : 0.55),
           borderRadius: BorderRadius.circular(11),
           border: Border.all(
-              color: AppPalette.green.withOpacity(AppPalette.dark ? 0.28 : 0.0)),
+              color:
+                  AppPalette.green.withOpacity(AppPalette.dark ? 0.28 : 0.0)),
         ),
         child: Row(
           children: [
@@ -1465,7 +1427,9 @@ class _BusinessOpenBanner extends StatelessWidget {
             Container(width: 1, height: 14, color: AppPalette.greenBg),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(AppLocale.tf('Closes at {n}', {'n': AppLocale.t(Catalog.businessCloseTime)}),
+              child: Text(
+                  AppLocale.tf('Closes at {n}',
+                      {'n': AppLocale.t(Catalog.businessCloseTime)}),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 12,
@@ -1579,7 +1543,8 @@ class _OwnerHero extends StatelessWidget {
                       children: [
                         _HeroPill(
                           icon: Icons.storefront_outlined,
-                          text: AppLocale.tf('Open · closes {n}', {'n': AppLocale.t(Catalog.businessCloseTime)}),
+                          text: AppLocale.tf('Open · closes {n}',
+                              {'n': AppLocale.t(Catalog.businessCloseTime)}),
                         ),
                         _HeroPill(
                           icon: Icons.bolt_rounded,
@@ -1687,7 +1652,8 @@ class _OwnerCompactDashboard extends StatelessWidget {
                   subtitle: AppLocale.t('to check in today'),
                   trailing: state.returnsLateCount > 0
                       ? TrendChip(
-                          text: AppLocale.tr('{n} late', state.returnsLateCount),
+                          text:
+                              AppLocale.tr('{n} late', state.returnsLateCount),
                           positive: false)
                       : TrendChip.flat(text: AppLocale.t('On time')),
                   onTap: () => state.navigate(Section.orders),
@@ -1980,7 +1946,9 @@ class _WorkspaceHealth extends StatelessWidget {
     final overdue = state.openOverdueCount;
     final onSchedule = state.scheduleHealth;
     final smooth = overdue == 0;
-    final heading = smooth ? AppLocale.t('Running smoothly') : AppLocale.t('Needs attention');
+    final heading = smooth
+        ? AppLocale.t('Running smoothly')
+        : AppLocale.t('Needs attention');
     final headingColor = smooth ? AppPalette.ink : AppPalette.amber;
 
     return Container(
@@ -1988,8 +1956,8 @@ class _WorkspaceHealth extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(
-            color: smooth ? AppPalette.stroke : AppPalette.amberBg),
+        border:
+            Border.all(color: smooth ? AppPalette.stroke : AppPalette.amberBg),
         boxShadow: AppShadow.card(opacity: 0.04),
       ),
       child: Column(
@@ -2013,9 +1981,7 @@ class _WorkspaceHealth extends StatelessWidget {
                     color: smooth ? AppPalette.greenBg : AppPalette.amberBg,
                     shape: BoxShape.circle),
                 child: Icon(
-                    smooth
-                        ? Icons.check_rounded
-                        : Icons.priority_high_rounded,
+                    smooth ? Icons.check_rounded : Icons.priority_high_rounded,
                     size: 16,
                     color: smooth ? AppPalette.green : AppPalette.amber),
               ),
@@ -2042,9 +2008,7 @@ class _WorkspaceHealth extends StatelessWidget {
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: smooth
-                            ? AppPalette.green
-                            : AppPalette.amber)),
+                        color: smooth ? AppPalette.green : AppPalette.amber)),
               ],
             ),
           ),
@@ -2079,9 +2043,8 @@ class _WorkspaceHealth extends StatelessWidget {
             child: Row(
               children: [
                 Dot(
-                    color: state.liveBackend
-                        ? AppPalette.green
-                        : AppPalette.red),
+                    color:
+                        state.liveBackend ? AppPalette.green : AppPalette.red),
                 const SizedBox(width: 8),
                 Text(
                     state.liveBackend
