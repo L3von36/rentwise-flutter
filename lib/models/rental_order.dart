@@ -121,6 +121,11 @@ class OrderLine {
       {'item': itemName, 'qty': qty, 'unit': unitPrice, 'total': lineTotal};
 }
 
+/// The three money stages of the order document — the materialized
+/// (paidAt, method) pairs the payments ledger (v1.30) keeps in sync
+/// with the derived ledger truth.
+enum PaymentStage { down, remaining, collateral }
+
 /// A rental order / booking.
 ///
 /// Payment policy (v1.26): NOTHING leaves the shop until every line of
@@ -252,6 +257,97 @@ class RentalOrder {
   }
 
   bool get canHandOver => handoverBlockers.isEmpty;
+
+  /// Replaces one stage's materialized (paidAt, method) pair — pass
+  /// nulls to UN-settle. The payments ledger writes its derived truth
+  /// here so every existing KPI, filter and gate keeps reading the
+  /// order document as before.
+  RentalOrder withPaymentStage(
+    PaymentStage stage, {
+    required DateTime? paidAt,
+    required PaymentMethod? method,
+  }) {
+    switch (stage) {
+      case PaymentStage.down:
+        return RentalOrder(
+          id: id,
+          eventName: eventName,
+          customerName: customerName,
+          contactName: contactName,
+          createdAt: createdAt,
+          eventDate: eventDate,
+          itemCount: itemCount,
+          total: total,
+          status: status,
+          lineItems: lineItems,
+          notes: notes,
+          downPayment: downPayment,
+          downPaymentPaidAt: paidAt,
+          downPaymentMethod: method,
+          collateralAmount: collateralAmount,
+          collateralPaidAt: collateralPaidAt,
+          collateralMethod: collateralMethod,
+          remainingPaidAt: remainingPaidAt,
+          remainingMethod: remainingMethod,
+          idVerifiedAt: idVerifiedAt,
+          signatureData: signatureData,
+          signedName: signedName,
+          signedAt: signedAt,
+        );
+      case PaymentStage.remaining:
+        return RentalOrder(
+          id: id,
+          eventName: eventName,
+          customerName: customerName,
+          contactName: contactName,
+          createdAt: createdAt,
+          eventDate: eventDate,
+          itemCount: itemCount,
+          total: total,
+          status: status,
+          lineItems: lineItems,
+          notes: notes,
+          downPayment: downPayment,
+          downPaymentPaidAt: downPaymentPaidAt,
+          downPaymentMethod: downPaymentMethod,
+          collateralAmount: collateralAmount,
+          collateralPaidAt: collateralPaidAt,
+          collateralMethod: collateralMethod,
+          remainingPaidAt: paidAt,
+          remainingMethod: method,
+          idVerifiedAt: idVerifiedAt,
+          signatureData: signatureData,
+          signedName: signedName,
+          signedAt: signedAt,
+        );
+      case PaymentStage.collateral:
+        return RentalOrder(
+          id: id,
+          eventName: eventName,
+          customerName: customerName,
+          contactName: contactName,
+          createdAt: createdAt,
+          eventDate: eventDate,
+          itemCount: itemCount,
+          total: total,
+          status: status,
+          lineItems: lineItems,
+          notes: notes,
+          downPayment: downPayment,
+          downPaymentPaidAt: downPaymentPaidAt,
+          downPaymentMethod: downPaymentMethod,
+          collateralAmount: collateralAmount,
+          collateralPaidAt: paidAt,
+          collateralMethod: method,
+          remainingPaidAt: remainingPaidAt,
+          remainingMethod: remainingMethod,
+          idVerifiedAt: idVerifiedAt,
+          signatureData: signatureData,
+          signedName: signedName,
+          signedAt: signedAt,
+        );
+    }
+  }
 
   RentalOrder copyWith({
     OrderStatus? status,

@@ -178,7 +178,7 @@ void main() {
           backend.writes
               .where((w) =>
                   w.collection == 'activities' &&
-                  (w.data['body'] as String).contains('down payment'))
+                  (w.data['body'] as String).contains('Down payment'))
               .length,
           1);
 

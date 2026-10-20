@@ -6,6 +6,7 @@ import '../../core/app_locale.dart';
 import '../../core/app_theme.dart';
 import '../../core/formatters.dart';
 import '../../models/customer.dart';
+import '../../models/payment_receipt.dart';
 import '../../models/rental_order.dart';
 import '../../state/workspace_state.dart';
 import '../../widgets/cards.dart';
@@ -16,6 +17,7 @@ import '../../widgets/order_status_style.dart';
 import '../customers/customer_detail_screen.dart';
 import '../../core/palette.dart';
 import '../../data/appwrite_mappers.dart';
+import '../../models/account.dart';
 
 /// Full order detail — opened by tapping any order row/card, task or
 /// pickup run. Shows the quoted manifest, booking notes, the v1.26
@@ -342,19 +344,32 @@ class _PaymentsHandoverCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<WorkspaceState>();
+    // The ledger is the derived truth for money; the order document's
+    // gate (money flags + ID + signature) decides handover.
+    final ledger = state.ledgerFor(order);
+    final receipts = state.paymentsForOrder(order.id);
     final ready = order.canHandOver;
-    final outstanding = order.outstandingTotal;
+    final outstanding = ledger.outstandingTotal;
     final customer = state.customerByName(order.customerName);
     final accent = ready ? AppPalette.green : AppPalette.amber;
+    final isOpen = order.status.isOpen;
+    final next = ledger.nextDue;
 
-    Future<void> receive({
-      required String label,
-      required double amount,
-      required ValueChanged<PaymentMethod?> apply,
-    }) async {
+    Future<void> settleNextDue() async {
+      final due = next;
+      if (due == null) return;
       final method = await pickPaymentMethod(context);
       if (method == null || !context.mounted) return;
-      apply(method);
+      state.recordPayment(order,
+          amount: due.amount,
+          method: method,
+          note: due.bucket.label);
+    }
+
+    Future<void> refundCollateral() async {
+      final method = await pickPaymentMethod(context);
+      if (method == null || !context.mounted) return;
+      state.refundCollateral(order, method: method);
     }
 
     return Container(
@@ -392,11 +407,13 @@ class _PaymentsHandoverCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            // While settling: what is still owed. Once settled: the
-            // only number the desk still needs — the collateral to
-            // hand back at return. Cents kept when they exist.
+            // While settling: what is still owed. On a returned order —
+            // and once settled — the only number the desk still needs:
+            // the collateral in hand. Cents kept when they exist.
             Fmt.moneySmart(
-                outstanding > 0 ? outstanding : order.collateralAmount),
+                isOpen && outstanding > kMoneyEps
+                    ? outstanding
+                    : ledger.collateralHeld),
             style: TextStyle(
                 fontFamily: AppTheme.fontFamily,
                 fontSize: 26,
@@ -407,9 +424,9 @@ class _PaymentsHandoverCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            outstanding > 0
+            isOpen && outstanding > kMoneyEps
                 ? AppLocale.t('still outstanding on this order')
-                : order.collateralAmount > 0
+                : ledger.collateralHeld > kMoneyEps
                     ? AppLocale.t(
                         'fully settled · refund this collateral at return')
                     : AppLocale.t('fully settled · nothing held'),
@@ -465,55 +482,30 @@ class _PaymentsHandoverCard extends StatelessWidget {
             const Divider(height: 16),
           ],
           const SizedBox(height: 12),
-          _PaymentRow(
-            label: AppLocale.t('Down payment'),
-            amount: order.downPayment,
-            paid: order.downPaymentPaid,
-            paidAt: order.downPaymentPaidAt,
-            method: order.downPaymentMethod,
-            actionLabel: AppLocale.t('Mark received'),
-            onAction: order.downPayment > 0 && order.downPaymentPaidAt == null
-                ? () => receive(
-                      label: AppLocale.t('Down payment'),
-                      amount: order.downPayment,
-                      apply: (m) =>
-                          state.markDownPaymentReceived(order, method: m),
-                    )
-                : null,
-          ),
-          _PaymentRow(
-            label: AppLocale.t('Remaining balance'),
-            amount: order.remainingDue,
-            paid: order.remainingPaid,
-            paidAt: order.remainingPaidAt,
-            method: order.remainingMethod,
-            actionLabel: AppLocale.t('Mark received'),
-            onAction: order.remainingDue > 0 && order.remainingPaidAt == null
-                ? () => receive(
-                      label: AppLocale.t('Remaining balance'),
-                      amount: order.remainingDue,
-                      apply: (m) =>
-                          state.markRemainingReceived(order, method: m),
-                    )
-                : null,
-          ),
-          _PaymentRow(
-            label: AppLocale.t('Collateral (refundable)'),
-            amount: order.collateralAmount,
-            paid: order.collateralPaid,
-            paidAt: order.collateralPaidAt,
-            method: order.collateralMethod,
-            actionLabel: AppLocale.t('Mark held'),
-            onAction:
-                order.collateralAmount > 0 && order.collateralPaidAt == null
-                    ? () => receive(
-                          label: AppLocale.t('Collateral (refundable)'),
-                          amount: order.collateralAmount,
-                          apply: (m) =>
-                              state.markCollateralReceived(order, method: m),
-                        )
-                    : null,
-          ),
+          // The three money stages, driven by the ledger — partial
+          // progress shows paid/target instead of a binary flag.
+          for (final bucket in PaymentBucket.values)
+            _LedgerRow(
+              bucket: bucket,
+              target: ledger.targetFor(bucket),
+              paid: ledger.paidFor(bucket),
+              settled: ledger.bucketSettled(bucket),
+              paidAt: switch (bucket) {
+                PaymentBucket.downPayment => ledger.downPaidAt,
+                PaymentBucket.remaining => ledger.remainingPaidAt,
+                PaymentBucket.collateral => ledger.collateralPaidAt,
+              },
+              method: switch (bucket) {
+                PaymentBucket.downPayment => ledger.downMethod,
+                PaymentBucket.remaining => ledger.remainingMethod,
+                PaymentBucket.collateral => ledger.collateralMethod,
+              },
+              // Quick action only on the bucket the next receipt fills —
+              // later buckets settle THROUGH it (policy order).
+              onAction: !isOpen || next == null || bucket != next.bucket
+                  ? null
+                  : () => settleNextDue(),
+            ),
           _CheckRow(
             icon: Icons.badge_outlined,
             label: AppLocale.t('Customer ID verified'),
@@ -530,6 +522,90 @@ class _PaymentsHandoverCard extends StatelessWidget {
                 : null,
           ),
           _SignatureRow(order: order),
+          if (isOpen && next != null) ...[
+            const SizedBox(height: 10),
+            _RecordPaymentButton(order: order, ledger: ledger),
+          ],
+          // Collateral goes back to the customer once the items return.
+          if (order.status == OrderStatus.returned &&
+              ledger.collateralHeld > kMoneyEps) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: InkWell(
+                onTap: refundCollateral,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppPalette.green.withOpacity(
+                        AppPalette.dark ? 0.16 : 0.10),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: AppPalette.green
+                            .withOpacity(AppPalette.dark ? 0.4 : 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.replay_rounded,
+                          size: 15, color: AppPalette.green),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                            '${AppLocale.t('Refund collateral')} · ${Fmt.moneySmart(ledger.collateralHeld)}',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: AppPalette.green)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+          // The receipts themselves — the desk's source of truth.
+          if (receipts.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Divider(height: 1, color: AppPalette.stroke),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.receipt_outlined,
+                    size: 13, color: AppPalette.muted),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                      '${AppLocale.t('Receipts')} · ${receipts.length}',
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                          color: AppPalette.muted)),
+                ),
+                Text(
+                    '${AppLocale.t('in')} ${Fmt.moneySmart(PaymentLedger.collectedTotal(receipts))}'
+                    '${PaymentLedger.refundedTotal(receipts) > kMoneyEps ? ' · ${AppLocale.t('out')} ${Fmt.moneySmart(PaymentLedger.refundedTotal(receipts))}' : ''}',
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppPalette.muted)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            for (var i = 0; i < receipts.length; i++)
+              _ReceiptRow(
+                receipt: receipts[i],
+                showDivider: i < receipts.length - 1,
+                canDelete: state.role.canViewReports && isOpen,
+                onDelete: () =>
+                    _confirmDeleteReceipt(context, state, order, receipts[i]),
+              ),
+          ],
           if (!ready) ...[
             const SizedBox(height: 10),
             Container(
@@ -576,6 +652,54 @@ class _PaymentsHandoverCard extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteReceipt(BuildContext context, WorkspaceState state,
+      RentalOrder order, PaymentReceipt receipt) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppPalette.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(AppLocale.t('Remove this receipt?'),
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppPalette.ink)),
+        content: Text(
+            '${Fmt.moneySmart(receipt.magnitude)} · ${receipt.method.label}\n\n'
+            '${AppLocale.t('The stage flags are re-derived from the receipts that remain — a stage that drops below its target un-settles. This is logged as a correction.')}',
+            style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 12.5,
+                height: 1.45,
+                color: AppPalette.body)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: Text(AppLocale.t('Cancel'),
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    color: AppPalette.muted)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              state.deletePaymentReceipt(order, receipt);
+            },
+            child: Text(AppLocale.t('Remove'),
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppPalette.red)),
+          ),
         ],
       ),
     );
@@ -663,42 +787,50 @@ IconData _methodIcon(PaymentMethod m) => switch (m) {
       PaymentMethod.card => Icons.credit_card_rounded,
     };
 
-/// One settled/unsettled money line of the payment plan.
-class _PaymentRow extends StatelessWidget {
-  final String label;
-  final double amount;
-  final bool paid;
+/// One money stage of the payment plan, driven by the ledger — shows
+/// live progress ('400 of 1,200') when partially paid instead of a
+/// binary flag. The quick action appears ONLY on the bucket the next
+/// receipt fills: later buckets settle through it, in policy order.
+class _LedgerRow extends StatelessWidget {
+  final PaymentBucket bucket;
+  final double target;
+  final double paid;
+  final bool settled;
   final DateTime? paidAt;
   final PaymentMethod? method;
-  final String actionLabel;
   final VoidCallback? onAction;
 
-  const _PaymentRow({
-    required this.label,
-    required this.amount,
+  const _LedgerRow({
+    required this.bucket,
+    required this.target,
     required this.paid,
+    required this.settled,
     required this.paidAt,
-    required this.actionLabel,
+    required this.method,
     required this.onAction,
-    this.method,
   });
 
   @override
   Widget build(BuildContext context) {
+    final none = target <= kMoneyEps;
+    final partial = !none && !settled && paid > kMoneyEps;
+    final outstanding = (target - paid).clamp(0, double.infinity);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
           Icon(
-              amount <= 0
+              none
                   ? Icons.remove_circle_outline_rounded
-                  : paid
+                  : settled
                       ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked,
+                      : partial
+                          ? Icons.adjust_rounded
+                          : Icons.radio_button_unchecked,
               size: 16,
-              color: amount <= 0
+              color: none
                   ? AppPalette.faint
-                  : paid
+                  : settled
                       ? AppPalette.green
                       : AppPalette.amber),
           const SizedBox(width: 8),
@@ -709,7 +841,7 @@ class _PaymentRow extends StatelessWidget {
                 Row(
                   children: [
                     Flexible(
-                      child: Text(label,
+                      child: Text(bucket.label,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
@@ -717,7 +849,7 @@ class _PaymentRow extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               color: AppPalette.ink)),
                     ),
-                    if (paid && method != null) ...[
+                    if (settled && method != null) ...[
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -737,12 +869,15 @@ class _PaymentRow extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  amount <= 0
+                  none
                       ? AppLocale.t('none on this order')
-                      : paid
+                      : settled
                           ? '${AppLocale.t('received')}'
                               '${paidAt == null ? '' : ' · ${Fmt.shortDateTime(paidAt!)}'}'
-                          : Fmt.moneySmart(amount),
+                          : partial
+                              ? '${Fmt.moneySmart(paid)} ${AppLocale.t('of')} ${Fmt.moneySmart(target)}'
+                                  ' · ${Fmt.moneySmart(outstanding)} ${AppLocale.t('to go')}'
+                              : Fmt.moneySmart(outstanding),
                   style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontSize: 11,
@@ -762,7 +897,7 @@ class _PaymentRow extends StatelessWidget {
                   color: AppPalette.primarySoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(actionLabel,
+                child: Text(AppLocale.t('Mark received'),
                     style: TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 11,
@@ -772,6 +907,405 @@ class _PaymentRow extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Opens the record-payment dialog — partial amounts welcome, the
+/// ledger allocates them in policy order and shows the split BEFORE
+/// anything is recorded.
+class _RecordPaymentButton extends StatelessWidget {
+  final RentalOrder order;
+  final PaymentLedger ledger;
+
+  const _RecordPaymentButton({required this.order, required this.ledger});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: InkWell(
+        onTap: () => _showRecordPaymentDialog(context, order, ledger),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppPalette.primary.withOpacity(AppPalette.dark ? 0.16 : 0.09),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: AppPalette.primary
+                    .withOpacity(AppPalette.dark ? 0.4 : 0.25)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.add_card_rounded,
+                  size: 15, color: AppPalette.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(AppLocale.t('Record payment'),
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.primary)),
+              ),
+              Text(
+                  '${AppLocale.t('outstanding')} ${Fmt.moneySmart(ledger.outstandingTotal)}',
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppPalette.muted)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showRecordPaymentDialog(
+    BuildContext context,
+    RentalOrder order,
+    PaymentLedger ledger,
+  ) async {
+    final next = ledger.nextDue;
+    final amountCtrl = TextEditingController(
+      text: next == null ? '' : _amountText(next.amount),
+    );
+    final noteCtrl = TextEditingController();
+    PaymentMethod method = PaymentMethod.cash;
+
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          final amount =
+              double.tryParse(amountCtrl.text.replaceAll(',', '.')) ?? 0;
+          final applied = ledger.allocationFor(amount);
+          final over = amount > ledger.outstandingTotal + kMoneyEps;
+          return AlertDialog(
+            backgroundColor: AppPalette.surface,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            title: Text(
+                '${AppLocale.t('Record payment')} · #${order.id}',
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppPalette.ink)),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppLocale.t('Amount received'),
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                          color: AppPalette.muted)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountCtrl,
+                    autofocus: true,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setDialogState(() {}),
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppPalette.ink),
+                    decoration: InputDecoration(
+                      prefixText: '${AppLocale.birr} ',
+                      prefixStyle: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: AppPalette.muted),
+                      filled: true,
+                      fillColor: AppPalette.fill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppPalette.stroke),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                            color: over
+                                ? AppPalette.red
+                                : AppPalette.stroke),
+                      ),
+                    ),
+                  ),
+                  if (over)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                          '${AppLocale.t('exceeds the outstanding')} ${Fmt.moneySmart(ledger.outstandingTotal)}',
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppPalette.red)),
+                    )
+                  else if (applied.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(AppLocale.t('will be applied to'),
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.4,
+                                  color: AppPalette.muted)),
+                          const SizedBox(height: 3),
+                          for (final e in applied.entries)
+                            Text(
+                                '· ${e.key.label} ${Fmt.moneySmart(e.value)}',
+                                style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppPalette.body)),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  Text(AppLocale.t('Payment rail'),
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                          color: AppPalette.muted)),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () async {
+                      final picked = await pickPaymentMethod(context);
+                      if (picked != null) setDialogState(() => method = picked);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppPalette.fill,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppPalette.stroke),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(_methodIcon(method),
+                              size: 17, color: AppPalette.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(method.label,
+                                style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppPalette.ink)),
+                          ),
+                          Icon(Icons.expand_more_rounded,
+                              size: 16, color: AppPalette.faint),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(AppLocale.t('Note'),
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                          color: AppPalette.muted)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: noteCtrl,
+                    textInputAction: TextInputAction.done,
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 13,
+                        color: AppPalette.ink),
+                    decoration: InputDecoration(
+                      hintText: AppLocale.t('receipt no., collector…'),
+                      hintStyle: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12,
+                          color: AppPalette.faint),
+                      filled: true,
+                      fillColor: AppPalette.fill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppPalette.stroke),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppPalette.stroke),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(),
+                child: Text(AppLocale.t('Cancel'),
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12.5,
+                        color: AppPalette.muted)),
+              ),
+              TextButton(
+                onPressed: amount <= kMoneyEps || over
+                    ? null
+                    : () {
+                        Navigator.of(dialogCtx).pop();
+                        context.read<WorkspaceState>().recordPayment(
+                              order,
+                              amount: amount,
+                              method: method,
+                              note: noteCtrl.text,
+                            );
+                      },
+                child: Text(AppLocale.t('Record'),
+                    style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: amount <= kMoneyEps || over
+                            ? AppPalette.faint
+                            : AppPalette.primary)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  static String _amountText(double v) =>
+      v == v.roundToDouble() ? v.round().toString() : '$v';
+}
+
+/// One immutable receipt row of the ledger — money in or out, how it
+/// moved, when, and who recorded it. Owners can remove a receipt as a
+/// logged correction.
+class _ReceiptRow extends StatelessWidget {
+  final PaymentReceipt receipt;
+  final bool showDivider;
+  final bool canDelete;
+  final VoidCallback onDelete;
+
+  const _ReceiptRow({
+    required this.receipt,
+    required this.showDivider,
+    required this.canDelete,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final refund = receipt.isRefund;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          child: Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: refund ? AppPalette.greenBg : AppPalette.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                    refund ? Icons.replay_rounded : _methodIcon(receipt.method),
+                    size: 14,
+                    color: refund ? AppPalette.green : AppPalette.primary),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                            '${refund ? '−' : '+'}${Fmt.moneySmart(receipt.magnitude)}',
+                            style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                                color: refund
+                                    ? AppPalette.green
+                                    : AppPalette.ink)),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: AppPalette.fill,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(receipt.method.chip,
+                              style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppPalette.muted)),
+                        ),
+                        if (receipt.recordedBy.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(receipt.recordedBy,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontSize: 10,
+                                    color: AppPalette.faint)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Text(
+                      '${Fmt.shortDateTime(receipt.recordedAt)}'
+                      '${receipt.note.isEmpty ? '' : ' · ${receipt.note}'}',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 10.5,
+                          color: AppPalette.muted),
+                    ),
+                  ],
+                ),
+              ),
+              if (canDelete)
+                InkWell(
+                  onTap: onDelete,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.delete_outline_rounded,
+                        size: 15, color: AppPalette.faint),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (showDivider) Divider(height: 1, color: AppPalette.stroke),
+      ],
     );
   }
 }

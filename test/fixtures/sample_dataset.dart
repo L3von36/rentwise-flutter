@@ -5,6 +5,7 @@ import 'package:rentwise/models/account.dart';
 import 'package:rentwise/models/activity_entry.dart';
 import 'package:rentwise/models/customer.dart';
 import 'package:rentwise/models/inventory_item.dart';
+import 'package:rentwise/models/payment_receipt.dart';
 import 'package:rentwise/models/pickup.dart';
 import 'package:rentwise/models/rental_order.dart';
 import 'package:rentwise/core/app_colors.dart';
@@ -135,6 +136,96 @@ class SampleDataset {
     'Furniture',
     'Outdoor',
   ];
+
+  // ----------------------------------------------------------------- payments
+  // v1.30 ledger fixtures — receipts that EXACTLY reproduce the stage
+  // flags of the settled orders above (same money, same rails, same
+  // timestamps). RW-2039's collateral is deliberately NOT refunded: the
+  // order is back but the deposit is still held, so the refund flow is
+  // demonstrable on real data.
+  static List<PaymentReceipt> payments(DateTime now) => [
+        PaymentReceipt(
+          id: 'PAY-0001',
+          orderId: 'RW-2039',
+          amount: 3165,
+          method: PaymentMethod.cbeBirr,
+          note: 'Down payment',
+          recordedBy: 'Olivia Wells',
+          recordedAt: now.subtract(const Duration(days: 8)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0002',
+          orderId: 'RW-2042',
+          amount: 1350,
+          method: PaymentMethod.cash,
+          note: 'Down payment',
+          recordedBy: 'Jordan Miller',
+          recordedAt: now.subtract(const Duration(days: 5)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0003',
+          orderId: 'RW-2039',
+          amount: 3165,
+          method: PaymentMethod.cbeBirr,
+          note: 'Remaining balance',
+          recordedBy: 'Olivia Wells',
+          recordedAt: now.subtract(const Duration(days: 4, hours: 2)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0004',
+          orderId: 'RW-2039',
+          amount: 800,
+          method: PaymentMethod.cash,
+          note: 'Collateral (refundable)',
+          recordedBy: 'Olivia Wells',
+          recordedAt: now.subtract(const Duration(days: 4)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0005',
+          orderId: 'RW-2042',
+          amount: 1350,
+          method: PaymentMethod.telebirr,
+          note: 'Remaining balance',
+          recordedBy: 'Jordan Miller',
+          recordedAt: now.subtract(const Duration(days: 3, hours: 1)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0006',
+          orderId: 'RW-2042',
+          amount: 600,
+          method: PaymentMethod.cash,
+          note: 'Collateral (refundable)',
+          recordedBy: 'Jordan Miller',
+          recordedAt: now.subtract(const Duration(days: 3)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0007',
+          orderId: 'RW-2051',
+          amount: 2050,
+          method: PaymentMethod.telebirr,
+          note: 'Down payment',
+          recordedBy: 'Olivia Wells',
+          recordedAt: now.subtract(const Duration(days: 2)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0008',
+          orderId: 'RW-2051',
+          amount: 2050,
+          method: PaymentMethod.cbeBirr,
+          note: 'Remaining balance',
+          recordedBy: 'Olivia Wells',
+          recordedAt: now.subtract(const Duration(days: 1, hours: 2)),
+        ),
+        PaymentReceipt(
+          id: 'PAY-0009',
+          orderId: 'RW-2051',
+          amount: 500,
+          method: PaymentMethod.cash,
+          note: 'Collateral (refundable)',
+          recordedBy: 'Olivia Wells',
+          recordedAt: now.subtract(const Duration(days: 1)),
+        ),
+      ];
 
   // ------------------------------------------------------------------- orders
   // Prices are Ethiopian Birr, scaled to the Addis Ababa event-rental

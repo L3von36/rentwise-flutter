@@ -13,6 +13,7 @@ import '../models/account.dart';
 import '../models/activity_entry.dart';
 import '../models/customer.dart';
 import '../models/inventory_item.dart';
+import '../models/payment_receipt.dart';
 import '../models/pickup.dart';
 import '../models/rental_order.dart';
 
@@ -24,6 +25,12 @@ class WorkspaceSnapshot {
   final List<Customer> customers;
   final List<ActivityEntry> activity;
   final List<Pickup> pickups;
+
+  /// v1.30 payments ledger — every receipt in the workspace,
+  /// chronological. Empty on clouds not yet provisioned with the
+  /// `payments` collection (the feature then reads "nothing recorded"
+  /// instead of failing sign-in).
+  final List<PaymentReceipt> payments;
   final List<String> workspaces;
   final String activeWorkspace;
   final double grossMonthK;
@@ -39,6 +46,7 @@ class WorkspaceSnapshot {
     required this.customers,
     required this.activity,
     required this.pickups,
+    this.payments = const [],
     required this.workspaces,
     required this.activeWorkspace,
     required this.grossMonthK,
@@ -417,6 +425,7 @@ class AppwriteBackend {
     const collections = [
       AppwriteConfig.colInventory,
       AppwriteConfig.colOrders,
+      AppwriteConfig.colPayments, // v1.30 receipts wipe with the business
       AppwriteConfig.colCustomers,
       AppwriteConfig.colActivities,
       AppwriteConfig.colPickups,
@@ -535,6 +544,18 @@ class AppwriteBackend {
     final wrk = _listAll(AppwriteConfig.colWorkspaces);
     final met = _getMetricsDoc();
 
+    // v1.30 payments ledger. Clouds provisioned before the collection
+    // answer 404 — the ledger loads as EMPTY and sign-in continues; the
+    // feature simply reports "nothing recorded" until the cloud is
+    // upgraded (scripts/appwrite_provision.sh).
+    final pay = _listAll(AppwriteConfig.colPayments, extraQueries: [
+      aw.Query.orderAsc('recordedAt'),
+    ]).catchError((Object e) {
+      debugPrint('Appwrite[load.payments] collection unavailable — '
+          'ledger loads empty: $e');
+      return <models.Document>[];
+    });
+
     final r = await Future.wait([
       inv,
       ord,
@@ -542,6 +563,7 @@ class AppwriteBackend {
       act,
       pks,
       wrk,
+      pay,
     ]).timeout(_bulkTimeout);
 
     final metRes = await met;
@@ -556,6 +578,9 @@ class AppwriteBackend {
       customers: r[2].map(customerFromDoc).toList(),
       activity: r[3].map(activityFromDoc).toList(),
       pickups: r[4].map(pickupFromDoc).toList(),
+      payments: r[6]
+          .map((d) => paymentFromDoc(d.$id, d.data))
+          .toList(growable: false),
       workspaces: r[5]
           .map((d) => (d.data['name'] ?? '') as String)
           .where((n) => n.isNotEmpty)
@@ -738,6 +763,26 @@ class AppwriteBackend {
         },
         isNew: true,
       );
+
+  /// v1.30 payments ledger — receipts are append-only facts. There is
+  /// no update path: corrections DELETE a receipt (owner-only) and the
+  /// ledger re-derives the stage flags from what remains.
+  Future<void> putPayment(PaymentReceipt receipt) => _upsert(
+        AppwriteConfig.colPayments,
+        receipt.id,
+        paymentToDoc(receipt),
+        isNew: true,
+      );
+
+  Future<void> deletePayment(String receiptId) async {
+    await _db
+        .deleteDocument(
+          databaseId: AppwriteConfig.databaseId,
+          collectionId: AppwriteConfig.colPayments,
+          documentId: receiptId,
+        )
+        .timeout(_callTimeout);
+  }
 
   Future<void> putWorkspace(String name, {required String createdBy}) {
     final id = slugFor(name);

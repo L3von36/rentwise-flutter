@@ -8,6 +8,7 @@ import 'package:rentwise/models/account.dart';
 import 'package:rentwise/models/activity_entry.dart';
 import 'package:rentwise/models/customer.dart';
 import 'package:rentwise/models/inventory_item.dart';
+import 'package:rentwise/models/payment_receipt.dart';
 import 'package:rentwise/models/rental_order.dart';
 import 'package:rentwise/services/appwrite_backend.dart';
 import 'package:rentwise/state/workspace_state.dart';
@@ -125,6 +126,7 @@ class RecordingBackend extends AppwriteBackend {
       customers: SampleDataset.customers(now),
       activity: SampleDataset.activity(now),
       pickups: SampleDataset.pickups(now),
+      payments: SampleDataset.payments(now),
       workspaces: [SampleDataset.workspaceName],
       activeWorkspace: SampleDataset.workspaceName,
       grossMonthK: SampleDataset.grossRevenueMonth,
@@ -410,6 +412,34 @@ class RecordingBackend extends AppwriteBackend {
   @override
   Future<void> putActivity(ActivityEntry entry) =>
       _record('activities', entry.id, true, extra: {'body': entry.body});
+
+  /// v1.30 — receipts are append-only; each write lands in the ledger.
+  @override
+  Future<void> putPayment(PaymentReceipt receipt) =>
+      _record('payments', receipt.id, true, extra: {
+        'orderId': receipt.orderId,
+        'amount': receipt.amount,
+        'method': receipt.method.name,
+        'note': receipt.note,
+      });
+
+  /// Receipt ids deleted through the owner-correction flow.
+  final List<String> deletedPaymentIds = [];
+
+  @override
+  Future<void> deletePayment(String receiptId) async {
+    if (failWrites) {
+      throw aw.AppwriteException('cloud rejected mutation', 400,
+          'general_rate_limit_exceeded');
+    }
+    deletedPaymentIds.add(receiptId);
+    writes.add(RecordedWrite(
+      collection: 'payments',
+      id: receiptId,
+      isNew: false,
+      data: const {'deleted': true},
+    ));
+  }
 
   @override
   Future<void> putWorkspace(String name, {required String createdBy}) =>

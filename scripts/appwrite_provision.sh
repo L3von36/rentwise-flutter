@@ -143,6 +143,16 @@ mkattr orders '{"key":"status","type":"enum","elements":["preparing","confirmed"
 mkattr orders '{"key":"notes","type":"string","size":4000,"required":false,"default":""}' string
 mkattr orders '{"key":"linesJson","type":"string","size":8000,"required":false,"default":"[]"}' string
 
+# ---- payments (v1.30 ledger — append-only receipts; bucket allocation
+# is derived client-side, so only the raw facts are stored)
+mkcoll payments 'Payment receipts' "$PERM_USERS_CRUD" false
+mkattr payments '{"key":"orderId","type":"string","size":64,"required":true}' string
+mkattr payments '{"key":"amount","type":"float","required":true,"min":-100000000,"max":100000000}' float
+mkattr payments '{"key":"method","type":"enum","elements":["cash","telebirr","cbeBirr","mpesa","chapa","card"],"required":true}' enum
+mkattr payments '{"key":"note","type":"string","size":256,"required":false,"default":""}' string
+mkattr payments '{"key":"recordedBy","type":"string","size":128,"required":false,"default":""}' string
+mkattr payments '{"key":"recordedAt","type":"datetime","required":true}' datetime
+
 # ---- activities
 mkcoll activities 'Activity log' "$PERM_USERS_CRUD" false
 mkattr activities '{"key":"actor","type":"string","size":128,"required":true}' string
@@ -207,6 +217,7 @@ mkidx inventory_items idx_category key '["category"]'
 mkidx customers idx_name key '["name"]'
 mkidx orders idx_status key '["status"]'
 mkidx orders idx_customer key '["customerName"]'
+mkidx payments idx_orderId key '["orderId"]'
 mkidx activities idx_at key '["at"]'
 
 echo '== platforms =='

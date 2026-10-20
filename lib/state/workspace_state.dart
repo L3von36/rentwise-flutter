@@ -8,6 +8,7 @@ import '../models/account.dart';
 import '../models/activity_entry.dart';
 import '../models/customer.dart';
 import '../models/inventory_item.dart';
+import '../models/payment_receipt.dart';
 import '../models/pickup.dart';
 import '../models/rental_order.dart';
 import '../models/shift_task.dart';
@@ -238,6 +239,10 @@ class WorkspaceState extends ChangeNotifier {
     _customers = snap.customers;
     _activity = snap.activity;
     _pickups = snap.pickups;
+    _payments = snap.payments;
+    _ledgerOwned
+      ..clear()
+      ..addAll({for (final p in snap.payments) p.orderId});
     _workspaces
       ..clear()
       ..addAll(snap.workspaces);
@@ -877,6 +882,8 @@ class WorkspaceState extends ChangeNotifier {
     await b.resetWorkspaceData();
     _inventory = const [];
     _orders = const [];
+    _payments = const [];
+    _ledgerOwned.clear();
     _customers = const [];
     _activity = const [];
     _pickups = const [];
@@ -1043,18 +1050,26 @@ class WorkspaceState extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    if (status == OrderStatus.outForDelivery && !order.canHandOver) {
-      final blockers = order.handoverBlockers.join(' · ');
-      _emit(
-        'Handover blocked for #${order.id} — collect first: $blockers.',
-        error: true,
+    if (status == OrderStatus.outForDelivery) {
+      // Gate check runs on the LIVE copy — money settled a moment ago
+      // must count, money refunded a moment ago must block.
+      final live = _orders.firstWhere(
+        (o) => o.id == order.id,
+        orElse: () => order,
       );
-      notifyListeners();
-      return false;
+      if (!live.canHandOver) {
+        final blockers = live.handoverBlockers.join(' · ');
+        _emit(
+          'Handover blocked for #${order.id} — collect first: $blockers.',
+          error: true,
+        );
+        notifyListeners();
+        return false;
+      }
     }
     final idx = _orders.indexWhere((o) => o.id == order.id);
     if (idx == -1) return false;
-    final updated = order.copyWith(status: status);
+    final updated = _orders[idx].copyWith(status: status);
     _orders[idx] = updated;
     final b = _backend;
     if (b != null) {
@@ -1077,10 +1092,374 @@ class WorkspaceState extends ChangeNotifier {
     return true;
   }
 
-  // -------------------------------------------------- payment policy (v1.26)
-  // Down payment → remaining balance → collateral, then ID + signature —
-  // ALL before the order may move to "With customer". Every action is
-  // written through to the order document and logged as a payment.
+  // -------------------------------------------------- payments ledger (v1.30)
+  // Receipts are append-only facts: amount > 0 collected, < 0 refunded.
+  // WHAT each receipt settles is never stored — PaymentLedger derives it
+  // in policy order (down → remaining → collateral), and the order
+  // document's stage flags are materialized from that derived truth so
+  // every existing KPI, filter and the handover gate keep reading them
+  // unchanged. Corrections DELETE a receipt — owner-only, always logged.
+
+  /// Real receipts in the workspace (append-only). Legacy stage flags
+  /// from v1.29 orders are read as VIRTUAL receipts on the fly — they
+  /// never appear in this list.
+  List<PaymentReceipt> _payments = const [];
+
+  /// Orders whose stage flags the ledger OWNS (any receipt recorded or
+  /// migrated, even if later corrected away). The materializer only
+  /// rewrites flags for owned orders — untouched legacy orders keep
+  /// their original v1.29 flags.
+  final Set<String> _ledgerOwned = {};
+
+  /// Every real receipt in the workspace, newest first.
+  List<PaymentReceipt> get payments => List.unmodifiable(_payments);
+
+  /// One order's ledger rows, newest first.
+  List<PaymentReceipt> paymentsForOrder(String orderId) {
+    final own =
+        _payments.where((p) => p.orderId == orderId).toList(growable: false);
+    return own.reversed.toList(growable: false);
+  }
+
+  /// Derived payment truth for [order]: real receipts, plus the order's
+  /// pre-ledger stage flags (v1.29 and earlier) projected as virtual
+  /// receipts so legacy progress reads correctly until the order is
+  /// first touched (at which point they become real migration rows).
+  PaymentLedger ledgerFor(RentalOrder order) {
+    final hasReal = _payments.any((p) => p.orderId == order.id);
+    if (hasReal) return PaymentLedger.of(order, _payments);
+    return PaymentLedger.of(order, _virtualLegacyReceipts(order));
+  }
+
+  /// Projects legacy settled stages as virtual receipts (never stored,
+  /// never shown). Money that WAS collected before the ledger existed
+  /// must count as held — otherwise a refund on an untouched legacy
+  /// order would have nothing to draw from.
+  List<PaymentReceipt> _virtualLegacyReceipts(RentalOrder order) {
+    final out = <PaymentReceipt>[];
+    void project(
+      PaymentStage stage,
+      DateTime? paidAt,
+      PaymentMethod? method,
+      double target,
+      String suffix,
+    ) {
+      if (paidAt == null || target <= kMoneyEps) return;
+      out.add(PaymentReceipt(
+        id: 'VIRTUAL-${order.id}-$suffix',
+        orderId: order.id,
+        amount: target,
+        method: method ?? PaymentMethod.cash,
+        note: AppLocale.t('received before the payments ledger'),
+        recordedBy: '',
+        recordedAt: paidAt,
+      ));
+    }
+
+    project(PaymentStage.down, order.downPaymentPaidAt, order.downPaymentMethod,
+        order.downPayment, 'down');
+    project(PaymentStage.remaining, order.remainingPaidAt,
+        order.remainingMethod, order.remainingDue, 'remaining');
+    project(PaymentStage.collateral, order.collateralPaidAt,
+        order.collateralMethod, order.collateralAmount, 'collateral');
+    return out;
+  }
+
+  /// First ledger mutation on a v1.29-era order: converts its legacy
+  /// stage flags into REAL migration receipts (same amounts, same
+  /// timestamps, honest provenance note) so the allocator and the
+  /// correction flow (delete receipt) operate on one consistent fact
+  /// base from then on.
+  void _ensureMigrationReceipts(RentalOrder order) {
+    if (_payments.any((p) => p.orderId == order.id)) return;
+    final legacy = _virtualLegacyReceipts(order);
+    if (legacy.isEmpty) return;
+    final migrated = <PaymentReceipt>[];
+    for (final v in legacy) {
+      migrated.add(PaymentReceipt(
+        id: _nextId('PAY', [for (final p in _payments) p.id, ...migrated.map((m) => m.id)]),
+        orderId: order.id,
+        amount: v.amount,
+        method: v.method,
+        note: AppLocale.t('recorded when the payments ledger was enabled'),
+        recordedBy: AppLocale.t('Ledger migration'),
+        recordedAt: v.recordedAt,
+      ));
+    }
+    _payments = [..._payments, ...migrated];
+    _ledgerOwned.add(order.id);
+    final b = _backend;
+    if (b != null) {
+      for (final r in migrated) {
+        _push(b.putPayment(r), 'payments.migrate');
+      }
+    }
+  }
+
+  /// Rounds to cents — ledger rows never carry sub-cent dust.
+  double _cents(double v) => (v * 100).roundToDouble() / 100;
+
+  /// Records money actually received on [order]. The receipt fills the
+  /// buckets in policy order (down → remaining → collateral), so one
+  /// receipt may honestly span stages. Refuses overpayment and closed
+  /// orders. Returns true when recorded.
+  bool recordPayment(
+    RentalOrder order, {
+    required double amount,
+    required PaymentMethod method,
+    String note = '',
+  }) {
+    if (!role.canOperateRentals) {
+      _deny('record payments');
+      notifyListeners();
+      return false;
+    }
+    final amt = _cents(amount);
+    if (amt <= kMoneyEps) {
+      _emit('Enter the amount that actually arrived.', error: true);
+      notifyListeners();
+      return false;
+    }
+    if (order.status == OrderStatus.returned) {
+      _emit('Order #${order.id} is returned — its ledger is closed.',
+          error: true);
+      notifyListeners();
+      return false;
+    }
+    _ensureMigrationReceipts(order);
+    final before = PaymentLedger.of(order, _payments);
+    final outstanding = before.outstandingTotal;
+    if (amt > outstanding + kMoneyEps) {
+      _emit(
+        '${Fmt.moneySmart(amt)} exceeds the ${Fmt.moneySmart(outstanding)} '
+        'still outstanding on #${order.id}.',
+        error: true,
+      );
+      notifyListeners();
+      return false;
+    }
+    final receipt = PaymentReceipt(
+      id: _nextId('PAY', _payments.map((p) => p.id)),
+      orderId: order.id,
+      amount: amt,
+      method: method,
+      note: note.trim(),
+      recordedBy: _account?.name ?? '',
+      recordedAt: DateTime.now(),
+    );
+    _payments = [..._payments, receipt];
+    _ledgerOwned.add(order.id);
+    final b = _backend;
+    if (b != null) {
+      _push(b.putPayment(receipt), 'payments.put');
+    }
+    _materializePaymentStages(order);
+    final after = PaymentLedger.of(order, _payments);
+    // Honest allocation trail — what this receipt actually settled.
+    final applied = <String>[
+      for (final bucket in PaymentBucket.values)
+        if (before.outstandingFor(bucket) - after.outstandingFor(bucket) >
+            kMoneyEps)
+          '${bucket.label} ${Fmt.moneySmart(before.outstandingFor(bucket) - after.outstandingFor(bucket))}',
+    ];
+    _log(
+      type: ActivityType.payment,
+      body: '**${_account?.name ?? 'Someone'}** collected '
+          '**${Fmt.moneySmart(amt)}** via ${method.label} on '
+          '**#${order.id} · ${order.eventName}**'
+          '${applied.length > 1 ? ' — ${applied.join(' · ')}' : ''}'
+          '${receipt.note.isEmpty ? '' : ' (${receipt.note})'}',
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Returns the collateral deposit to the customer — a negative
+  /// receipt that un-settles the collateral stage. Allowed once the
+  /// items are back (the order is returned).
+  bool refundCollateral(
+    RentalOrder order, {
+    required PaymentMethod method,
+    String note = '',
+  }) {
+    if (!role.canOperateRentals) {
+      _deny('refund collateral');
+      notifyListeners();
+      return false;
+    }
+    if (order.status != OrderStatus.returned) {
+      _emit(
+        'Collateral is handed back when the items return — mark '
+        '#${order.id} returned first.',
+        error: true,
+      );
+      notifyListeners();
+      return false;
+    }
+    _ensureMigrationReceipts(order);
+    final held = PaymentLedger.of(order, _payments).collateralHeld;
+    if (held <= kMoneyEps) {
+      _emit('No collateral is currently held on #${order.id}.', error: true);
+      notifyListeners();
+      return false;
+    }
+    final receipt = PaymentReceipt(
+      id: _nextId('PAY', _payments.map((p) => p.id)),
+      orderId: order.id,
+      amount: -_cents(held),
+      method: method,
+      note: note.trim().isEmpty
+          ? '${AppLocale.t('Collateral returned to')} ${order.customerName}'
+          : note.trim(),
+      recordedBy: _account?.name ?? '',
+      recordedAt: DateTime.now(),
+    );
+    _payments = [..._payments, receipt];
+    _ledgerOwned.add(order.id);
+    final b = _backend;
+    if (b != null) {
+      _push(b.putPayment(receipt), 'payments.refund');
+    }
+    _materializePaymentStages(order);
+    _log(
+      type: ActivityType.payment,
+      body: '**${_account?.name ?? 'Someone'}** returned the '
+          '**collateral ${Fmt.moneySmart(held)}** to '
+          '**${order.customerName}** via ${method.label} on '
+          '**#${order.id} · ${order.eventName}**',
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Owner-only correction: removes a receipt and re-derives the stage
+  /// flags from what remains — a stage that drops below its target
+  /// honestly un-settles. Every removal is logged.
+  bool deletePaymentReceipt(RentalOrder order, PaymentReceipt receipt) {
+    if (!role.canViewReports) {
+      _deny('correct the payments ledger');
+      notifyListeners();
+      return false;
+    }
+    if (!_payments.any((p) => p.id == receipt.id && p.orderId == order.id)) {
+      return false;
+    }
+    _payments = _payments.where((p) => p.id != receipt.id).toList();
+    final b = _backend;
+    if (b != null) {
+      _push(b.deletePayment(receipt.id), 'payments.delete');
+    }
+    _materializePaymentStages(order);
+    _log(
+      type: ActivityType.payment,
+      body: '**${_account?.name ?? 'Someone'}** removed a '
+          '**${receipt.isRefund ? 'refund' : 'receipt'} of '
+          '${Fmt.moneySmart(receipt.magnitude)}** from the '
+          '**#${order.id} · ${order.eventName}** ledger (correction)',
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Writes the ledger's derived stage flags back onto the order
+  /// document. Only orders the ledger OWNS (a receipt was recorded at
+  /// some point) are rewritten — untouched legacy orders keep their
+  /// original flags.
+  void _materializePaymentStages(RentalOrder order) {
+    final idx = _orders.indexWhere((o) => o.id == order.id);
+    if (idx == -1) return;
+    if (!_ledgerOwned.contains(order.id) &&
+        !_payments.any((p) => p.orderId == order.id)) {
+      return;
+    }
+    final current = _orders[idx];
+    final ledger = PaymentLedger.of(current, _payments);
+    var updated = current;
+    var changed = false;
+
+    bool sameStage(DateTime? a, DateTime? b, PaymentMethod? ma, PaymentMethod? mb) {
+      final timeSame = (a == null && b == null) ||
+          (a != null &&
+              b != null &&
+              a.difference(b).abs() < const Duration(seconds: 1));
+      return timeSame && ma == mb;
+    }
+
+    if (!sameStage(ledger.downPaidAt, current.downPaymentPaidAt,
+        ledger.downMethod, current.downPaymentMethod)) {
+      updated = updated.withPaymentStage(PaymentStage.down,
+          paidAt: ledger.downPaidAt, method: ledger.downMethod);
+      changed = true;
+    }
+    if (!sameStage(ledger.remainingPaidAt, current.remainingPaidAt,
+        ledger.remainingMethod, current.remainingMethod)) {
+      updated = updated.withPaymentStage(PaymentStage.remaining,
+          paidAt: ledger.remainingPaidAt, method: ledger.remainingMethod);
+      changed = true;
+    }
+    if (!sameStage(ledger.collateralPaidAt, current.collateralPaidAt,
+        ledger.collateralMethod, current.collateralMethod)) {
+      updated = updated.withPaymentStage(PaymentStage.collateral,
+          paidAt: ledger.collateralPaidAt, method: ledger.collateralMethod);
+      changed = true;
+    }
+    if (changed) {
+      _orders[idx] = updated;
+      final b = _backend;
+      if (b != null) {
+        _push(b.putOrder(updated, isNew: false), 'payments.materialize');
+      }
+    }
+  }
+
+  /// Records the DOWN PAYMENT stage as settled — records a receipt for
+  /// everything still outstanding through that stage (a legacy partial
+  /// down payment is topped up, never double-charged).
+  bool markDownPaymentReceived(RentalOrder order, {PaymentMethod? method}) {
+    final ledger = ledgerFor(order);
+    if (order.downPayment <= 0 ||
+        ledger.bucketSettled(PaymentBucket.downPayment)) {
+      return false;
+    }
+    return recordPayment(
+      order,
+      amount: ledger.outstandingFor(PaymentBucket.downPayment),
+      method: method ?? PaymentMethod.cash,
+      note: AppLocale.t('Down payment'),
+    );
+  }
+
+  /// Records enough money to settle the REMAINING stage — anything the
+  /// down payment stage still owes is filled first (policy order).
+  bool markRemainingReceived(RentalOrder order, {PaymentMethod? method}) {
+    final ledger = ledgerFor(order);
+    if (order.remainingDue <= 0 || ledger.bucketSettled(PaymentBucket.remaining)) {
+      return false;
+    }
+    return recordPayment(
+      order,
+      amount: ledger.outstandingFor(PaymentBucket.downPayment) +
+          ledger.outstandingFor(PaymentBucket.remaining),
+      method: method ?? PaymentMethod.cash,
+      note: AppLocale.t('Remaining balance'),
+    );
+  }
+
+  /// Records enough money to settle EVERY stage including collateral —
+  /// the full "ready for pickup" settlement.
+  bool markCollateralReceived(RentalOrder order, {PaymentMethod? method}) {
+    final ledger = ledgerFor(order);
+    if (order.collateralAmount <= 0 ||
+        ledger.bucketSettled(PaymentBucket.collateral)) {
+      return false;
+    }
+    return recordPayment(
+      order,
+      amount: ledger.outstandingTotal,
+      method: method ?? PaymentMethod.cash,
+      note: AppLocale.t('Collateral (refundable)'),
+    );
+  }
 
   /// Applies [patch] to the live order, pushes it and logs [body].
   /// Returns the updated order, or null when blocked/not found.
@@ -1098,7 +1477,10 @@ class WorkspaceState extends ChangeNotifier {
     }
     final idx = _orders.indexWhere((o) => o.id == order.id);
     if (idx == -1) return null;
-    final updated = patch(order);
+    // ALWAYS patch the live stored copy — a stale [order] reference
+    // (the UI re-reads, but nothing enforces it) must never resurrect
+    // outdated payment flags over fresher materialized ones.
+    final updated = patch(_orders[idx]);
     _orders[idx] = updated;
     final b = _backend;
     if (b != null) {
@@ -1109,60 +1491,7 @@ class WorkspaceState extends ChangeNotifier {
     return updated;
   }
 
-  /// Records the DOWN PAYMENT as received (always the first collection).
-  /// [method] captures the Ethiopian payment rail the money arrived on.
-  bool markDownPaymentReceived(RentalOrder order, {PaymentMethod? method}) {
-    if (order.downPayment <= 0 || order.downPaymentPaidAt != null) return false;
-    return _applyOrderPatch(
-          order,
-          (o) => o.copyWith(
-              downPaymentPaidAt: DateTime.now(), downPaymentMethod: method),
-          type: ActivityType.payment,
-          body:
-              '**${_account?.name ?? 'Someone'}** collected the **down payment '
-              '${Fmt.moneySmart(order.downPayment)}**'
-              '${method == null ? '' : ' via ${method.label}'}'
-              ' on **#${order.id} · ${order.eventName}**',
-        ) !=
-        null;
-  }
-
-  /// Records the REMAINING balance (total − down payment) as received.
-  bool markRemainingReceived(RentalOrder order, {PaymentMethod? method}) {
-    if (order.remainingDue <= 0 || order.remainingPaidAt != null) return false;
-    return _applyOrderPatch(
-          order,
-          (o) => o.copyWith(
-              remainingPaidAt: DateTime.now(), remainingMethod: method),
-          type: ActivityType.payment,
-          body: '**${_account?.name ?? 'Someone'}** collected the **remaining '
-              '${Fmt.moneySmart(order.remainingDue)}**'
-              '${method == null ? '' : ' via ${method.label}'}'
-              ' on **#${order.id} · ${order.eventName}**',
-        ) !=
-        null;
-  }
-
-  /// Records the COLLATERAL deposit as received (refunded at return).
-  bool markCollateralReceived(RentalOrder order, {PaymentMethod? method}) {
-    if (order.collateralAmount <= 0 || order.collateralPaidAt != null) {
-      return false;
-    }
-    return _applyOrderPatch(
-          order,
-          (o) => o.copyWith(
-              collateralPaidAt: DateTime.now(), collateralMethod: method),
-          type: ActivityType.payment,
-          body:
-              '**${_account?.name ?? 'Someone'}** held a **collateral deposit '
-              '${Fmt.moneySmart(order.collateralAmount)}**'
-              '${method == null ? '' : ' via ${method.label}'}'
-              ' on **#${order.id} · ${order.eventName}**',
-        ) !=
-        null;
-  }
-
-  /// Records that the customer\'s ID was sighted and matches the
+  /// Records that the customer's ID was sighted and matches the
   /// directory record ([Customer.idType]/[idNumber] when known).
   bool markIdVerified(RentalOrder order) {
     if (order.idVerifiedAt != null) return false;

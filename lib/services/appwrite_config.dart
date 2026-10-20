@@ -35,6 +35,14 @@ class AppwriteConfig {
   static const String colInventory = 'inventory_items';
   static const String colCustomers = 'customers';
   static const String colOrders = 'orders';
+
+  /// v1.30 payments ledger — append-only receipts (amount > 0 collected,
+  /// < 0 refunded). What stage each receipt fills is derived client-side
+  /// (PaymentLedger), never stored. Provisioned by
+  /// scripts/appwrite_provision.sh; clouds without the collection load
+  /// an empty ledger honestly instead of failing sign-in.
+  static const String colPayments = 'payments';
+
   static const String colActivities = 'activities';
   static const String colPickups = 'pickups';
   static const String colWorkspaces = 'workspaces';

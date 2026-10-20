@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../models/activity_entry.dart';
 import '../models/customer.dart';
+import '../models/payment_receipt.dart';
 
 import '../models/rental_order.dart';
 
@@ -76,6 +77,33 @@ OrderStatus statusFromDoc(String raw) => OrderStatus.values.byName(raw);
 
 String activityTypeToDoc(ActivityType t) => t.name;
 ActivityType activityTypeFromDoc(String raw) => ActivityType.values.byName(raw);
+
+// ------------------------------------------------------------- payments
+// v1.30 payments ledger — receipts live in their own collection. What
+// stage a receipt fills is DERIVED (PaymentLedger), never stored.
+
+Map<String, dynamic> paymentToDoc(PaymentReceipt r) => {
+      'orderId': r.orderId,
+      'amount': r.amount,
+      'method': r.method.docName,
+      'note': r.note,
+      'recordedBy': r.recordedBy,
+      'recordedAt': awDate(r.recordedAt),
+    };
+
+PaymentReceipt paymentFromDoc(String id, Map<String, dynamic> data) =>
+    PaymentReceipt(
+      id: id,
+      orderId: (data['orderId'] ?? '') as String,
+      amount: ((data['amount'] ?? 0) as num).toDouble(),
+      method: PaymentMethodX.fromDoc(data['method'] as String?) ??
+          PaymentMethod.cash,
+      note: (data['note'] ?? '') as String? ?? '',
+      recordedBy: (data['recordedBy'] ?? '') as String? ?? '',
+      recordedAt: data['recordedAt'] == null
+          ? DateTime.now()
+          : dateFromDoc(data['recordedAt'] as String),
+    );
 
 /// Quoted line items ride along on the order document as JSON.
 String orderLinesToDoc(List<OrderLine> lines) => jsonEncode(lines

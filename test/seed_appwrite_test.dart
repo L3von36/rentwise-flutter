@@ -97,6 +97,12 @@ void main() {
       });
     }
 
+    // ------------------------------------------------------- payments
+    // v1.30 ledger — receipts reproduce the settled orders' stage flags.
+    for (final r in SampleDataset.payments(now)) {
+      await api.put(AppwriteConfig.colPayments, r.id, paymentToDoc(r));
+    }
+
     // ------------------------------------------------------ activities
     for (final a in SampleDataset.activity(now)) {
       await api.put(AppwriteConfig.colActivities, a.id, {
