@@ -142,6 +142,13 @@ mkattr orders '{"key":"total","type":"float","required":true,"min":0,"max":10000
 mkattr orders '{"key":"status","type":"enum","elements":["preparing","confirmed","needsPayment","outForDelivery","returned"],"required":true}' enum
 mkattr orders '{"key":"notes","type":"string","size":4000,"required":false,"default":""}' string
 mkattr orders '{"key":"linesJson","type":"string","size":8000,"required":false,"default":"[]"}' string
+# v1.28 — Ethiopian payment rails (docName values: cash/telebirr/cbeBirr/
+# mpesa/chapa/card, max 8 chars). Without these columns putOrder falls
+# back to base fields on every write, so stage flags + handover data
+# (remainingPaidAt, idVerifiedAt, signature…) silently never persist.
+mkattr orders '{"key":"downPaymentMethod","type":"string","size":16,"required":false,"default":""}' string
+mkattr orders '{"key":"collateralMethod","type":"string","size":16,"required":false,"default":""}' string
+mkattr orders '{"key":"remainingMethod","type":"string","size":16,"required":false,"default":""}' string
 
 # ---- payments (v1.30 ledger — append-only receipts; bucket allocation
 # is derived client-side, so only the raw facts are stored)
